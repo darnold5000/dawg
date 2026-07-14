@@ -1,61 +1,46 @@
-import Image from "next/image";
-
-const GALLERY = [
-  {
-    src: "/images/dawg/gallery/speed.svg",
-    alt: "Athletes working on speed drills",
-  },
-  {
-    src: "/images/dawg/gallery/agility.svg",
-    alt: "Youth athletes practicing agility",
-  },
-  {
-    src: "/images/dawg/gallery/strength.svg",
-    alt: "Strength training for young athletes",
-  },
-  {
-    src: "/images/dawg/gallery/group.svg",
-    alt: "Group class training session",
-  },
-  {
-    src: "/images/dawg/gallery/private.svg",
-    alt: "Private lesson coaching",
-  },
-  {
-    src: "/images/dawg/gallery/facility.svg",
-    alt: "DAWG training facility atmosphere",
-  },
+const PLACEHOLDERS = [
+  "Speed & agility drills",
+  "Strength training",
+  "Group class energy",
+  "Private coaching",
+  "Facility turf work",
+  "Athletes in action",
 ];
 
 export function HomeGallery() {
   return (
-    <section className="bg-secondary/50 py-16 md:py-24">
+    <section className="bg-surface py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="max-w-2xl">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand">
-            Gallery
+        <div className="max-w-2xl pt-2">
+          <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-gold">
+            The Dawg House
           </p>
-          <h2 className="font-heading text-4xl tracking-wide md:text-5xl">
-            Training in Action
+          <h2 className="font-heading text-4xl leading-none tracking-wide text-white md:text-5xl">
+            Train Like You Mean It
           </h2>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Placeholder imagery for development. Replace with approved DAWG
-            photos in <code className="text-xs">/public/images/dawg/</code>.
+          <p className="mt-4 text-muted-foreground">
+            Photo gallery coming soon — approved DAWG training shots will live
+            here.
           </p>
         </div>
         <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
-          {GALLERY.map((item) => (
+          {PLACEHOLDERS.map((label, i) => (
             <div
-              key={item.src}
-              className="relative aspect-square overflow-hidden rounded-xl bg-ink"
+              key={label}
+              className={`flex items-center justify-center rounded-xl border border-dashed border-brand/35 bg-ink/60 athletic-grid ${
+                i === 0
+                  ? "aspect-square md:col-span-2 md:aspect-[16/10]"
+                  : "aspect-square"
+              }`}
             >
-              <Image
-                src={item.src}
-                alt={item.alt}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 50vw, 33vw"
-              />
+              <div className="px-4 text-center">
+                <p className="font-heading text-sm tracking-wide text-brand md:text-base">
+                  Photo {i + 1}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground md:text-sm">
+                  {label}
+                </p>
+              </div>
             </div>
           ))}
         </div>

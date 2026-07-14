@@ -1,3 +1,4 @@
+import { InstallHint } from "@/components/public/install-hint";
 import { SiteFooter } from "@/components/public/site-footer";
 import { SiteHeader } from "@/components/public/site-header";
 
@@ -15,6 +16,7 @@ export default function PublicLayout({
         Skip to content
       </a>
       <SiteHeader />
+      <InstallHint />
       <main id="main-content" className="flex-1">
         {children}
       </main>

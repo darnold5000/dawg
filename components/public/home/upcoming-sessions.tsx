@@ -12,11 +12,11 @@ export function HomeUpcomingSessions({
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand">
+          <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-gold">
             Live schedule
           </p>
           <h2 className="font-heading text-4xl tracking-wide md:text-5xl">
-            Upcoming Sessions
+            Upcoming <span className="text-brand">Sessions</span>
           </h2>
           <p className="mt-4 text-muted-foreground">
             Browse available classes and private lessons. Spots update when

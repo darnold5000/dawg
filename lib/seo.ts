@@ -71,7 +71,7 @@ export function organizationSchema() {
     "@type": "Organization",
     name: SITE.name,
     url: SITE.url,
-    logo: `${SITE.url}/images/dawg/logo.svg`,
+    logo: `${SITE.url}/images/dawg/logo.jpg`,
     email: SITE.email,
     telephone: SITE.phone,
     sameAs: [SITE.facebookUrl],

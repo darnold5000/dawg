@@ -5,12 +5,12 @@ export function HomeTrainers({ trainers }: { trainers: Trainer[] }) {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24">
       <div className="max-w-2xl">
-        <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand">
-          Coaches
-        </p>
-        <h2 className="font-heading text-4xl tracking-wide md:text-5xl">
-          Meet the Trainers
-        </h2>
+          <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-gold">
+            Coaches
+          </p>
+          <h2 className="font-heading text-4xl tracking-wide md:text-5xl">
+            Meet the <span className="text-brand">Trainers</span>
+          </h2>
       </div>
 
       <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -36,7 +36,7 @@ export default async function HomePage() {
   return (
     <>
       {settings.homepage_announcement ? (
-        <div className="bg-brand px-4 py-2.5 text-center text-sm font-medium text-brand-foreground">
+        <div className="bg-gold px-4 py-2.5 text-center text-sm font-bold text-gold-foreground">
           {settings.homepage_announcement}
         </div>
       ) : null}

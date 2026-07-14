@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Oswald, Manrope } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { PwaRegister } from "@/components/pwa-register";
 import { SITE } from "@/lib/constants";
 import { organizationSchema, localBusinessSchema } from "@/lib/seo";
 import "./globals.css";
@@ -23,6 +24,28 @@ export const metadata: Metadata = {
     template: `%s | ${SITE.name}`,
   },
   description: SITE.description,
+  applicationName: SITE.name,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: SITE.shortName,
+  },
+  formatDetection: {
+    telephone: true,
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      {
+        url: "/icons/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -51,6 +74,7 @@ export default function RootLayout({
           }}
         />
         {children}
+        <PwaRegister />
         <Toaster richColors position="top-center" />
       </body>
     </html>

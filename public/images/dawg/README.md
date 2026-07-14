@@ -1,20 +1,12 @@
 # DAWG image assets
 
-Place approved high-resolution photos here before launch.
+Official logo and training photos from the DAWG Facebook page (client-approved).
 
 ```
-public/images/dawg/
-  logo.svg          # Replace with official DAWG logo
-  og-default.svg
-  hero/
-  programs/
-  gallery/
-  trainers/
+logo.jpg              # Official DAWG logo (brick wall background)
+hero/training.jpg
+gallery/*.jpg
+trainers/avery.jpg    # Brand mark (logo) until a coach portrait is provided
 ```
 
-Do **not** bulk-scrape low-resolution Facebook images into production.
-Download approved assets manually from DAWG or the client, then replace these
-placeholders.
-
-Contact details currently seeded from:
-https://www.facebook.com/DawgYouthTraining
+**Palette from logo:** electric blue `#1F5CFF` · spike gold `#FFD400` · charcoal `#07090F`

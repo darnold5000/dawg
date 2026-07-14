@@ -47,6 +47,15 @@ values ('<auth-user-uuid>', 'Owner Name', 'owner@email.com', 'owner', true);
 | `/admin/availability` | Private-lesson slot generator |
 | `/admin/settings` | Business contact CMS |
 
+## Install on phone (PWA)
+
+Parents can save the site to their home screen and open it like an app:
+
+- **iPhone (Safari):** Share → **Add to Home Screen**
+- **Android (Chrome):** Menu → **Install app** / **Add to Home screen**
+
+Requires a live HTTPS deploy for the Android install prompt. Icons and manifest live under `public/icons/` and `app/manifest.ts`.
+
 ## Brand / assets
 
 Placeholder images live in `public/images/dawg/`. Replace with approved DAWG logo and photos before launch. Business contact seeded from [facebook.com/DawgYouthTraining](https://www.facebook.com/DawgYouthTraining).

@@ -20,11 +20,11 @@ export function HomeLocation({ settings }: { settings: BusinessSettings }) {
     <section id="contact" className="bg-secondary/40 py-16 md:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="max-w-2xl">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand">
+          <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-gold">
             Location
           </p>
           <h2 className="font-heading text-4xl tracking-wide md:text-5xl">
-            Train in Mooresville
+            Train in <span className="text-brand">Mooresville</span>
           </h2>
         </div>
 
@@ -71,7 +71,7 @@ export function HomeLocation({ settings }: { settings: BusinessSettings }) {
             </dl>
 
             <div className="flex flex-wrap gap-3">
-              <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
+              <Button asChild className="bg-gold font-bold text-gold-foreground hover:bg-gold/90">
                 <a href={`tel:${phone.replace(/\D/g, "")}`}>Call DAWG</a>
               </Button>
               <Button asChild variant="outline">

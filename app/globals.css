@@ -41,6 +41,8 @@
   --color-card: var(--card);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
   --color-ink: var(--ink);
   --color-surface: var(--surface);
   --radius-sm: calc(var(--radius) * 0.6);
@@ -51,43 +53,45 @@
 }
 
 :root {
-  /* Athletic: deep ink + amber energy (logo-derived starting palette) */
-  --background: #f7f5f1;
-  --foreground: #121212;
-  --card: #ffffff;
-  --card-foreground: #121212;
-  --popover: #ffffff;
-  --popover-foreground: #121212;
-  --primary: #121212;
-  --primary-foreground: #f7f5f1;
-  --secondary: #ebe6dc;
-  --secondary-foreground: #121212;
-  --muted: #ebe6dc;
-  --muted-foreground: #5c5c5c;
-  --accent: #f0a202;
-  --accent-foreground: #121212;
-  --destructive: #c0392b;
-  --border: #d9d2c5;
-  --input: #d9d2c5;
-  --ring: #f0a202;
-  --brand: #f0a202;
-  --brand-foreground: #121212;
-  --ink: #121212;
-  --surface: #1a1a1a;
-  --chart-1: #f0a202;
-  --chart-2: #121212;
-  --chart-3: #c0392b;
-  --chart-4: #3d7a5a;
-  --chart-5: #5c5c5c;
-  --radius: 0.625rem;
-  --sidebar: #121212;
-  --sidebar-foreground: #f7f5f1;
-  --sidebar-primary: #f0a202;
-  --sidebar-primary-foreground: #121212;
-  --sidebar-accent: #2a2a2a;
-  --sidebar-accent-foreground: #f7f5f1;
-  --sidebar-border: #2a2a2a;
-  --sidebar-ring: #f0a202;
+  /* DAWG logo palette: electric blue + spike gold + charcoal brick */
+  --background: #07090f;
+  --foreground: #f4f7ff;
+  --card: #111827;
+  --card-foreground: #f4f7ff;
+  --popover: #111827;
+  --popover-foreground: #f4f7ff;
+  --primary: #1f5cff;
+  --primary-foreground: #ffffff;
+  --secondary: #171d2e;
+  --secondary-foreground: #f4f7ff;
+  --muted: #171d2e;
+  --muted-foreground: #9aa6c2;
+  --accent: #ffd400;
+  --accent-foreground: #0a0a0a;
+  --destructive: #ef4444;
+  --border: #243049;
+  --input: #243049;
+  --ring: #1f5cff;
+  --brand: #1f5cff;
+  --brand-foreground: #ffffff;
+  --gold: #ffd400;
+  --gold-foreground: #0a0a0a;
+  --ink: #05070c;
+  --surface: #0c1220;
+  --chart-1: #1f5cff;
+  --chart-2: #ffd400;
+  --chart-3: #60a5fa;
+  --chart-4: #f97316;
+  --chart-5: #94a3b8;
+  --radius: 0.75rem;
+  --sidebar: #05070c;
+  --sidebar-foreground: #f4f7ff;
+  --sidebar-primary: #1f5cff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #171d2e;
+  --sidebar-accent-foreground: #f4f7ff;
+  --sidebar-border: #243049;
+  --sidebar-ring: #ffd400;
 }
 
 @layer base {
@@ -96,6 +100,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 10% -10%, rgb(31 92 255 / 0.28), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 90% 0%, rgb(255 212 0 / 0.12), transparent 45%),
+      linear-gradient(180deg, #07090f 0%, #0a1020 100%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans scroll-smooth;
@@ -107,7 +116,7 @@
     @apply font-heading uppercase tracking-wide;
   }
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-brand;
+    @apply outline-2 outline-offset-2 outline-gold;
   }
 }
 
@@ -119,11 +128,57 @@
 
 @utility athletic-grid {
   background-image:
-    linear-gradient(to right, rgb(18 18 18 / 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(18 18 18 / 0.04) 1px, transparent 1px);
-  background-size: 32px 32px;
+    linear-gradient(to right, rgb(31 92 255 / 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(31 92 255 / 0.08) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
 @utility angled-accent {
-  clip-path: polygon(0 0, 100% 0, 100% 88%, 0 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 92%, 0 100%);
+}
+
+@utility slash-divider {
+  clip-path: polygon(0 12%, 100% 0, 100% 88%, 0 100%);
+}
+
+@utility energy-glow {
+  box-shadow:
+    0 0 0 1px rgb(31 92 255 / 0.35),
+    0 12px 40px rgb(31 92 255 / 0.25);
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 212 0 / 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgb(255 212 0 / 0);
+  }
+}
+
+@utility cta-pulse {
+  animation: pulse-glow 2.4s ease-out infinite;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility rise-in {
+  animation: rise-in 0.7s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-pulse,
+  .rise-in {
+    animation: none;
+  }
 }

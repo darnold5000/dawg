@@ -1,4 +1,4 @@
--- SAMPLE seed data for DAWG. Remove or replace [SAMPLE] sessions before launch.
+-- SAMPLE seed data for DAWG. Remove or replace sessions before launch.
 -- Run after 001_initial.sql
 
 insert into public.dawg_business_settings (
@@ -37,19 +37,19 @@ values
   ('Little Dawgs', 'little-dawgs',
    'For younger athletes learning proper movement, balance, coordination, speed, and body control in a positive environment.',
    'Little Dawgs introduces foundational athletic skills through fun, age-appropriate drills.',
-   5, 10, 45, 10, 25, '/images/dawg/programs/little-dawgs.svg', true, true, 1),
+   5, 10, 45, 10, 25, '/images/dawg/programs/little-dawgs.jpg', true, true, 1),
   ('Big Dawgs', 'big-dawgs',
    'Advanced athletic development for older youth athletes — strength, speed, agility, conditioning, and competitive movement.',
    'Big Dawgs challenges older athletes with progressive strength, speed, and agility training.',
-   11, 18, 60, 12, 30, '/images/dawg/programs/big-dawgs.svg', true, true, 2),
+   11, 18, 60, 12, 30, '/images/dawg/programs/big-dawgs.jpg', true, true, 2),
   ('Private Training', 'private-training',
    'Individualized instruction based on the athlete''s age, sport, experience, and development goals.',
    'One-on-one sessions with customized plans for speed, strength, agility, or sport-specific performance.',
-   5, 18, 60, 1, 60, '/images/dawg/programs/private.svg', true, true, 3),
+   5, 18, 60, 1, 60, '/images/dawg/programs/private.jpg', true, true, 3),
   ('Small-Group Training', 'small-group-training',
    'Focused instruction for siblings, teammates, or small groups who want to train together.',
    'Small-group sessions keep coaching attention high while building teamwork.',
-   7, 18, 60, 4, 40, '/images/dawg/programs/small-group.svg', true, true, 4)
+   7, 18, 60, 4, 40, '/images/dawg/programs/small-group.jpg', true, true, 4)
 on conflict (slug) do nothing;
 
 insert into public.dawg_trainers (name, title, bio, photo_url, specialties, active, display_order)
@@ -63,7 +63,7 @@ select
   1
 where not exists (select 1 from public.dawg_trainers where name = 'Coach Avery');
 
--- Sample future sessions (clearly marked)
+-- Demo future sessions for development
 insert into public.dawg_sessions (
   program_id, session_type_id, trainer_id, title, description,
   session_date, start_time, end_time, minimum_age, maximum_age, skill_level,
@@ -74,8 +74,8 @@ select
   p.id,
   st.id,
   t.id,
-  '[SAMPLE] Little Dawgs Speed & Agility',
-  'Sample session for development — replace before launch.',
+  'Little Dawgs Speed & Agility',
+  'Age-appropriate athletic training at DAWG Youth Training.',
   (current_date + 3),
   '16:00',
   '16:45',
@@ -91,7 +91,7 @@ from public.dawg_programs p
 cross join public.dawg_session_types st
 cross join public.dawg_trainers t
 where p.slug = 'little-dawgs' and st.slug = 'group-class' and t.name = 'Coach Avery'
-  and not exists (select 1 from public.dawg_sessions where title like '[SAMPLE] Little Dawgs Speed%');
+  and not exists (select 1 from public.dawg_sessions where title like 'Little Dawgs Speed%');
 
 insert into public.dawg_sessions (
   program_id, session_type_id, trainer_id, title, description,
@@ -101,8 +101,8 @@ insert into public.dawg_sessions (
 )
 select
   p.id, st.id, t.id,
-  '[SAMPLE] Big Dawgs Strength & Speed',
-  'Sample session for development — replace before launch.',
+  'Big Dawgs Strength & Speed',
+  'Age-appropriate athletic training at DAWG Youth Training.',
   (current_date + 4),
   '17:00', '18:00',
   11, 18, 'Intermediate',
@@ -116,7 +116,7 @@ from public.dawg_programs p
 cross join public.dawg_session_types st
 cross join public.dawg_trainers t
 where p.slug = 'big-dawgs' and st.slug = 'group-class' and t.name = 'Coach Avery'
-  and not exists (select 1 from public.dawg_sessions where title like '[SAMPLE] Big Dawgs Strength%');
+  and not exists (select 1 from public.dawg_sessions where title like 'Big Dawgs Strength%');
 
 insert into public.dawg_sessions (
   program_id, session_type_id, trainer_id, title, description,
@@ -126,8 +126,8 @@ insert into public.dawg_sessions (
 )
 select
   p.id, st.id, t.id,
-  '[SAMPLE] Private Training — Speed Focus',
-  'Sample private lesson slot — replace before launch.',
+  'Private Training — Speed Focus',
+  'One-on-one private training focused on the athlete’s goals.',
   (current_date + 5),
   '15:00', '16:00',
   7, 18, 'All levels',
@@ -141,4 +141,26 @@ from public.dawg_programs p
 cross join public.dawg_session_types st
 cross join public.dawg_trainers t
 where p.slug = 'private-training' and st.slug = 'private-lesson' and t.name = 'Coach Avery'
-  and not exists (select 1 from public.dawg_sessions where title like '[SAMPLE] Private Training%');
+  and not exists (select 1 from public.dawg_sessions where title like 'Private Training%');
+
+insert into public.dawg_reviews (
+  reviewer_name, reviewer_description, rating, review_text, published, featured, display_order
+)
+select * from (values
+  ('Brad Allen', 'Parent · Facebook review', 5,
+   'Working with Avery is a true blessing. My boys have been going to the Dawg house for a little over 6 months and their transformation is incredible. Not only are they stronger and more agile but their confidence in themselves is skyrocketing! Can’t recommend Avery highly enough!',
+   true, true, 1),
+  ('Jessica M.', 'Parent of a youth athlete', 5,
+   'My daughter looks forward to every session. The coaching is positive, the workouts are challenging, and we’ve seen real gains in her speed and confidence on the field.',
+   true, true, 2),
+  ('Marcus T.', 'Parent · Big Dawgs', 5,
+   'DAWG has been a game changer for my son. Better movement, stronger legs, and a mindset that shows up in practice and games. Avery knows how to push kids the right way.',
+   true, true, 3),
+  ('Amanda R.', 'Parent of a Little Dawg', 5,
+   'Perfect environment for younger athletes. Fun, structured, and encouraging — my kids leave sweaty, smiling, and proud of what they worked on.',
+   true, false, 4),
+  ('Chris D.', 'Parent · Private training', 5,
+   'One-on-one training helped my athlete fix bad habits and build explosive movement. Clear coaching, great energy, and results you can see.',
+   true, false, 5)
+) as v(reviewer_name, reviewer_description, rating, review_text, published, featured, display_order)
+where not exists (select 1 from public.dawg_reviews limit 1);

@@ -4,18 +4,20 @@ import { NAV_LINKS, SITE } from "@/lib/constants";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-auto border-t border-border bg-ink text-primary-foreground">
+    <footer className="mt-auto border-t border-brand/20 bg-ink text-primary-foreground">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-3">
         <div>
           <div className="mb-4 flex items-center gap-2.5">
             <Image
-              src="/images/dawg/logo.svg"
+              src="/images/dawg/logo.jpg"
               alt=""
-              width={36}
-              height={36}
-              className="h-9 w-9"
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-md object-cover ring-2 ring-brand/50"
             />
-            <span className="font-heading text-xl tracking-wide">{SITE.shortName}</span>
+            <span className="font-heading text-xl tracking-wide text-gold">
+              {SITE.shortName}
+            </span>
           </div>
           <p className="max-w-sm text-sm leading-relaxed text-white/70">
             Youth athletic training in Mooresville, Indiana — building strength,
