@@ -306,16 +306,23 @@ export function SessionForm({
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="recurrence_weeks">Repeat weeks</Label>
-              <Input
+              <Label htmlFor="recurrence_weeks">Schedule length</Label>
+              <select
                 id="recurrence_weeks"
-                type="number"
-                min={1}
-                max={26}
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm disabled:opacity-50"
                 value={form.recurrence_weeks}
                 onChange={(e) => update("recurrence_weeks", e.target.value)}
                 disabled={form.recurrence === "none"}
-              />
+              >
+                <option value="1">1 week</option>
+                <option value="2">2 weeks</option>
+                <option value="4">4 weeks</option>
+                <option value="6">6 weeks</option>
+                <option value="8">8 weeks</option>
+                <option value="12">12 weeks (~3 months)</option>
+                <option value="16">16 weeks</option>
+                <option value="26">26 weeks (~6 months)</option>
+              </select>
             </div>
             {form.recurrence === "custom" ? (
               <div className="space-y-2 sm:col-span-2">
@@ -349,7 +356,7 @@ export function SessionForm({
                   })}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Creates a session on each selected day for the number of weeks
+                  Creates a session on each selected day for the schedule length
                   above, starting from the session date.
                 </p>
               </div>
