@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Oswald, Manrope } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/pwa-register";
 import { SITE } from "@/lib/constants";
@@ -76,6 +77,7 @@ export default function RootLayout({
         {children}
         <PwaRegister />
         <Toaster richColors position="top-center" />
+        <Analytics />
       </body>
     </html>
   );
