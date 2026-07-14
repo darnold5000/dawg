@@ -18,7 +18,11 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: "Invalid session data", details: error.flatten() },
+        {
+          error:
+            error.issues[0]?.message ?? "Invalid session data",
+          details: error.flatten(),
+        },
         { status: 400 },
       );
     }

@@ -34,10 +34,22 @@ export const sessionFormSchema = z.object({
   status: z.enum(["draft", "published", "full", "cancelled", "completed"]),
   featured: z.boolean().optional(),
   recurrence: z
-    .enum(["none", "weekly", "weekdays"])
+    .enum(["none", "weekly", "weekdays", "custom"])
     .optional()
     .default("none"),
   recurrence_weeks: z.coerce.number().int().min(1).max(26).optional().default(1),
+  recurrence_days: z
+    .array(z.coerce.number().int().min(0).max(6))
+    .optional()
+    .default([]),
+}).superRefine((value, ctx) => {
+  if (value.recurrence === "custom" && (value.recurrence_days?.length ?? 0) === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Select at least one day of the week",
+      path: ["recurrence_days"],
+    });
+  }
 });
 
 export type SessionFormInput = z.infer<typeof sessionFormSchema>;
@@ -49,13 +61,15 @@ function normalizeTime(value: string): string {
 
 function buildOccurrenceDates(
   startDate: string,
-  recurrence: "none" | "weekly" | "weekdays",
+  recurrence: "none" | "weekly" | "weekdays" | "custom",
   weeks: number,
+  recurrenceDays: number[] = [],
 ): string[] {
-  if (recurrence === "none" || weeks <= 1) return [startDate];
+  if (recurrence === "none") return [startDate];
 
   const dates: string[] = [];
   const start = parse(startDate, "yyyy-MM-dd", new Date());
+  const daySet = new Set(recurrenceDays);
 
   if (recurrence === "weekly") {
     for (let i = 0; i < weeks; i++) {
@@ -64,15 +78,25 @@ function buildOccurrenceDates(
     return dates;
   }
 
-  // weekdays for N weeks
+  if (recurrence === "weekdays") {
+    for (let i = 0; i < weeks * 7; i++) {
+      const d = addDays(start, i);
+      const day = d.getDay();
+      if (day !== 0 && day !== 6) {
+        dates.push(format(d, "yyyy-MM-dd"));
+      }
+    }
+    return dates;
+  }
+
+  // custom: selected weekdays for N weeks from the start date
   for (let i = 0; i < weeks * 7; i++) {
     const d = addDays(start, i);
-    const day = d.getDay();
-    if (day !== 0 && day !== 6) {
+    if (daySet.has(d.getDay())) {
       dates.push(format(d, "yyyy-MM-dd"));
     }
   }
-  return dates;
+  return dates.length > 0 ? dates : [startDate];
 }
 
 export async function createSessionsFromForm(
@@ -90,6 +114,7 @@ export async function createSessionsFromForm(
     parsed.session_date,
     parsed.recurrence ?? "none",
     parsed.recurrence_weeks ?? 1,
+    parsed.recurrence_days ?? [],
   );
   const recurrenceGroupId =
     dates.length > 1 ? crypto.randomUUID() : null;

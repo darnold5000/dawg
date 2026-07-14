@@ -71,15 +71,29 @@ export function SessionForm({
     location_address: SITE.address.full,
     recurrence: "none",
     recurrence_weeks: "4",
+    recurrence_days: [] as number[],
     featured: false,
   });
 
-  function update(key: string, value: string | boolean) {
+  function update(key: string, value: string | boolean | number[]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleRecurrenceDay(day: number) {
+    setForm((prev) => {
+      const selected = prev.recurrence_days.includes(day)
+        ? prev.recurrence_days.filter((d) => d !== day)
+        : [...prev.recurrence_days, day].sort((a, b) => a - b);
+      return { ...prev, recurrence_days: selected };
+    });
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.recurrence === "custom" && form.recurrence_days.length === 0) {
+      toast.error("Select at least one day of the week");
+      return;
+    }
     setLoading(true);
     try {
       const endpoint =
@@ -286,8 +300,9 @@ export function SessionForm({
                 onChange={(e) => update("recurrence", e.target.value)}
               >
                 <option value="none">One-time</option>
-                <option value="weekly">Weekly</option>
-                <option value="weekdays">Every weekday</option>
+                <option value="weekly">Weekly (same weekday)</option>
+                <option value="weekdays">Every weekday (Mon–Fri)</option>
+                <option value="custom">Custom days</option>
               </select>
             </div>
             <div className="space-y-1.5">
@@ -299,8 +314,46 @@ export function SessionForm({
                 max={26}
                 value={form.recurrence_weeks}
                 onChange={(e) => update("recurrence_weeks", e.target.value)}
+                disabled={form.recurrence === "none"}
               />
             </div>
+            {form.recurrence === "custom" ? (
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Days of the week</Label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { day: 0, label: "Sun" },
+                    { day: 1, label: "Mon" },
+                    { day: 2, label: "Tue" },
+                    { day: 3, label: "Wed" },
+                    { day: 4, label: "Thu" },
+                    { day: 5, label: "Fri" },
+                    { day: 6, label: "Sat" },
+                  ].map(({ day, label }) => {
+                    const selected = form.recurrence_days.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleRecurrenceDay(day)}
+                        className={
+                          selected
+                            ? "rounded-md bg-ink px-3 py-2 text-sm font-semibold text-primary-foreground"
+                            : "rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
+                        }
+                        aria-pressed={selected}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Creates a session on each selected day for the number of weeks
+                  above, starting from the session date.
+                </p>
+              </div>
+            ) : null}
           </>
         ) : null}
         <div className="space-y-1.5 sm:col-span-2">

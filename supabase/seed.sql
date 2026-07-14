@@ -164,3 +164,82 @@ select * from (values
    true, false, 5)
 ) as v(reviewer_name, reviewer_description, rating, review_text, published, featured, display_order)
 where not exists (select 1 from public.dawg_reviews limit 1);
+
+-- ---------------------------------------------------------------------------
+-- Seed admin user (login at /admin/login)
+-- Email: hello@hiresignalworks.com
+-- Password: 1Password
+-- Change this password after first login in production.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_user_id uuid := gen_random_uuid();
+  v_email text := 'hello@hiresignalworks.com';
+  v_encrypted_pw text := crypt('1Password', gen_salt('bf'));
+begin
+  if exists (select 1 from auth.users where email = v_email) then
+    select id into v_user_id from auth.users where email = v_email;
+  else
+    insert into auth.users (
+      instance_id,
+      id,
+      aud,
+      role,
+      email,
+      encrypted_password,
+      email_confirmed_at,
+      raw_app_meta_data,
+      raw_user_meta_data,
+      created_at,
+      updated_at,
+      confirmation_token,
+      recovery_token,
+      email_change_token_new,
+      email_change
+    ) values (
+      '00000000-0000-0000-0000-000000000000',
+      v_user_id,
+      'authenticated',
+      'authenticated',
+      v_email,
+      v_encrypted_pw,
+      now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"full_name":"DAWG Admin"}'::jsonb,
+      now(),
+      now(),
+      '',
+      '',
+      '',
+      ''
+    );
+
+    insert into auth.identities (
+      id,
+      user_id,
+      identity_data,
+      provider,
+      provider_id,
+      last_sign_in_at,
+      created_at,
+      updated_at
+    ) values (
+      gen_random_uuid(),
+      v_user_id,
+      format('{"sub":"%s","email":"%s"}', v_user_id, v_email)::jsonb,
+      'email',
+      v_user_id::text,
+      now(),
+      now(),
+      now()
+    );
+  end if;
+
+  insert into public.dawg_profiles (id, full_name, email, role, active)
+  values (v_user_id, 'DAWG Admin', v_email, 'owner', true)
+  on conflict (id) do update
+    set full_name = excluded.full_name,
+        email = excluded.email,
+        role = excluded.role,
+        active = true;
+end $$;

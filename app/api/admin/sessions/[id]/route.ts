@@ -19,10 +19,11 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const parsed = sessionFormSchema.omit({ recurrence: true, recurrence_weeks: true }).parse({
+    const parsed = sessionFormSchema.omit({ recurrence: true, recurrence_weeks: true, recurrence_days: true }).parse({
       ...body,
       recurrence: "none",
       recurrence_weeks: 1,
+      recurrence_days: [],
     });
 
     if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {

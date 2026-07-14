@@ -24,8 +24,12 @@ Without Supabase env vars the public site and admin UI run in **demo mode** usin
 1. Use the shared Dugout Intel Supabase project (same pattern as Oak Tree).
 2. Run [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql).
 3. Run [`supabase/seed.sql`](supabase/seed.sql).
-4. Create an Auth user in Supabase (invitation only — no public signup).
-5. Insert a matching `dawg_profiles` row:
+4. Create an Auth user in Supabase (invitation only — no public signup), **or** run `seed.sql` which creates:
+
+   - Email: `hello@hiresignalworks.com`
+   - Password: `1Password`
+
+5. Insert a matching `dawg_profiles` row (seed does this automatically):
 
 ```sql
 insert into public.dawg_profiles (id, full_name, email, role, active)
