@@ -90,17 +90,25 @@ export function SiteFooter() {
           <p>
             © {new Date().getFullYear()} {SITE.name}. All rights reserved.
           </p>
-          <p>
-            Website by{" "}
-            <a
-              href={SITE.signalWorks.url}
-              target="_blank"
-              rel="noopener noreferrer"
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <Link
+              href="/admin/login"
               className="text-white/70 underline-offset-2 hover:text-white hover:underline"
             >
-              {SITE.signalWorks.name}
-            </a>
-          </p>
+              Staff login
+            </Link>
+            <p>
+              Website by{" "}
+              <a
+                href={SITE.signalWorks.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/70 underline-offset-2 hover:text-white hover:underline"
+              >
+                {SITE.signalWorks.name}
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </footer>
