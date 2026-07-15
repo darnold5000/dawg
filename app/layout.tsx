@@ -21,7 +21,7 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: `${SITE.name} | Mooresville, Indiana`,
+    default: `${SITE.name} | Plainfield, Indiana`,
     template: `%s | ${SITE.name}`,
   },
   description: SITE.description,

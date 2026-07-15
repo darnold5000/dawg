@@ -106,13 +106,13 @@ export const FALLBACK_TRAINERS: Trainer[] = [
   {
     id: "trainer-1",
     profile_id: null,
-    name: "Coach Avery",
+    name: "Coach Jordan",
     title: "Owner / Head Trainer",
     bio: "DAWGZ specifically emphasizes developing both physical and mental attributes in athletes within a positive and engaging setting.",
     photo_url: "/images/dawg/trainers/avery.jpg",
     specialties: ["Speed", "Agility", "Youth Athletic Development"],
     certifications: [],
-    coaching_experience: "Youth athletic training in Mooresville, Indiana",
+    coaching_experience: "Youth athletic training in Plainfield, Indiana",
     sports_background: "Sports performance coaching",
     active: true,
     display_order: 1,
@@ -346,7 +346,7 @@ export const FALLBACK_REVIEWS: Review[] = [
     athlete_sport: null,
     rating: 5,
     review_text:
-      "Working with Avery is a true blessing. My boys have been going to the Dawgz house for a little over 6 months and their transformation is incredible. Not only are they stronger and more agile but their confidence in themselves is skyrocketing! Can’t recommend Avery highly enough!",
+      "Working with Jordan is a true blessing. My boys have been going to the Dawgz house for a little over 6 months and their transformation is incredible. Not only are they stronger and more agile but their confidence in themselves is skyrocketing! Can’t recommend Jordan highly enough!",
     published: true,
     featured: true,
     display_order: 1,
@@ -374,7 +374,7 @@ export const FALLBACK_REVIEWS: Review[] = [
     athlete_sport: "Football",
     rating: 5,
     review_text:
-      "DAWGZ has been a game changer for my son. Better movement, stronger legs, and a mindset that shows up in practice and games. Avery knows how to push kids the right way.",
+      "DAWGZ has been a game changer for my son. Better movement, stronger legs, and a mindset that shows up in practice and games. Jordan knows how to push kids the right way.",
     published: true,
     featured: true,
     display_order: 3,

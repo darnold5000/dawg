@@ -20,7 +20,7 @@ export function SiteFooter() {
             </span>
           </div>
           <p className="max-w-sm text-sm leading-relaxed text-white/70">
-            Youth athletic training in Mooresville, Indiana — building strength,
+            Youth athletic training in Plainfield, Indiana — building strength,
             speed, agility, confidence, and discipline.
           </p>
         </div>

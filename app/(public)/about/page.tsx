@@ -9,7 +9,7 @@ import { SITE } from "@/lib/constants";
 
 export const metadata = createMetadata({
   title: "About",
-  description: `Learn about ${SITE.name} — youth athletic training focused on physical skills and mindset in Mooresville, Indiana.`,
+  description: `Learn about ${SITE.name} — youth athletic training focused on physical skills and mindset in Plainfield, Indiana.`,
   path: "/about",
 });
 

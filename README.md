@@ -1,6 +1,6 @@
 # DAWGZ Youth Training
 
-Modern marketing site and scheduling platform for DAWGZ Youth Training in Mooresville, Indiana.
+Modern marketing site and scheduling platform for DAWGZ Youth Training in Plainfield, Indiana.
 
 ## Stack
 
@@ -62,7 +62,7 @@ Requires a live HTTPS deploy for the Android install prompt. Icons and manifest 
 
 ## Brand / assets
 
-Placeholder images live in `public/images/dawg/`. Replace with approved DAWGZ logo and photos before launch. Business contact seeded from [facebook.com/DawgYouthTraining](https://www.facebook.com/DawgYouthTraining).
+Placeholder images live in `public/images/dawg/`. Replace with approved DAWGZ logo and photos before launch. Business contact seeded from [facebook.com/DawgzYouthTraining](https://www.facebook.com/DawgzYouthTraining).
 
 ## Website credit
 

@@ -5,7 +5,7 @@ import { SITE } from "@/lib/constants";
 
 export const metadata = createMetadata({
   title: "Contact",
-  description: `Contact ${SITE.name} in Mooresville, Indiana for youth athletic training.`,
+  description: `Contact ${SITE.name} in Plainfield, Indiana for youth athletic training.`,
   path: "/contact",
 });
 

@@ -18,7 +18,7 @@ import {
 import { createMetadata } from "@/lib/seo";
 
 export const metadata = createMetadata({
-  title: "Youth Athletic Training in Mooresville, Indiana",
+  title: "Youth Athletic Training in Plainfield, Indiana",
   description:
     "DAWGZ Youth Training helps young athletes build strength, speed, agility, confidence, and discipline. Book group classes and private training online.",
   path: "/",

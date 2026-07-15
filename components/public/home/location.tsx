@@ -24,7 +24,7 @@ export function HomeLocation({ settings }: { settings: BusinessSettings }) {
             Location
           </p>
           <h2 className="font-heading text-4xl tracking-wide md:text-5xl">
-            Train in <span className="text-brand">Mooresville</span>
+            Train in <span className="text-brand">Plainfield</span>
           </h2>
         </div>
 
