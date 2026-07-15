@@ -12,7 +12,7 @@ import { createMetadata } from "@/lib/seo";
 
 export const metadata = createMetadata({
   title: "Booking Confirmation",
-  description: "Your DAWG Youth Training reservation confirmation.",
+  description: "Your DAWGZ Youth Training reservation confirmation.",
   path: "/book/confirmation",
 });
 
@@ -113,7 +113,7 @@ export default async function BookingConfirmationPage({
         </Button>
         <Button asChild variant="outline">
           <a
-            href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(session.title)}&dates=${session.session_date.replace(/-/g, "")}T${session.start_time.replace(/:/g, "").slice(0, 6)}/${session.session_date.replace(/-/g, "")}T${session.end_time.replace(/:/g, "").slice(0, 6)}&details=${encodeURIComponent("DAWG Youth Training")}&location=${encodeURIComponent(session.location_address ?? SITE.address.full)}`}
+            href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(session.title)}&dates=${session.session_date.replace(/-/g, "")}T${session.start_time.replace(/:/g, "").slice(0, 6)}/${session.session_date.replace(/-/g, "")}T${session.end_time.replace(/:/g, "").slice(0, 6)}&details=${encodeURIComponent("DAWGZ Youth Training")}&location=${encodeURIComponent(session.location_address ?? SITE.address.full)}`}
             target="_blank"
             rel="noopener noreferrer"
           >

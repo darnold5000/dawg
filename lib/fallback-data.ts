@@ -14,12 +14,12 @@ import { SITE } from "@/lib/constants";
 export const FALLBACK_PROGRAMS: Program[] = [
   {
     id: "prog-little",
-    name: "Little Dawgs",
+    name: "Little Dawgz",
     slug: "little-dawgs",
     short_description:
       "For younger athletes learning proper movement, balance, coordination, speed, and body control in a positive environment.",
     full_description:
-      "Little Dawgs introduces foundational athletic skills through fun, age-appropriate drills. Athletes build confidence while developing movement quality in a supportive group setting.",
+      "Little Dawgz introduces foundational athletic skills through fun, age-appropriate drills. Athletes build confidence while developing movement quality in a supportive group setting.",
     minimum_age: 5,
     maximum_age: 10,
     default_duration_minutes: 45,
@@ -34,12 +34,12 @@ export const FALLBACK_PROGRAMS: Program[] = [
   },
   {
     id: "prog-big",
-    name: "Big Dawgs",
+    name: "Big Dawgz",
     slug: "big-dawgs",
     short_description:
       "Advanced athletic development for older youth athletes — strength, speed, agility, conditioning, and competitive movement.",
     full_description:
-      "Big Dawgs challenges older athletes with progressive strength, speed, and agility training designed to transfer to their sport.",
+      "Big Dawgz challenges older athletes with progressive strength, speed, and agility training designed to transfer to their sport.",
     minimum_age: 11,
     maximum_age: 18,
     default_duration_minutes: 60,
@@ -108,7 +108,7 @@ export const FALLBACK_TRAINERS: Trainer[] = [
     profile_id: null,
     name: "Coach Avery",
     title: "Owner / Head Trainer",
-    bio: "DAWG specifically emphasizes developing both physical and mental attributes in athletes within a positive and engaging setting.",
+    bio: "DAWGZ specifically emphasizes developing both physical and mental attributes in athletes within a positive and engaging setting.",
     photo_url: "/images/dawg/trainers/avery.jpg",
     specialties: ["Speed", "Agility", "Youth Athletic Development"],
     certifications: [],
@@ -131,8 +131,8 @@ export const FALLBACK_SESSIONS: SessionWithRelations[] = [
     program_id: "prog-little",
     session_type_id: "st-group",
     trainer_id: "trainer-1",
-    title: "Little Dawgs Speed & Agility",
-    description: "Age-appropriate athletic training at DAWG Youth Training.",
+    title: "Little Dawgz Speed & Agility",
+    description: "Age-appropriate athletic training at DAWGZ Youth Training.",
     session_date: sampleDate(3),
     start_time: "16:00:00",
     end_time: "16:45:00",
@@ -166,8 +166,8 @@ export const FALLBACK_SESSIONS: SessionWithRelations[] = [
     program_id: "prog-big",
     session_type_id: "st-group",
     trainer_id: "trainer-1",
-    title: "Big Dawgs Strength & Speed",
-    description: "Age-appropriate athletic training at DAWG Youth Training.",
+    title: "Big Dawgz Strength & Speed",
+    description: "Age-appropriate athletic training at DAWGZ Youth Training.",
     session_date: sampleDate(4),
     start_time: "17:00:00",
     end_time: "18:00:00",
@@ -271,8 +271,8 @@ export const FALLBACK_SESSIONS: SessionWithRelations[] = [
     program_id: "prog-little",
     session_type_id: "st-group",
     trainer_id: "trainer-1",
-    title: "Little Dawgs Movement Foundations",
-    description: "Age-appropriate athletic training at DAWG Youth Training.",
+    title: "Little Dawgz Movement Foundations",
+    description: "Age-appropriate athletic training at DAWGZ Youth Training.",
     session_date: sampleDate(8),
     start_time: "16:00:00",
     end_time: "16:45:00",
@@ -306,8 +306,8 @@ export const FALLBACK_SESSIONS: SessionWithRelations[] = [
     program_id: "prog-big",
     session_type_id: "st-group",
     trainer_id: "trainer-1",
-    title: "Big Dawgs Conditioning",
-    description: "Age-appropriate athletic training at DAWG Youth Training.",
+    title: "Big Dawgz Conditioning",
+    description: "Age-appropriate athletic training at DAWGZ Youth Training.",
     session_date: sampleDate(10),
     start_time: "17:00:00",
     end_time: "18:00:00",
@@ -346,7 +346,7 @@ export const FALLBACK_REVIEWS: Review[] = [
     athlete_sport: null,
     rating: 5,
     review_text:
-      "Working with Avery is a true blessing. My boys have been going to the Dawg house for a little over 6 months and their transformation is incredible. Not only are they stronger and more agile but their confidence in themselves is skyrocketing! Can’t recommend Avery highly enough!",
+      "Working with Avery is a true blessing. My boys have been going to the Dawgz house for a little over 6 months and their transformation is incredible. Not only are they stronger and more agile but their confidence in themselves is skyrocketing! Can’t recommend Avery highly enough!",
     published: true,
     featured: true,
     display_order: 1,
@@ -370,11 +370,11 @@ export const FALLBACK_REVIEWS: Review[] = [
   {
     id: "review-3",
     reviewer_name: "Marcus T.",
-    reviewer_description: "Parent · Big Dawgs",
+    reviewer_description: "Parent · Big Dawgz",
     athlete_sport: "Football",
     rating: 5,
     review_text:
-      "DAWG has been a game changer for my son. Better movement, stronger legs, and a mindset that shows up in practice and games. Avery knows how to push kids the right way.",
+      "DAWGZ has been a game changer for my son. Better movement, stronger legs, and a mindset that shows up in practice and games. Avery knows how to push kids the right way.",
     published: true,
     featured: true,
     display_order: 3,
@@ -384,7 +384,7 @@ export const FALLBACK_REVIEWS: Review[] = [
   {
     id: "review-4",
     reviewer_name: "Amanda R.",
-    reviewer_description: "Parent of a Little Dawg",
+    reviewer_description: "Parent of a Little Dawgz",
     athlete_sport: null,
     rating: 5,
     review_text:
@@ -426,7 +426,7 @@ export const FALLBACK_SETTINGS: BusinessSettings = {
   business_hours: SITE.hoursPlaceholder,
   homepage_announcement: null,
   cancellation_policy:
-    "Please cancel at least 24 hours in advance when possible. Contact DAWG to reschedule.",
+    "Please cancel at least 24 hours in advance when possible. Contact DAWGZ to reschedule.",
   booking_policy:
     "Reservations hold your athlete’s spot. Payment is due at the facility unless otherwise noted. Parent or legal guardian must book for minors.",
   updated_at: new Date().toISOString(),

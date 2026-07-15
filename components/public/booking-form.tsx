@@ -536,7 +536,7 @@ export function BookingForm({
             required
           />
           <span>
-            I acknowledge liability waiver language will be provided by DAWG
+            I acknowledge liability waiver language will be provided by DAWGZ
             (preliminary acknowledgment only).
           </span>
         </label>

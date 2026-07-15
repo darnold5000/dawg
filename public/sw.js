@@ -1,4 +1,4 @@
-/* DAWG Youth Training — minimal service worker for installability.
+/* DAWGZ Youth Training — minimal service worker for installability.
    Network-first: does not cache API or booking responses. */
 
 self.addEventListener("install", (event) => {

@@ -36,7 +36,7 @@ export function HomeWhyDawg() {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         <div className="max-w-2xl">
           <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-gold">
-            Why DAWG
+            Why DAWGZ
           </p>
           <h2 className="font-heading text-4xl tracking-wide md:text-5xl">
             Train with{" "}

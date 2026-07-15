@@ -11,9 +11,9 @@ export function SiteFooter() {
             <Image
               src="/images/dawg/logo.jpg"
               alt=""
-              width={40}
+              width={56}
               height={40}
-              className="h-10 w-10 rounded-md object-cover ring-2 ring-brand/50"
+              className="h-10 w-auto rounded-md object-contain ring-2 ring-brand/50"
             />
             <span className="font-heading text-xl tracking-wide text-gold">
               {SITE.shortName}

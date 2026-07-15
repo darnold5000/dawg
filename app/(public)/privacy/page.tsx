@@ -32,7 +32,7 @@ export default function PrivacyPage() {
             {SITE.phone}
           </a>{" "}
           with privacy questions. This page is a starting draft and should be
-          reviewed by DAWG before launch.
+          reviewed by DAWGZ before launch.
         </p>
       </div>
     </div>

@@ -65,10 +65,10 @@ export function HomeHero() {
             <Image
               src="/images/dawg/logo.jpg"
               alt={`${SITE.name} logo`}
-              width={818}
-              height={960}
+              width={612}
+              height={440}
               priority
-              className="relative h-auto w-full rounded-2xl border border-white/10 shadow-[0_20px_80px_rgba(31,92,255,0.35)]"
+              className="relative h-auto w-full rounded-2xl border border-white/10 bg-black object-contain shadow-[0_20px_80px_rgba(31,92,255,0.35)]"
               sizes="(max-width: 1024px) 90vw, 480px"
             />
           </div>

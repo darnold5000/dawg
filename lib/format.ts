@@ -40,7 +40,7 @@ export function durationMinutes(start: string, end: string): number {
 export function generateConfirmationNumber(): string {
   const part = Math.random().toString(36).slice(2, 8).toUpperCase();
   const stamp = Date.now().toString(36).toUpperCase().slice(-4);
-  return `DAWG-${stamp}${part}`;
+  return `DAWGZ-${stamp}${part}`;
 }
 
 export function athleteAgeFromDob(dob: string, onDate = new Date()): number {

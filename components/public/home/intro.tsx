@@ -39,7 +39,7 @@ export function HomeIntro() {
           <span className="text-brand">Complete</span> Athlete
         </h2>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground md:text-lg">
-          DAWG gives youth athletes a positive, challenging environment to
+          DAWGZ gives youth athletes a positive, challenging environment to
           sharpen physical skills, build confidence, and develop the mindset to
           succeed in sports and in life.
         </p>

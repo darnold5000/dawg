@@ -1,4 +1,4 @@
--- DAWG Youth Training schema for the shared Dugout Intel Supabase project.
+-- DAWGZ Youth Training schema for the shared Dugout Intel Supabase project.
 -- Creates ONLY dawg_* tables, functions, triggers, and policies.
 
 create extension if not exists "pgcrypto";
@@ -197,7 +197,7 @@ create table if not exists public.dawg_reviews (
 
 create table if not exists public.dawg_business_settings (
   id uuid primary key default gen_random_uuid(),
-  business_name text not null default 'DAWG Youth Training',
+  business_name text not null default 'DAWGZ Youth Training',
   phone text,
   email text,
   address_line_1 text,

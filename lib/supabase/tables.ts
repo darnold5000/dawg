@@ -1,5 +1,5 @@
 /**
- * DAWG table names in the shared Dugout Intel Supabase project.
+ * DAWGZ table names in the shared Dugout Intel Supabase project.
  * Prefixed to avoid collisions with existing tables.
  */
 export const DAWG_TABLES = {

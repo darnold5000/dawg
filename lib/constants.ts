@@ -1,9 +1,9 @@
 export const SITE = {
-  name: "DAWG Youth Training",
-  shortName: "DAWG",
+  name: "DAWGZ Youth Training",
+  shortName: "DAWGZ",
   tagline: "Build the Athlete. Develop the Mindset.",
   description:
-    "DAWG Youth Training helps young athletes build strength, speed, agility, confidence, and discipline through positive, age-appropriate athletic training in Mooresville, Indiana.",
+    "DAWGZ Youth Training helps young athletes build strength, speed, agility, confidence, and discipline through positive, age-appropriate athletic training in Mooresville, Indiana.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   phone: "(317) 835-1076",
   phoneHref: "tel:+13178351076",
@@ -25,7 +25,7 @@ export const SITE = {
     name: "Signal Works",
     url: "https://signalworks.io",
   },
-  hoursPlaceholder: "Hours TBD — contact DAWG for current training times",
+  hoursPlaceholder: "Hours TBD — contact DAWGZ for current training times",
 } as const;
 
 export const NAV_LINKS = [

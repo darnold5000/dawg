@@ -61,7 +61,7 @@ export function ReviewCreateForm() {
     <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-card p-5">
       <h3 className="font-heading text-xl tracking-wide">Add review</h3>
       <p className="text-xs text-muted-foreground">
-        Only publish authentic reviews approved by DAWG. Do not invent
+        Only publish authentic reviews approved by DAWGZ. Do not invent
         testimonials.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">

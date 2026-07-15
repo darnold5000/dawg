@@ -1,12 +1,10 @@
-# DAWG image assets
-
-Official logo and training photos from the DAWG Facebook page (client-approved).
+# DAWGZ image assets
 
 ```
-logo.jpg              # Official DAWG logo (brick wall background)
+logo.jpg / logo.png   # Muscular bulldog mascot (DAWGZ brand mark)
 hero/training.jpg
 gallery/*.jpg
 trainers/avery.jpg    # Brand mark (logo) until a coach portrait is provided
 ```
 
-**Palette from logo:** electric blue `#1F5CFF` · spike gold `#FFD400` · charcoal `#07090F`
+**Palette from logo:** charcoal / grayscale · spike red collar · black background

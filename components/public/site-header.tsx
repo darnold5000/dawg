@@ -22,9 +22,9 @@ export function SiteHeader() {
           <Image
             src="/images/dawg/logo.jpg"
             alt={`${SITE.name} logo`}
-            width={44}
+            width={61}
             height={44}
-            className="h-11 w-11 rounded-md object-cover ring-2 ring-brand/60"
+            className="h-11 w-auto rounded-md object-contain ring-2 ring-brand/60"
             priority
           />
           <span className="font-heading text-xl tracking-wide text-white">

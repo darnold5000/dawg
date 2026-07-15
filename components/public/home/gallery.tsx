@@ -13,13 +13,13 @@ export function HomeGallery() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="max-w-2xl pt-2">
           <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-gold">
-            The Dawg House
+            The Dawgz House
           </p>
           <h2 className="font-heading text-4xl leading-none tracking-wide text-white md:text-5xl">
             Train Like You Mean It
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Photo gallery coming soon — approved DAWG training shots will live
+            Photo gallery coming soon — approved DAWGZ training shots will live
             here.
           </p>
         </div>

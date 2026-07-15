@@ -23,7 +23,7 @@ export default function BookingPolicyPage() {
         </p>
         <p>
           Please cancel or reschedule at least 24 hours in advance when possible
-          by contacting DAWG at{" "}
+          by contacting DAWGZ at{" "}
           <a href={SITE.phoneHref} className="text-foreground underline">
             {SITE.phone}
           </a>{" "}
@@ -34,7 +34,7 @@ export default function BookingPolicyPage() {
           .
         </p>
         <p>
-          Liability waiver language should be provided and approved by DAWG
+          Liability waiver language should be provided and approved by DAWGZ
           before treating online checkboxes as a complete legal waiver.
         </p>
       </div>

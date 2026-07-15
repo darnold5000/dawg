@@ -35,10 +35,10 @@ export async function sendBookingConfirmation(payload: ConfirmPayload): Promise<
   await resend.emails.send({
     from,
     to: payload.parentEmail,
-    subject: `DAWG booking confirmed — ${payload.sessionTitle}`,
+    subject: `DAWGZ booking confirmed — ${payload.sessionTitle}`,
     html: `
       <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-        <h1 style="color: #121212;">You're booked at DAWG</h1>
+        <h1 style="color: #121212;">You're booked at DAWGZ</h1>
         <p>Hi ${payload.parentName},</p>
         <p>Your training reservation is confirmed.</p>
         <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
@@ -69,7 +69,7 @@ export async function sendStaffBookingNotification(payload: StaffPayload): Promi
   await resend.emails.send({
     from,
     to: staffEmail,
-    subject: `New DAWG booking — ${payload.sessionTitle}`,
+    subject: `New DAWGZ booking — ${payload.sessionTitle}`,
     html: `
       <div style="font-family: sans-serif;">
         <h2>New Online Booking</h2>
@@ -94,7 +94,7 @@ export async function sendWaitlistConfirmation(payload: {
   await resend.emails.send({
     from,
     to: payload.email,
-    subject: "You're on the DAWG waitlist",
+    subject: "You're on the DAWGZ waitlist",
     html: `
       <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
         <h1>Waitlist confirmation</h1>
