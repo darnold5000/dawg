@@ -42,11 +42,12 @@ export default async function AboutPage() {
           </div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-ink">
             <Image
-              src="/images/dawg/hero/training.svg"
+              src="/images/dawg/programs/big-dawgs.jpg"
               alt="Athletes training at DAWGZ Youth Training"
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
+              priority
             />
           </div>
         </div>
