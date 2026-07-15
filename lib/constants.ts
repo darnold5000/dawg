@@ -4,7 +4,7 @@ export const SITE = {
   tagline: "Build the Athlete. Develop the Mindset.",
   description:
     "DAWGZ Youth Training helps young athletes build strength, speed, agility, confidence, and discipline through positive, age-appropriate athletic training in Mooresville, Indiana.",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://dawgz.hiresignalworks.com",
   phone: "(317) 835-1076",
   phoneHref: "tel:+13178351076",
   email: "coachavery1287@gmail.com",
