@@ -60,7 +60,7 @@ export function SessionForm({
     capacity: initial?.capacity?.toString() ?? "10",
     // Form stores dollars; API converts to cents
     price: initial?.price != null ? String(initial.price) : "25",
-    payment_requirement: initial?.payment_requirement ?? "pay_at_facility",
+    payment_requirement: initial?.payment_requirement ?? "online_or_facility",
     status: initial?.status ?? "published",
     what_to_bring:
       initial?.what_to_bring ??
@@ -285,9 +285,9 @@ export function SessionForm({
             value={form.payment_requirement}
             onChange={(e) => update("payment_requirement", e.target.value)}
           >
-            <option value="pay_at_facility">Pay at facility</option>
-            <option value="pay_online">Pay online (Stripe)</option>
             <option value="online_or_facility">Online or pay at facility</option>
+            <option value="pay_online">Pay online (Stripe) only</option>
+            <option value="pay_at_facility">Pay at facility only</option>
           </select>
         </div>
         {mode === "create" ? (

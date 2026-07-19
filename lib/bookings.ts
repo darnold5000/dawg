@@ -28,7 +28,14 @@ const bookingFieldsSchema = z.object({
   parentPhone: z.string().min(7).max(40),
   athleteFirstName: z.string().min(1).max(80),
   athleteLastName: z.string().min(1).max(80),
-  athleteDob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  athleteDob: z
+    .string()
+    .transform((value) => value.trim().slice(0, 10))
+    .pipe(
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid athlete date of birth"),
+    ),
   /** When set, update this athlete if it belongs to the remembered parent. */
   athleteId: z.string().uuid().optional(),
   primarySport: z.string().max(80).optional(),
@@ -66,6 +73,16 @@ export const bookingSchema = z.preprocess((raw) => {
   // Older clients sometimes omitted mediaConsent
   if (typeof body.mediaConsent !== "boolean") {
     body.mediaConsent = Boolean(body.mediaConsent);
+  }
+
+  // Remembered / Postgres dates may arrive as ISO timestamps
+  if (typeof body.athleteDob === "string") {
+    body.athleteDob = body.athleteDob.trim().slice(0, 10);
+  }
+
+  if (body.parentPhone == null) body.parentPhone = "";
+  if (typeof body.parentPhone === "string") {
+    body.parentPhone = body.parentPhone.trim();
   }
 
   return body;
@@ -383,6 +400,18 @@ export async function createPublicBooking(
         code: "SESSION_FULL",
       };
     }
+    if (
+      message.includes("unique") ||
+      message.includes("dawg_bookings_unique_athlete_session") ||
+      message.includes("duplicate key")
+    ) {
+      return {
+        ok: false,
+        error:
+          "This athlete is already booked for this session. Pick another session or athlete.",
+        code: "ALREADY_BOOKED",
+      };
+    }
     if (message.includes("ONLINE_PAYMENT_NOT_ALLOWED")) {
       return {
         ok: false,
@@ -397,6 +426,7 @@ export async function createPublicBooking(
         code: "FACILITY_PAYMENT_NOT_ALLOWED",
       };
     }
+    console.error("[bookings] dawg_try_create_booking failed:", bookingError);
     return {
       ok: false,
       error: "Could not complete booking. Please try again.",
@@ -415,22 +445,26 @@ export async function createPublicBooking(
     .eq("id", created.id);
 
   let remembered = false;
-  if (input.rememberFamily) {
-    const rememberedResult = await rememberFamilyOnDevice({
-      parentId,
-      agreementsVersion: CURRENT_AGREEMENTS_VERSION,
-      mediaConsent: input.mediaConsent,
-    });
-    if ("token" in rememberedResult) {
-      await setFamilyDeviceCookie(rememberedResult.token);
-      remembered = true;
+  try {
+    if (input.rememberFamily) {
+      const rememberedResult = await rememberFamilyOnDevice({
+        parentId,
+        agreementsVersion: CURRENT_AGREEMENTS_VERSION,
+        mediaConsent: input.mediaConsent,
+      });
+      if ("token" in rememberedResult) {
+        await setFamilyDeviceCookie(rememberedResult.token);
+        remembered = true;
+      }
+    } else {
+      await refreshDeviceAgreementsIfPresent({
+        parentId,
+        agreementsVersion: CURRENT_AGREEMENTS_VERSION,
+        mediaConsent: input.mediaConsent,
+      });
     }
-  } else {
-    await refreshDeviceAgreementsIfPresent({
-      parentId,
-      agreementsVersion: CURRENT_AGREEMENTS_VERSION,
-      mediaConsent: input.mediaConsent,
-    });
+  } catch (rememberError) {
+    console.error("[bookings] remember-family side effect failed:", rememberError);
   }
 
   // Pay-at-facility: send confirmation immediately (one-shot).

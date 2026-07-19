@@ -316,6 +316,23 @@ export function BookingForm({
         return;
       }
 
+      const athleteDob = form.athleteDob.trim().slice(0, 10);
+      if (
+        !form.parentFirstName.trim() ||
+        !form.parentLastName.trim() ||
+        !form.parentEmail.trim() ||
+        form.parentPhone.trim().length < 7 ||
+        !form.athleteFirstName.trim() ||
+        !form.athleteLastName.trim() ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(athleteDob)
+      ) {
+        toast.error(
+          "Missing parent or athlete details. Tap Edit details and complete the form.",
+        );
+        setEditingDetails(true);
+        return;
+      }
+
       const athleteId =
         selectedAthleteId &&
         selectedAthleteId !== "__new__" &&
@@ -328,21 +345,22 @@ export function BookingForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: session.id,
-          parentFirstName: form.parentFirstName,
-          parentLastName: form.parentLastName,
-          parentEmail: form.parentEmail,
-          parentPhone: form.parentPhone,
-          athleteFirstName: form.athleteFirstName,
-          athleteLastName: form.athleteLastName,
-          athleteDob: form.athleteDob,
+          parentFirstName: form.parentFirstName.trim(),
+          parentLastName: form.parentLastName.trim(),
+          parentEmail: form.parentEmail.trim(),
+          parentPhone: form.parentPhone.trim(),
+          athleteFirstName: form.athleteFirstName.trim(),
+          athleteLastName: form.athleteLastName.trim(),
+          athleteDob,
           athleteId,
           primarySport: form.primarySport || undefined,
           experienceLevel: form.experienceLevel || undefined,
           medicalNotes: form.medicalNotes || undefined,
           customerNotes: form.customerNotes || undefined,
           paymentMethod,
-          acceptRequiredAgreements:
-            form.acceptRequiredAgreements || !agreementsNeeded || undefined,
+          acceptRequiredAgreements: agreementsNeeded
+            ? form.acceptRequiredAgreements
+            : true,
           mediaConsent: form.mediaConsent,
           rememberFamily: form.rememberFamily,
         }),

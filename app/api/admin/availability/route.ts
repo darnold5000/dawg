@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       capacity: body.capacity,
       price_cents: dollarsToCents(body.price),
       currency: "usd",
-      payment_requirement: "pay_at_facility",
+      payment_requirement: "online_or_facility",
       location_name: SITE.name,
       location_address: SITE.address.full,
       status: "published",

@@ -10,10 +10,8 @@ set
     when session_date < current_date then current_date + 2
     else session_date
   end,
-  payment_requirement = case
-    when payment_requirement is null then 'online_or_facility'
-    else payment_requirement
-  end,
+  -- Prefer both payment options on reopened sessions
+  payment_requirement = 'online_or_facility',
   location_name = coalesce(nullif(location_name, ''), 'DAWG Youth Training'),
   location_address = coalesce(
     nullif(location_address, ''),
@@ -23,16 +21,12 @@ set
 where status in ('draft', 'full', 'published', 'completed')
   or session_date < current_date;
 
--- Prefer online+facility on known test / private rows so Pay online shows
+-- Ensure all upcoming published sessions offer Pay online + Pay at facility
 update public.dawg_sessions
 set payment_requirement = 'online_or_facility',
     updated_at = now()
 where status = 'published'
-  and session_date >= current_date
-  and (
-    title ilike 'TEST %'
-    or title ilike 'Private Training%'
-  );
+  and session_date >= current_date;
 
 -- 2) Ensure program / session type / trainer exist for inserts below
 insert into public.dawg_session_types (name, slug)

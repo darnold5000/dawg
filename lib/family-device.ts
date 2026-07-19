@@ -112,15 +112,16 @@ export async function loadRememberedFamily(): Promise<RememberedFamily | null> {
 
   return {
     parentId: parent.id,
-    parentFirstName: parent.first_name,
-    parentLastName: parent.last_name,
-    parentEmail: parent.email,
-    parentPhone: parent.phone,
+    parentFirstName: parent.first_name ?? "",
+    parentLastName: parent.last_name ?? "",
+    parentEmail: parent.email ?? "",
+    parentPhone: parent.phone ?? "",
     athletes: (athletes ?? []).map((a) => ({
       id: a.id,
       firstName: a.first_name,
       lastName: a.last_name,
-      dob: a.date_of_birth,
+      // Postgres date / ISO timestamp → YYYY-MM-DD for <input type="date">
+      dob: String(a.date_of_birth ?? "").slice(0, 10),
       primarySport: a.primary_sport ?? undefined,
       experienceLevel: a.experience_level ?? undefined,
     })),
