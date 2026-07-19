@@ -62,6 +62,28 @@ export function BookingBillingPanel({
     }
   }
 
+  async function syncStripe() {
+    setBusy("sync");
+    try {
+      const res = await fetch(`/api/admin/bookings/${booking.id}/sync-stripe`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Could not sync from Stripe");
+        return;
+      }
+      if (data.confirmed) {
+        toast.success("Synced — booking marked paid");
+      } else {
+        toast.message("Stripe session is not paid yet");
+      }
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function refund() {
     if (
       !window.confirm(
@@ -191,6 +213,20 @@ export function BookingBillingPanel({
                 {busy === "unpaid" ? "Saving…" : "Mark unpaid"}
               </Button>
             </>
+          ) : null}
+          {booking.payment_method === "stripe" &&
+          booking.payment_status !== "paid" &&
+          booking.payment_status !== "refunded" ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="min-h-10"
+              disabled={busy !== null || !booking.stripe_checkout_session_id}
+              onClick={syncStripe}
+            >
+              {busy === "sync" ? "Syncing…" : "Sync from Stripe"}
+            </Button>
           ) : null}
           {booking.payment_method === "stripe" &&
           (booking.payment_status === "paid" ||

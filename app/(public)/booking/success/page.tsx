@@ -10,6 +10,7 @@ import {
   getBookingByCheckoutSessionId,
   getBookingByIdAndToken,
 } from "@/lib/billing/booking-lookup";
+import { reconcileCheckoutSession } from "@/lib/billing/reconcile-checkout";
 import { SITE } from "@/lib/constants";
 import { createMetadata } from "@/lib/seo";
 import {
@@ -55,6 +56,16 @@ export default async function BookingSuccessPage({
   const q = await searchParams;
   const token = q.token ?? "";
   const checkoutSessionId = q.session_id;
+
+  // If webhook is delayed/missing, confirm from Stripe before rendering.
+  if (
+    checkoutSessionId &&
+    checkoutSessionId !== "{CHECKOUT_SESSION_ID}"
+  ) {
+    await reconcileCheckoutSession({ checkoutSessionId });
+  } else if (q.booking_id) {
+    await reconcileCheckoutSession({ bookingId: q.booking_id });
+  }
 
   let booking =
     checkoutSessionId && checkoutSessionId !== "{CHECKOUT_SESSION_ID}"
