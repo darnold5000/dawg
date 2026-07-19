@@ -1,11 +1,41 @@
 import { Resend } from "resend";
 import { SITE } from "@/lib/constants";
+import { buildIcsCalendar, calendarDetailsLine } from "@/lib/calendar";
 import { formatPrice, formatSessionDate, formatSessionTime } from "@/lib/format";
+import { getSiteUrl } from "@/lib/billing/site-url";
 import type { Booking, PaymentMethod, PaymentStatus } from "@/lib/types/database";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-type ConfirmPayload = {
+function fromAddress() {
+  return process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function paymentLabel(method: PaymentMethod, opts?: { paid?: boolean }) {
+  if (method === "stripe") {
+    return opts?.paid === false ? "Pay Online" : "Paid Online";
+  }
+  return "Pay at Facility";
+}
+
+function row(label: string, value: string) {
+  return `
+    <tr>
+      <td style="padding: 10px 0; color: #666; vertical-align: top; width: 140px;">${label}</td>
+      <td style="padding: 10px 0; color: #121212; font-weight: 600;">${value}</td>
+    </tr>
+  `;
+}
+
+export type ConfirmPayload = {
   booking: Booking;
   parentEmail: string;
   parentName: string;
@@ -13,13 +43,15 @@ type ConfirmPayload = {
   sessionTitle: string;
   sessionDate: string;
   startTime: string;
+  endTime?: string | null;
   location: string | null;
+  coachName?: string | null;
   amountDueCents: number;
   amountPaidCents?: number;
   paymentMethod: PaymentMethod;
 };
 
-type StaffPayload = {
+export type StaffPayload = {
   booking: Booking;
   parentEmail: string;
   parentName: string;
@@ -29,72 +61,171 @@ type StaffPayload = {
   sessionDate: string;
   startTime: string;
   paymentStatus: PaymentStatus;
+  paymentMethod?: PaymentMethod | null;
   amountDueCents: number;
 };
 
-export async function sendBookingConfirmation(payload: ConfirmPayload): Promise<void> {
+function firstName(fullName: string) {
+  return fullName.trim().split(/\s+/)[0] || fullName;
+}
+
+export async function sendBookingConfirmation(
+  payload: ConfirmPayload,
+): Promise<void> {
   if (!resend) return;
-  const from = process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
+
   const paidOnline = payload.paymentMethod === "stripe";
-  const amountLabel = paidOnline
-    ? `${formatPrice(payload.amountPaidCents ?? payload.amountDueCents)} (paid online)`
-    : `${formatPrice(payload.amountDueCents)} (pay at facility)`;
+  const paymentText = paymentLabel(payload.paymentMethod, { paid: paidOnline });
+  const location = escapeHtml(payload.location ?? SITE.address.full);
+  const coach = payload.coachName?.trim() || null;
+  // Launch: cancellations disabled — do not surface cancel policy in confirmations.
+  // const site = getSiteUrl();
+  // const cancelPolicyUrl = `${site}/booking-policy`;
+  const endTime = payload.endTime || payload.startTime;
+
+  const ics = buildIcsCalendar({
+    title: `${payload.sessionTitle} — ${payload.athleteName}`,
+    sessionDate: payload.sessionDate,
+    startTime: payload.startTime,
+    endTime,
+    location: payload.location ?? SITE.address.full,
+    details: calendarDetailsLine({
+      athleteName: payload.athleteName,
+      confirmationNumber: payload.booking.confirmation_number,
+      coachName: coach,
+    }),
+    uid: `${payload.booking.id}@dawgz`,
+  });
+
+  const hi = escapeHtml(firstName(payload.parentName));
 
   await resend.emails.send({
-    from,
+    from: fromAddress(),
     to: payload.parentEmail,
-    subject: `DAWGZ booking confirmed — ${payload.sessionTitle}`,
+    replyTo: SITE.email,
+    subject: "Your DAWG Training Session is Confirmed",
+    attachments: [
+      {
+        filename: "dawgz-session.ics",
+        content: Buffer.from(ics, "utf8"),
+        contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+      },
+    ],
     html: `
-      <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-        <h1 style="color: #121212;">You're booked at DAWGZ</h1>
-        <p>Hi ${payload.parentName},</p>
-        <p>Your training reservation is confirmed.</p>
-        <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
-          <tr><td style="padding: 8px 0;"><strong>Confirmation</strong></td><td>${payload.booking.confirmation_number}</td></tr>
-          <tr><td style="padding: 8px 0;"><strong>Session</strong></td><td>${payload.sessionTitle}</td></tr>
-          <tr><td style="padding: 8px 0;"><strong>Date</strong></td><td>${formatSessionDate(payload.sessionDate)}</td></tr>
-          <tr><td style="padding: 8px 0;"><strong>Time</strong></td><td>${formatSessionTime(payload.startTime)}</td></tr>
-          <tr><td style="padding: 8px 0;"><strong>Athlete</strong></td><td>${payload.athleteName}</td></tr>
-          <tr><td style="padding: 8px 0;"><strong>Payment</strong></td><td>${amountLabel}</td></tr>
-          <tr><td style="padding: 8px 0;"><strong>Location</strong></td><td>${payload.location ?? SITE.address.full}</td></tr>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
+        <h1 style="font-size: 24px; margin: 0 0 8px;">You're all set!</h1>
+        <p style="margin: 0 0 24px; color: #444;">Hi ${hi},</p>
+        <p style="margin: 0 0 24px;">Your training session is confirmed. A calendar invite is attached so you can add it in one tap.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 0 0 24px;">
+          ${row("Training", escapeHtml(payload.sessionTitle))}
+          ${row("Athlete", escapeHtml(payload.athleteName))}
+          ${row("Date", escapeHtml(formatSessionDate(payload.sessionDate)))}
+          ${row("Time", escapeHtml(formatSessionTime(payload.startTime)))}
+          ${coach ? row("Coach", escapeHtml(coach)) : ""}
+          ${row("Location", location)}
+          ${row("Payment", escapeHtml(paymentText))}
+          ${row("Confirmation #", escapeHtml(payload.booking.confirmation_number))}
         </table>
-        <p><strong>${
-          paidOnline
-            ? "Your online payment was received."
-            : "Payment is due at the facility."
-        }</strong></p>
-        <p>
-          ${SITE.name}<br/>
-          ${SITE.address.full}<br/>
-          ${SITE.phone}
+        <p style="margin: 0 0 8px;"><strong>Questions?</strong></p>
+        <p style="margin: 0 0 24px; color: #444;">
+          Reply to this email, or call
+          <a href="${SITE.phoneHref}" style="color: #121212;">${SITE.phone}</a>.
+        </p>
+        <p style="margin: 0; color: #888; font-size: 13px;">
+          ${escapeHtml(SITE.name)}<br/>
+          ${escapeHtml(SITE.address.full)}
         </p>
       </div>
     `,
   });
 }
 
-export async function sendStaffBookingNotification(payload: StaffPayload): Promise<void> {
+export async function sendStaffBookingNotification(
+  payload: StaffPayload,
+): Promise<void> {
   const staffEmail = process.env.STAFF_NOTIFICATION_EMAIL ?? SITE.email;
   if (!resend || !staffEmail) return;
-  const from = process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
+
+  const site = getSiteUrl();
+  const viewUrl = `${site}/admin/bookings/${payload.booking.id}`;
+  const method =
+    payload.paymentMethod === "stripe"
+      ? "Paid Online"
+      : payload.paymentMethod === "pay_at_facility"
+        ? "Pay at Facility"
+        : payload.paymentStatus === "paid"
+          ? "Paid Online"
+          : "Pay at Facility";
 
   await resend.emails.send({
-    from,
+    from: fromAddress(),
     to: staffEmail,
-    subject: `New DAWGZ booking — ${payload.sessionTitle}`,
+    subject: `New Booking — ${payload.athleteName}`,
     html: `
-      <div style="font-family: sans-serif;">
-        <h2>New Online Booking</h2>
-        <p>Confirmation: ${payload.booking.confirmation_number}</p>
-        <p>Session: ${payload.sessionTitle}</p>
-        <p>${formatSessionDate(payload.sessionDate)} at ${formatSessionTime(payload.startTime)}</p>
-        <p>Parent: ${payload.parentName} · ${payload.parentPhone} · ${payload.parentEmail}</p>
-        <p>Athlete: ${payload.athleteName}</p>
-        <p>Payment: ${payload.paymentStatus} · ${formatPrice(payload.amountDueCents)}</p>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
+        <h1 style="font-size: 22px; margin: 0 0 16px;">New Booking</h1>
+        <p style="margin: 0 0 8px; font-size: 18px; font-weight: 700;">${escapeHtml(payload.athleteName)}</p>
+        <p style="margin: 0 0 8px;">${escapeHtml(formatSessionDate(payload.sessionDate))} · ${escapeHtml(formatSessionTime(payload.startTime))}</p>
+        <p style="margin: 0 0 8px;">${escapeHtml(payload.sessionTitle)}</p>
+        <p style="margin: 0 0 8px;"><strong>${escapeHtml(method)}</strong> · ${escapeHtml(formatPrice(payload.amountDueCents))}</p>
+        <p style="margin: 0 0 24px; color: #555;">
+          ${escapeHtml(payload.parentName)} · ${escapeHtml(payload.parentPhone)} · ${escapeHtml(payload.parentEmail)}<br/>
+          Confirmation ${escapeHtml(payload.booking.confirmation_number)}
+        </p>
+        <p style="margin: 0;">
+          <a href="${viewUrl}" style="display: inline-block; background: #c45c26; color: #fff; text-decoration: none; padding: 12px 18px; border-radius: 8px; font-weight: 600;">
+            View Booking
+          </a>
+        </p>
       </div>
     `,
   });
 }
+
+// Launch: cancellations disabled — keep for later.
+// export async function sendBookingCancellationEmail(payload: {
+//   parentEmail: string;
+//   parentName: string;
+//   athleteName: string;
+//   sessionTitle: string;
+//   sessionDate: string;
+//   startTime: string;
+//   confirmationNumber: string;
+//   refundInitiated?: boolean;
+// }): Promise<void> {
+//   if (!resend) return;
+//
+//   const hi = escapeHtml(firstName(payload.parentName));
+//   const refundLine = payload.refundInitiated
+//     ? "<p style=\"margin: 0 0 24px;\">A refund has been initiated for your online payment. It may take several business days to appear on your statement.</p>"
+//     : "";
+//
+//   await resend.emails.send({
+//     from: fromAddress(),
+//     to: payload.parentEmail,
+//     replyTo: SITE.email,
+//     subject: "Your DAWG booking has been cancelled",
+//     html: `
+//       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
+//         <h1 style="font-size: 22px; margin: 0 0 8px;">Booking cancelled</h1>
+//         <p style="margin: 0 0 24px;">Hi ${hi},</p>
+//         <p style="margin: 0 0 24px;">Your booking has been cancelled.</p>
+//         <table style="width: 100%; border-collapse: collapse; margin: 0 0 24px;">
+//           ${row("Training", escapeHtml(payload.sessionTitle))}
+//           ${row("Athlete", escapeHtml(payload.athleteName))}
+//           ${row("Date", escapeHtml(formatSessionDate(payload.sessionDate)))}
+//           ${row("Time", escapeHtml(formatSessionTime(payload.startTime)))}
+//           ${row("Confirmation #", escapeHtml(payload.confirmationNumber))}
+//         </table>
+//         ${refundLine}
+//         <p style="margin: 0; color: #444;">
+//           Questions? Reply to this email or call
+//           <a href="${SITE.phoneHref}" style="color: #121212;">${SITE.phone}</a>.
+//         </p>
+//       </div>
+//     `,
+//   });
+// }
 
 export async function sendWaitlistConfirmation(payload: {
   email: string;
@@ -102,18 +233,18 @@ export async function sendWaitlistConfirmation(payload: {
   athleteName: string;
 }): Promise<void> {
   if (!resend) return;
-  const from = process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
 
   await resend.emails.send({
-    from,
+    from: fromAddress(),
     to: payload.email,
+    replyTo: SITE.email,
     subject: "You're on the DAWGZ waitlist",
     html: `
-      <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-        <h1>Waitlist confirmation</h1>
-        <p>Hi ${payload.parentName},</p>
-        <p>${payload.athleteName} has been added to the waitlist. We'll contact you if a spot opens.</p>
-        <p>${SITE.name} · ${SITE.phone}</p>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto;">
+        <h1 style="font-size: 22px;">You're on the list</h1>
+        <p>Hi ${escapeHtml(firstName(payload.parentName))},</p>
+        <p>${escapeHtml(payload.athleteName)} has been added to the waitlist. We'll contact you if a spot opens.</p>
+        <p style="color: #888;">${escapeHtml(SITE.name)} · ${SITE.phone}</p>
       </div>
     `,
   });
@@ -128,22 +259,21 @@ export async function sendContactNotification(payload: {
 }): Promise<void> {
   const staffEmail = process.env.STAFF_NOTIFICATION_EMAIL ?? SITE.email;
   if (!resend || !staffEmail) return;
-  const from = process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
 
   await resend.emails.send({
-    from,
+    from: fromAddress(),
     to: staffEmail,
     replyTo: payload.email,
     subject: `DAWGZ website contact — ${payload.parentName}`,
     html: `
       <div style="font-family: sans-serif;">
         <h2>New contact form message</h2>
-        <p><strong>Name:</strong> ${payload.parentName}</p>
-        <p><strong>Email:</strong> ${payload.email}</p>
-        <p><strong>Phone:</strong> ${payload.phone || "—"}</p>
+        <p><strong>Name:</strong> ${escapeHtml(payload.parentName)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(payload.email)}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(payload.phone || "—")}</p>
         <p><strong>Athlete age:</strong> ${payload.athleteAge ?? "—"}</p>
         <p><strong>Message:</strong></p>
-        <p style="white-space: pre-wrap;">${payload.message}</p>
+        <p style="white-space: pre-wrap;">${escapeHtml(payload.message)}</p>
       </div>
     `,
   });
@@ -154,19 +284,19 @@ export async function sendContactAcknowledgement(payload: {
   email: string;
 }): Promise<void> {
   if (!resend) return;
-  const from = process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
 
   await resend.emails.send({
-    from,
+    from: fromAddress(),
     to: payload.email,
+    replyTo: SITE.email,
     subject: "We received your message — DAWGZ Youth Training",
     html: `
       <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
         <h1>Thanks for reaching out</h1>
-        <p>Hi ${payload.parentName},</p>
+        <p>Hi ${escapeHtml(firstName(payload.parentName))},</p>
         <p>We received your message and will get back to you soon.</p>
         <p>
-          ${SITE.name}<br/>
+          ${escapeHtml(SITE.name)}<br/>
           ${SITE.phone}<br/>
           ${SITE.email}
         </p>

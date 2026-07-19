@@ -8,6 +8,8 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import type { Booking, PaymentTransaction } from "@/lib/types/database";
+// Launch: cancellations disabled — re-enable with cancellation emails later.
+// import { sendBookingCancellationEmail } from "@/lib/email";
 import { getStripe, isStripeConfigured } from "./stripe/server";
 import type {
   AdapterResult,
@@ -37,6 +39,51 @@ function requireService() {
   }
   return createServiceClient();
 }
+
+// Launch: cancellations disabled.
+// async function notifyParentOfCancellationOrRefund(input: {
+//   bookingId: string;
+//   refundInitiated: boolean;
+// }) {
+//   try {
+//     const supabase = requireService();
+//     const { data } = await supabase
+//       .from(DAWG_TABLES.bookings)
+//       .select(BOOKING_SELECT)
+//       .eq("id", input.bookingId)
+//       .maybeSingle();
+//
+//     if (!data) return;
+//     const row = data as Booking & {
+//       session?: {
+//         title: string;
+//         session_date: string;
+//         start_time: string;
+//       } | null;
+//       parent?: {
+//         first_name: string;
+//         last_name: string;
+//         email: string;
+//       } | null;
+//       athlete?: { first_name: string; last_name: string } | null;
+//     };
+//
+//     if (!row.parent?.email || !row.session || !row.athlete) return;
+//
+//     await sendBookingCancellationEmail({
+//       parentEmail: row.parent.email,
+//       parentName: `${row.parent.first_name} ${row.parent.last_name}`,
+//       athleteName: `${row.athlete.first_name} ${row.athlete.last_name}`,
+//       sessionTitle: row.session.title,
+//       sessionDate: row.session.session_date,
+//       startTime: row.session.start_time,
+//       confirmationNumber: row.confirmation_number,
+//       refundInitiated: input.refundInitiated,
+//     });
+//   } catch (err) {
+//     console.error("[adapter] cancellation email", err);
+//   }
+// }
 
 function mapBookingRecord(row: Record<string, unknown>): BookingPaymentRecord {
   const session = row.session as BookingPaymentRecord["session"];
@@ -541,11 +588,12 @@ export async function refundBooking(
         : current.internal_notes,
     };
 
-    if (input.cancelBooking) {
-      patch.status = "cancelled";
-      patch.attendance_status = "cancelled";
-      patch.cancelled_at = new Date().toISOString();
-    }
+    // Launch: cancellations disabled — refunds do not cancel the booking.
+    // if (input.cancelBooking) {
+    //   patch.status = "cancelled";
+    //   patch.attendance_status = "cancelled";
+    //   patch.cancelled_at = new Date().toISOString();
+    // }
 
     const { data, error } = await supabase
       .from(DAWG_TABLES.bookings)
@@ -577,6 +625,12 @@ export async function refundBooking(
         method: current.payment_method,
       },
     });
+
+    // Launch: cancellations disabled.
+    // void notifyParentOfCancellationOrRefund({
+    //   bookingId: input.bookingId,
+    //   refundInitiated: true,
+    // });
 
     return {
       ok: true,

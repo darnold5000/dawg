@@ -50,7 +50,9 @@ async function sendConfirmationOnce(bookingId: string): Promise<void> {
     .select(
       `
       *,
-      session:dawg_sessions ( title, session_date, start_time, location_address ),
+      session:dawg_sessions (
+        title, session_date, start_time, end_time, location_address, trainer_id
+      ),
       parent:dawg_parents ( first_name, last_name, email, phone ),
       athlete:dawg_athletes ( first_name, last_name )
     `,
@@ -64,7 +66,9 @@ async function sendConfirmationOnce(bookingId: string): Promise<void> {
       title: string;
       session_date: string;
       start_time: string;
+      end_time: string;
       location_address: string | null;
+      trainer_id: string | null;
     };
     parent: {
       first_name: string;
@@ -77,6 +81,16 @@ async function sendConfirmationOnce(bookingId: string): Promise<void> {
 
   if (booking.confirmation_email_sent_at) return;
 
+  let coachName: string | null = null;
+  if (booking.session.trainer_id) {
+    const { data: trainer } = await supabase
+      .from(DAWG_TABLES.trainers)
+      .select("name")
+      .eq("id", booking.session.trainer_id)
+      .maybeSingle();
+    coachName = trainer?.name ?? null;
+  }
+
   await sendBookingConfirmation({
     booking,
     parentEmail: booking.parent.email,
@@ -85,7 +99,9 @@ async function sendConfirmationOnce(bookingId: string): Promise<void> {
     sessionTitle: booking.session.title,
     sessionDate: booking.session.session_date,
     startTime: booking.session.start_time,
+    endTime: booking.session.end_time,
     location: booking.session.location_address,
+    coachName,
     amountDueCents: booking.amount_due_cents,
     amountPaidCents: booking.amount_paid_cents,
     paymentMethod: "stripe",
@@ -101,6 +117,7 @@ async function sendConfirmationOnce(bookingId: string): Promise<void> {
     sessionDate: booking.session.session_date,
     startTime: booking.session.start_time,
     paymentStatus: booking.payment_status,
+    paymentMethod: "stripe",
     amountDueCents: booking.amount_due_cents,
   });
 

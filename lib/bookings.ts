@@ -12,6 +12,13 @@ import {
   sendStaffBookingNotification,
   sendWaitlistConfirmation,
 } from "@/lib/email";
+import { CURRENT_AGREEMENTS_VERSION } from "@/lib/agreements";
+import {
+  deviceAgreementsSatisfied,
+  refreshDeviceAgreementsIfPresent,
+  rememberFamilyOnDevice,
+  setFamilyDeviceCookie,
+} from "@/lib/family-device";
 
 export const bookingSchema = z.object({
   sessionId: z.string().min(1),
@@ -22,18 +29,21 @@ export const bookingSchema = z.object({
   athleteFirstName: z.string().min(1).max(80),
   athleteLastName: z.string().min(1).max(80),
   athleteDob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** When set, update this athlete if it belongs to the remembered parent. */
+  athleteId: z.string().uuid().optional(),
   primarySport: z.string().max(80).optional(),
   experienceLevel: z.string().max(80).optional(),
   medicalNotes: z.string().max(1000).optional(),
   customerNotes: z.string().max(1000).optional(),
   /** Required — never silently default when the session requires online payment. */
   paymentMethod: z.enum(["stripe", "pay_at_facility"]),
-  isGuardian: z.literal(true),
-  acceptCancellation: z.literal(true),
-  acceptWaiver: z.literal(true),
-  acceptTerms: z.literal(true),
-  acceptPrivacy: z.literal(true),
+  /**
+   * Combined required agreements (guardian + booking/cancellation/privacy/waiver).
+   * May be omitted when this device already accepted the current policy version.
+   */
+  acceptRequiredAgreements: z.boolean().optional(),
   mediaConsent: z.boolean(),
+  rememberFamily: z.boolean().optional(),
 });
 
 export type BookingInput = z.infer<typeof bookingSchema>;
@@ -54,6 +64,8 @@ export type BookingResult =
       booking: Booking;
       demo?: boolean;
       requiresCheckout?: boolean;
+      parentId?: string;
+      remembered?: boolean;
     }
   | { ok: false; error: string; code?: string };
 
@@ -92,6 +104,8 @@ function emptyBookingFields(
     internal_notes: null,
     waiver_acknowledged_at: now,
     media_consent: false,
+    agreements_version: CURRENT_AGREEMENTS_VERSION,
+    agreements_accepted_at: now,
     booked_at: now,
     cancelled_at: null,
     created_at: now,
@@ -100,11 +114,92 @@ function emptyBookingFields(
   };
 }
 
+async function upsertAthleteForParent(
+  supabase: ReturnType<typeof createServiceClient>,
+  parentId: string,
+  input: BookingInput,
+): Promise<{ athlete: { id: string } | null; error: Error | null }> {
+  const athletePatch = {
+    first_name: input.athleteFirstName,
+    last_name: input.athleteLastName,
+    date_of_birth: input.athleteDob,
+    primary_sport: input.primarySport || null,
+    experience_level: input.experienceLevel || null,
+    medical_notes: input.medicalNotes || null,
+  };
+
+  if (input.athleteId) {
+    const { data: owned } = await supabase
+      .from(DAWG_TABLES.athletes)
+      .select("id")
+      .eq("id", input.athleteId)
+      .eq("parent_id", parentId)
+      .maybeSingle();
+
+    if (owned) {
+      const { data: updated, error } = await supabase
+        .from(DAWG_TABLES.athletes)
+        .update(athletePatch)
+        .eq("id", owned.id)
+        .select("id")
+        .single();
+      if (!error && updated) return { athlete: updated, error: null };
+    }
+  }
+
+  const { data: siblings } = await supabase
+    .from(DAWG_TABLES.athletes)
+    .select("id, first_name, last_name, date_of_birth")
+    .eq("parent_id", parentId);
+
+  const match = (siblings ?? []).find(
+    (a) =>
+      a.first_name.trim().toLowerCase() ===
+        input.athleteFirstName.trim().toLowerCase() &&
+      a.last_name.trim().toLowerCase() ===
+        input.athleteLastName.trim().toLowerCase() &&
+      a.date_of_birth === input.athleteDob,
+  );
+
+  if (match) {
+    const { data: updated, error } = await supabase
+      .from(DAWG_TABLES.athletes)
+      .update(athletePatch)
+      .eq("id", match.id)
+      .select("id")
+      .single();
+    if (!error && updated) return { athlete: updated, error: null };
+    return { athlete: { id: match.id }, error: null };
+  }
+
+  const { data: created, error } = await supabase
+    .from(DAWG_TABLES.athletes)
+    .insert({ parent_id: parentId, ...athletePatch })
+    .select("id")
+    .single();
+
+  return {
+    athlete: created,
+    error: error ? new Error(error.message) : null,
+  };
+}
+
 export async function createPublicBooking(
   raw: BookingInput,
 ): Promise<BookingResult> {
   const input = bookingSchema.parse(raw);
   const paymentMethod = input.paymentMethod as PaymentMethod;
+
+  const priorAgreementsOk = await deviceAgreementsSatisfied();
+  if (!input.acceptRequiredAgreements && !priorAgreementsOk) {
+    return {
+      ok: false,
+      error: "Please accept the required booking agreements.",
+      code: "AGREEMENTS_REQUIRED",
+    };
+  }
+
+  const agreementsAt = new Date().toISOString();
 
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     const demoBooking = emptyBookingFields({
@@ -120,6 +215,9 @@ export async function createPublicBooking(
       customer_notes: input.customerNotes ?? null,
       internal_notes: "[DEMO] Created without Supabase",
       media_consent: input.mediaConsent,
+      waiver_acknowledged_at: agreementsAt,
+      agreements_version: CURRENT_AGREEMENTS_VERSION,
+      agreements_accepted_at: agreementsAt,
       booking_expires_at:
         paymentMethod === "stripe"
           ? new Date(Date.now() + 15 * 60_000).toISOString()
@@ -130,6 +228,7 @@ export async function createPublicBooking(
       booking: demoBooking,
       demo: true,
       requiresCheckout: paymentMethod === "stripe",
+      remembered: Boolean(input.rememberFamily),
     };
   }
 
@@ -211,19 +310,11 @@ export async function createPublicBooking(
     parentId = parent.id;
   }
 
-  const { data: athlete, error: athleteError } = await supabase
-    .from(DAWG_TABLES.athletes)
-    .insert({
-      parent_id: parentId,
-      first_name: input.athleteFirstName,
-      last_name: input.athleteLastName,
-      date_of_birth: input.athleteDob,
-      primary_sport: input.primarySport || null,
-      experience_level: input.experienceLevel || null,
-      medical_notes: input.medicalNotes || null,
-    })
-    .select("*")
-    .single();
+  const { athlete, error: athleteError } = await upsertAthleteForParent(
+    supabase,
+    parentId,
+    input,
+  );
 
   if (athleteError || !athlete) {
     return { ok: false, error: "Could not save athlete information." };
@@ -244,7 +335,7 @@ export async function createPublicBooking(
       p_payment_status: paymentStatus,
       p_payment_method: paymentMethod,
       p_customer_notes: input.customerNotes || null,
-      p_waiver_acknowledged_at: new Date().toISOString(),
+      p_waiver_acknowledged_at: agreementsAt,
       p_media_consent: input.mediaConsent,
       p_hold_minutes: 15,
     },
@@ -282,24 +373,63 @@ export async function createPublicBooking(
 
   const created = booking as Booking;
 
+  await supabase
+    .from(DAWG_TABLES.bookings)
+    .update({
+      agreements_version: CURRENT_AGREEMENTS_VERSION,
+      agreements_accepted_at: agreementsAt,
+    })
+    .eq("id", created.id);
+
+  let remembered = false;
+  if (input.rememberFamily) {
+    const rememberedResult = await rememberFamilyOnDevice({
+      parentId,
+      agreementsVersion: CURRENT_AGREEMENTS_VERSION,
+      mediaConsent: input.mediaConsent,
+    });
+    if ("token" in rememberedResult) {
+      await setFamilyDeviceCookie(rememberedResult.token);
+      remembered = true;
+    }
+  } else {
+    await refreshDeviceAgreementsIfPresent({
+      parentId,
+      agreementsVersion: CURRENT_AGREEMENTS_VERSION,
+      mediaConsent: input.mediaConsent,
+    });
+  }
+
   // Pay-at-facility: send confirmation immediately (one-shot).
   // Stripe: wait for verified payment webhook before emailing.
   if (paymentMethod === "pay_at_facility") {
     await Promise.allSettled([
-      sendBookingConfirmation({
-        booking: created,
-        parentEmail: input.parentEmail,
-        parentName: `${input.parentFirstName} ${input.parentLastName}`,
-        athleteName: `${input.athleteFirstName} ${input.athleteLastName}`,
-        sessionTitle: session.title,
-        sessionDate: session.session_date,
-        startTime: session.start_time,
-        location: session.location_address,
-        amountDueCents: Number(session.price_cents),
-        paymentMethod: "pay_at_facility",
-      }).then(async () => {
+      (async () => {
+        let coachName: string | null = null;
+        if (session.trainer_id) {
+          const { data: trainer } = await supabase
+            .from(DAWG_TABLES.trainers)
+            .select("name")
+            .eq("id", session.trainer_id)
+            .maybeSingle();
+          coachName = trainer?.name ?? null;
+        }
+        await sendBookingConfirmation({
+          booking: created,
+          parentEmail: input.parentEmail,
+          parentName: `${input.parentFirstName} ${input.parentLastName}`,
+          athleteName: `${input.athleteFirstName} ${input.athleteLastName}`,
+          sessionTitle: session.title,
+          sessionDate: session.session_date,
+          startTime: session.start_time,
+          endTime: session.end_time,
+          location: session.location_address,
+          coachName,
+          amountDueCents: Number(session.price_cents),
+          paymentMethod: "pay_at_facility",
+        });
         await markConfirmationEmailSent(created.id);
-      }),
+      })(),
       sendStaffBookingNotification({
         booking: created,
         parentEmail: input.parentEmail,
@@ -310,6 +440,7 @@ export async function createPublicBooking(
         sessionDate: session.session_date,
         startTime: session.start_time,
         paymentStatus: created.payment_status,
+        paymentMethod: "pay_at_facility",
         amountDueCents: Number(session.price_cents),
       }),
     ]);
@@ -319,6 +450,8 @@ export async function createPublicBooking(
     ok: true,
     booking: created,
     requiresCheckout: paymentMethod === "stripe",
+    parentId,
+    remembered,
   };
 }
 

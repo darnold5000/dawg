@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,14 +8,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PolicyLinkButton } from "@/components/public/policy-dialog";
 import type { SessionWithRelations } from "@/lib/types/database";
 import {
-  clearSavedFamily,
-  loadSavedFamily,
-  saveFamilyFromBooking,
+  fetchRememberedFamily,
+  forgetRememberedFamily,
+  saveDemoFamily,
   type SavedAthlete,
   type SavedFamily,
 } from "@/lib/returning-family";
+import {
+  clearBookingDraft,
+  loadBookingDraft,
+  saveBookingDraft,
+} from "@/lib/booking-draft";
 import {
   allowedPaymentMethods,
   defaultPaymentMethod,
@@ -41,12 +46,9 @@ const emptyForm = {
   experienceLevel: "",
   medicalNotes: "",
   customerNotes: "",
-  isGuardian: false,
-  acceptCancellation: false,
-  acceptWaiver: false,
-  acceptTerms: false,
-  acceptPrivacy: false,
+  acceptRequiredAgreements: false,
   mediaConsent: false,
+  rememberFamily: false,
   waitlistParentName: "",
   waitlistAthleteName: "",
   waitlistEmail: "",
@@ -62,26 +64,149 @@ export function BookingForm({
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [savedFamily, setSavedFamily] = useState<SavedFamily | null>(null);
   const [useSaved, setUseSaved] = useState(false);
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>("");
+  const [editingDetails, setEditingDetails] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const paymentOptions = allowedPaymentMethods(session.payment_requirement);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
     () => defaultPaymentMethod(session.payment_requirement) ?? "",
   );
 
+  const agreementsNeeded = !savedFamily?.agreementsCurrent;
+
   useEffect(() => {
-    const family = loadSavedFamily();
-    if (!family || family.athletes.length === 0) return;
-    setSavedFamily(family);
-    setUseSaved(true);
-    applyFamily(family, family.athletes[0]);
-  }, []);
+    let cancelled = false;
+
+    async function hydrate() {
+      const draft = loadBookingDraft(session.id);
+      const family = await fetchRememberedFamily();
+
+      if (cancelled) return;
+
+      if (family && family.athletes.length > 0) {
+        setSavedFamily(family);
+        setUseSaved(true);
+        const athlete =
+          family.athletes.find((a) => a.id === draft?.selectedAthleteId) ??
+          family.athletes[0];
+        setSelectedAthleteId(
+          draft?.editingDetails ? "__new__" : athlete.id,
+        );
+        setEditingDetails(Boolean(draft?.editingDetails));
+        setForm((prev) => ({
+          ...prev,
+          parentFirstName: draft?.parentFirstName || family.parentFirstName,
+          parentLastName: draft?.parentLastName || family.parentLastName,
+          parentEmail: draft?.parentEmail || family.parentEmail,
+          parentPhone: draft?.parentPhone || family.parentPhone,
+          athleteFirstName: draft?.athleteFirstName || athlete.firstName,
+          athleteLastName: draft?.athleteLastName || athlete.lastName,
+          athleteDob: draft?.athleteDob || athlete.dob,
+          primarySport:
+            draft?.primarySport || athlete.primarySport || "",
+          experienceLevel:
+            draft?.experienceLevel || athlete.experienceLevel || "",
+          medicalNotes: draft?.medicalNotes || "",
+          customerNotes: draft?.customerNotes || "",
+          rememberFamily: true,
+          mediaConsent:
+            draft?.mediaConsent ?? family.mediaConsentPreference ?? false,
+          acceptRequiredAgreements:
+            draft?.acceptRequiredAgreements ??
+            Boolean(family.agreementsCurrent),
+        }));
+        if (draft?.paymentMethod) {
+          const allowed = allowedPaymentMethods(session.payment_requirement);
+          if (allowed.includes(draft.paymentMethod as PaymentMethod)) {
+            setPaymentMethod(draft.paymentMethod as PaymentMethod);
+          }
+        }
+      } else if (draft) {
+        setForm((prev) => ({
+          ...prev,
+          parentFirstName: draft.parentFirstName,
+          parentLastName: draft.parentLastName,
+          parentEmail: draft.parentEmail,
+          parentPhone: draft.parentPhone,
+          athleteFirstName: draft.athleteFirstName,
+          athleteLastName: draft.athleteLastName,
+          athleteDob: draft.athleteDob,
+          primarySport: draft.primarySport,
+          experienceLevel: draft.experienceLevel,
+          medicalNotes: draft.medicalNotes,
+          customerNotes: draft.customerNotes,
+          rememberFamily: draft.rememberFamily,
+          mediaConsent: draft.mediaConsent,
+          acceptRequiredAgreements: draft.acceptRequiredAgreements,
+        }));
+        if (draft.paymentMethod) {
+          const allowed = allowedPaymentMethods(session.payment_requirement);
+          if (allowed.includes(draft.paymentMethod as PaymentMethod)) {
+            setPaymentMethod(draft.paymentMethod as PaymentMethod);
+          }
+        }
+        if (draft.selectedAthleteId) {
+          setSelectedAthleteId(draft.selectedAthleteId);
+        }
+        setEditingDetails(draft.editingDetails);
+      }
+
+      setHydrated(true);
+    }
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [session.id, session.payment_requirement]);
+
+  useEffect(() => {
+    if (!hydrated || waitlistMode) return;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => {
+      saveBookingDraft({
+        sessionId: session.id,
+        parentFirstName: form.parentFirstName,
+        parentLastName: form.parentLastName,
+        parentEmail: form.parentEmail,
+        parentPhone: form.parentPhone,
+        athleteFirstName: form.athleteFirstName,
+        athleteLastName: form.athleteLastName,
+        athleteDob: form.athleteDob,
+        primarySport: form.primarySport,
+        experienceLevel: form.experienceLevel,
+        medicalNotes: form.medicalNotes,
+        customerNotes: form.customerNotes,
+        paymentMethod,
+        rememberFamily: form.rememberFamily,
+        mediaConsent: form.mediaConsent,
+        acceptRequiredAgreements: form.acceptRequiredAgreements,
+        selectedAthleteId,
+        editingDetails,
+        updatedAt: new Date().toISOString(),
+      });
+    }, 350);
+    return () => {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+    };
+  }, [
+    hydrated,
+    waitlistMode,
+    session.id,
+    form,
+    paymentMethod,
+    selectedAthleteId,
+    editingDetails,
+  ]);
 
   function applyFamily(family: SavedFamily, athlete: SavedAthlete) {
     setSelectedAthleteId(athlete.id);
+    setEditingDetails(false);
     setForm((prev) => ({
       ...prev,
       parentFirstName: family.parentFirstName,
@@ -93,8 +218,12 @@ export function BookingForm({
       athleteDob: athlete.dob,
       primarySport: athlete.primarySport ?? "",
       experienceLevel: athlete.experienceLevel ?? "",
-      medicalNotes: athlete.medicalNotes ?? "",
-      customerNotes: "",
+      medicalNotes: "",
+      customerNotes: prev.customerNotes,
+      rememberFamily: true,
+      mediaConsent: family.mediaConsentPreference ?? prev.mediaConsent,
+      acceptRequiredAgreements:
+        family.agreementsCurrent || prev.acceptRequiredAgreements,
     }));
   }
 
@@ -106,6 +235,7 @@ export function BookingForm({
     if (!savedFamily) return;
     if (athleteId === "__new__") {
       setSelectedAthleteId("__new__");
+      setEditingDetails(true);
       setForm((prev) => ({
         ...prev,
         athleteFirstName: "",
@@ -114,7 +244,6 @@ export function BookingForm({
         primarySport: "",
         experienceLevel: "",
         medicalNotes: "",
-        customerNotes: "",
       }));
       return;
     }
@@ -123,21 +252,31 @@ export function BookingForm({
     applyFamily(savedFamily, athlete);
   }
 
-  function bookAsDifferentFamily() {
-    clearSavedFamily();
+  async function bookAsDifferentFamily() {
+    await forgetRememberedFamily();
     setSavedFamily(null);
     setUseSaved(false);
     setSelectedAthleteId("");
+    setEditingDetails(false);
     setForm(emptyForm);
+    setPaymentMethod(defaultPaymentMethod(session.payment_requirement) ?? "");
+    clearBookingDraft(session.id);
   }
 
-  function useSavedFamilyAgain() {
-    const family = loadSavedFamily() ?? savedFamily;
-    if (!family || family.athletes.length === 0) return;
-    setSavedFamily(family);
-    setUseSaved(true);
-    applyFamily(family, family.athletes[0]);
-  }
+  const compactReturning =
+    useSaved &&
+    savedFamily &&
+    selectedAthleteId !== "__new__" &&
+    !editingDetails;
+
+  const selectedAthlete = savedFamily?.athletes.find(
+    (a) => a.id === selectedAthleteId,
+  );
+
+  const paymentSummary = useMemo(() => {
+    if (!paymentMethod) return "Select a payment method";
+    return paymentMethodLabel(paymentMethod);
+  }, [paymentMethod]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -161,6 +300,7 @@ export function BookingForm({
           toast.error(data.error ?? "Could not join waitlist");
           return;
         }
+        clearBookingDraft(session.id);
         toast.success("You're on the waitlist");
         router.push(`/book/${session.id}/confirmation?waitlist=1`);
         return;
@@ -170,6 +310,18 @@ export function BookingForm({
         toast.error("Please select a payment method");
         return;
       }
+
+      if (agreementsNeeded && !form.acceptRequiredAgreements) {
+        toast.error("Please accept the required agreements");
+        return;
+      }
+
+      const athleteId =
+        selectedAthleteId &&
+        selectedAthleteId !== "__new__" &&
+        /^[0-9a-f-]{36}$/i.test(selectedAthleteId)
+          ? selectedAthleteId
+          : undefined;
 
       const res = await fetch("/api/bookings", {
         method: "POST",
@@ -183,17 +335,16 @@ export function BookingForm({
           athleteFirstName: form.athleteFirstName,
           athleteLastName: form.athleteLastName,
           athleteDob: form.athleteDob,
+          athleteId,
           primarySport: form.primarySport || undefined,
           experienceLevel: form.experienceLevel || undefined,
           medicalNotes: form.medicalNotes || undefined,
           customerNotes: form.customerNotes || undefined,
           paymentMethod,
-          isGuardian: form.isGuardian || undefined,
-          acceptCancellation: form.acceptCancellation || undefined,
-          acceptWaiver: form.acceptWaiver || undefined,
-          acceptTerms: form.acceptTerms || undefined,
-          acceptPrivacy: form.acceptPrivacy || undefined,
+          acceptRequiredAgreements:
+            form.acceptRequiredAgreements || !agreementsNeeded || undefined,
           mediaConsent: form.mediaConsent,
+          rememberFamily: form.rememberFamily,
         }),
       });
       const data = await res.json();
@@ -205,18 +356,21 @@ export function BookingForm({
         return;
       }
 
-      saveFamilyFromBooking({
-        parentFirstName: form.parentFirstName,
-        parentLastName: form.parentLastName,
-        parentEmail: form.parentEmail,
-        parentPhone: form.parentPhone,
-        athleteFirstName: form.athleteFirstName,
-        athleteLastName: form.athleteLastName,
-        athleteDob: form.athleteDob,
-        primarySport: form.primarySport || undefined,
-        experienceLevel: form.experienceLevel || undefined,
-        medicalNotes: form.medicalNotes || undefined,
-      });
+      clearBookingDraft(session.id);
+
+      if (form.rememberFamily && data.demo) {
+        saveDemoFamily({
+          parentFirstName: form.parentFirstName,
+          parentLastName: form.parentLastName,
+          parentEmail: form.parentEmail,
+          parentPhone: form.parentPhone,
+          athleteFirstName: form.athleteFirstName,
+          athleteLastName: form.athleteLastName,
+          athleteDob: form.athleteDob,
+          primarySport: form.primarySport || undefined,
+          experienceLevel: form.experienceLevel || undefined,
+        });
+      }
 
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
@@ -227,6 +381,7 @@ export function BookingForm({
         confirmation: data.confirmationNumber,
         athlete: `${form.athleteFirstName} ${form.athleteLastName}`,
         token: data.confirmationToken ?? "",
+        payment: paymentMethod,
       });
       if (data.demo) q.set("demo", "1");
       router.push(`/book/${session.id}/confirmation?${q.toString()}`);
@@ -240,7 +395,7 @@ export function BookingForm({
   if (waitlistMode) {
     return (
       <form onSubmit={onSubmit} className="space-y-6">
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <h2 className="font-heading text-xl tracking-wide">Join Waitlist</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {session.title} · {formatSessionDate(session.session_date)} ·{" "}
@@ -298,27 +453,17 @@ export function BookingForm({
     );
   }
 
-  const compactReturning =
-    useSaved && savedFamily && selectedAthleteId !== "__new__";
-  const selectedAthlete = savedFamily?.athletes.find(
-    (a) => a.id === selectedAthleteId
-  );
-
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
-      <div className="rounded-xl border border-border bg-card p-5">
-        <h2 className="font-heading text-xl tracking-wide">{session.title}</h2>
+    <form onSubmit={onSubmit} className="space-y-5 sm:space-y-6">
+      <div className="rounded-xl border border-border bg-card px-4 py-3 sm:p-5">
+        <h2 className="font-heading text-lg tracking-wide sm:text-xl">
+          {session.title}
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {formatSessionDate(session.session_date)} ·{" "}
           {formatSessionTime(session.start_time)} ·{" "}
           {formatPrice(session.price_cents)}
         </p>
-        {!savedFamily ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            One-time fill-out on this device — we’ll save your family info so
-            the next booking is mostly just pick an athlete and confirm.
-          </p>
-        ) : null}
       </div>
 
       {savedFamily ? (
@@ -327,8 +472,8 @@ export function BookingForm({
             Welcome back, {savedFamily.parentFirstName}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Saved on this device from a previous booking. Choose an athlete to
-            skip re-entering parent and athlete details.
+            We recognized this family on this device. Choose an athlete to
+            continue — no account needed.
           </p>
           {useSaved ? (
             <div className="mt-4 space-y-3">
@@ -336,7 +481,7 @@ export function BookingForm({
                 <Label htmlFor="savedAthlete">Athlete</Label>
                 <select
                   id="savedAthlete"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={selectedAthleteId}
                   onChange={(e) => onSelectAthlete(e.target.value)}
                 >
@@ -351,73 +496,75 @@ export function BookingForm({
               <button
                 type="button"
                 className="text-sm underline underline-offset-2"
-                onClick={bookAsDifferentFamily}
+                onClick={() => void bookAsDifferentFamily()}
               >
-                Book as a different family
+                Not your family? Forget this device
               </button>
             </div>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4"
-              onClick={useSavedFamilyAgain}
-            >
-              Use saved family info
-            </Button>
-          )}
+          ) : null}
         </div>
-      ) : null}
+      ) : (
+        <label className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 text-sm">
+          <Checkbox
+            checked={form.rememberFamily}
+            onCheckedChange={(v) => update("rememberFamily", Boolean(v))}
+          />
+          <span>
+            <span className="font-medium">Remember this family on this device</span>
+            <span className="mt-0.5 block text-muted-foreground">
+              Saves parent contact and athlete profiles for faster bookings.
+              Medical notes and waiver details are not stored in the browser.
+            </span>
+          </span>
+        </label>
+      )}
 
-      {compactReturning && selectedAthlete ? (
-        <div className="space-y-4 rounded-xl border border-border bg-card p-5">
-          <h3 className="font-heading text-lg tracking-wide">Booking for</h3>
+      {compactReturning && selectedAthlete && savedFamily ? (
+        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-heading text-lg tracking-wide">Your booking</h3>
+            <button
+              type="button"
+              className="shrink-0 text-sm underline underline-offset-2"
+              onClick={() => setEditingDetails(true)}
+            >
+              Edit details
+            </button>
+          </div>
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-muted-foreground">Parent</dt>
               <dd className="font-medium">
-                {savedFamily.parentFirstName} {savedFamily.parentLastName}
+                {form.parentFirstName} {form.parentLastName}
               </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Contact</dt>
-              <dd className="font-medium">{savedFamily.parentEmail}</dd>
-              <dd className="text-muted-foreground">{savedFamily.parentPhone}</dd>
+              <dd className="text-muted-foreground">{form.parentEmail}</dd>
+              <dd className="text-muted-foreground">{form.parentPhone}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Athlete</dt>
               <dd className="font-medium">
-                {selectedAthlete.firstName} {selectedAthlete.lastName}
+                {form.athleteFirstName} {form.athleteLastName}
               </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Date of birth</dt>
-              <dd className="font-medium">{selectedAthlete.dob}</dd>
+              <dd className="text-muted-foreground">DOB {form.athleteDob}</dd>
             </div>
           </dl>
           <div className="space-y-1.5">
-            <Label htmlFor="customerNotes">Optional notes for this session</Label>
+            <Label htmlFor="customerNotes">Optional notes</Label>
             <Textarea
               id="customerNotes"
               value={form.customerNotes}
               onChange={(e) => update("customerNotes", e.target.value)}
+              rows={2}
             />
           </div>
-          <button
-            type="button"
-            className="text-sm underline underline-offset-2"
-            onClick={() => setSelectedAthleteId("__new__")}
-          >
-            Edit athlete details
-          </button>
         </div>
       ) : (
         <>
-          <fieldset className="space-y-4">
-            <legend className="font-heading text-lg tracking-wide">
-              Parent or Guardian
+          <fieldset className="space-y-3 rounded-xl border border-border p-4">
+            <legend className="px-1 font-heading text-lg tracking-wide">
+              Parent or guardian
             </legend>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="parentFirstName">First name</Label>
                 <Input
@@ -457,11 +604,25 @@ export function BookingForm({
                 />
               </div>
             </div>
+            {savedFamily ? (
+              <button
+                type="button"
+                className="text-sm underline underline-offset-2"
+                onClick={() => {
+                  setEditingDetails(false);
+                  if (selectedAthlete) applyFamily(savedFamily, selectedAthlete);
+                }}
+              >
+                Done editing parent details
+              </button>
+            ) : null}
           </fieldset>
 
-          <fieldset className="space-y-4">
-            <legend className="font-heading text-lg tracking-wide">Athlete</legend>
-            <div className="grid gap-4 sm:grid-cols-2">
+          <fieldset className="space-y-3 rounded-xl border border-border p-4">
+            <legend className="px-1 font-heading text-lg tracking-wide">
+              Athlete
+            </legend>
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="athleteFirstName">First name</Label>
                 <Input
@@ -498,7 +659,7 @@ export function BookingForm({
                   onChange={(e) => update("primarySport", e.target.value)}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="experienceLevel">Experience level</Label>
                 <Input
                   id="experienceLevel"
@@ -515,7 +676,12 @@ export function BookingForm({
                   id="medicalNotes"
                   value={form.medicalNotes}
                   onChange={(e) => update("medicalNotes", e.target.value)}
+                  rows={2}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Shared with coaches for this booking only — not saved in
+                  browser memory.
+                </p>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="customerNotesFull">Optional notes</Label>
@@ -523,10 +689,30 @@ export function BookingForm({
                   id="customerNotesFull"
                   value={form.customerNotes}
                   onChange={(e) => update("customerNotes", e.target.value)}
+                  rows={2}
                 />
               </div>
             </div>
+            {savedFamily && editingDetails ? (
+              <button
+                type="button"
+                className="text-sm underline underline-offset-2"
+                onClick={() => setEditingDetails(false)}
+              >
+                Collapse athlete details
+              </button>
+            ) : null}
           </fieldset>
+
+          {!savedFamily ? null : (
+            <label className="flex items-start gap-3 text-sm">
+              <Checkbox
+                checked={form.rememberFamily}
+                onCheckedChange={(v) => update("rememberFamily", Boolean(v))}
+              />
+              <span>Keep this family remembered on this device</span>
+            </label>
+          )}
         </>
       )}
 
@@ -567,9 +753,11 @@ export function BookingForm({
             </label>
           ))}
         </div>
-        {!paymentMethod ? (
+        {session.payment_requirement === "online_or_facility" &&
+        !paymentMethod ? (
           <p className="text-sm text-amber-800">
-            Select how you want to pay before confirming.
+            Choose pay online or pay at facility — neither is selected by
+            default.
           </p>
         ) : null}
       </fieldset>
@@ -578,85 +766,96 @@ export function BookingForm({
         <legend className="px-1 font-heading text-lg tracking-wide">
           Agreements
         </legend>
-        <label className="flex items-start gap-3 text-sm">
-          <Checkbox
-            checked={form.isGuardian}
-            onCheckedChange={(v) => update("isGuardian", Boolean(v))}
-            required
-          />
-          <span>
-            I am the athlete’s parent or legal guardian (required for minors).
-          </span>
-        </label>
-        <label className="flex items-start gap-3 text-sm">
-          <Checkbox
-            checked={form.acceptCancellation}
-            onCheckedChange={(v) => update("acceptCancellation", Boolean(v))}
-            required
-          />
-          <span>I acknowledge the cancellation policy.</span>
-        </label>
-        <label className="flex items-start gap-3 text-sm">
-          <Checkbox
-            checked={form.acceptWaiver}
-            onCheckedChange={(v) => update("acceptWaiver", Boolean(v))}
-            required
-          />
-          <span>
-            I acknowledge liability waiver language will be provided by DAWGZ
-            (preliminary acknowledgment only).
-          </span>
-        </label>
+        {agreementsNeeded ? (
+          <label className="flex items-start gap-3 text-sm">
+            <Checkbox
+              checked={form.acceptRequiredAgreements}
+              onCheckedChange={(v) =>
+                update("acceptRequiredAgreements", Boolean(v))
+              }
+              required
+            />
+            <span>
+              I am the athlete’s parent or legal guardian and I accept the{" "}
+              <PolicyLinkButton docId="booking">booking policy</PolicyLinkButton>
+              ,{" "}
+              <PolicyLinkButton
+                docId="cancellation"
+                cancellationText={session.cancellation_policy}
+              >
+                cancellation policy
+              </PolicyLinkButton>
+              ,{" "}
+              <PolicyLinkButton docId="privacy">privacy policy</PolicyLinkButton>
+              , and{" "}
+              <PolicyLinkButton docId="waiver">
+                liability waiver acknowledgment
+              </PolicyLinkButton>
+              .
+            </span>
+          </label>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Required policies were already accepted on this device.{" "}
+            <PolicyLinkButton docId="booking">Review booking policy</PolicyLinkButton>
+            {" · "}
+            <PolicyLinkButton
+              docId="cancellation"
+              cancellationText={session.cancellation_policy}
+            >
+              cancellation
+            </PolicyLinkButton>
+            {" · "}
+            <PolicyLinkButton docId="privacy">privacy</PolicyLinkButton>
+            {" · "}
+            <PolicyLinkButton docId="waiver">waiver</PolicyLinkButton>
+          </p>
+        )}
         <label className="flex items-start gap-3 text-sm">
           <Checkbox
             checked={form.mediaConsent}
             onCheckedChange={(v) => update("mediaConsent", Boolean(v))}
           />
-          <span>Photo / media consent (optional).</span>
-        </label>
-        <label className="flex items-start gap-3 text-sm">
-          <Checkbox
-            checked={form.acceptTerms}
-            onCheckedChange={(v) => update("acceptTerms", Boolean(v))}
-            required
-          />
           <span>
-            I agree to the{" "}
-            <Link href="/booking-policy" className="underline">
-              booking policy
-            </Link>
-            .
-          </span>
-        </label>
-        <label className="flex items-start gap-3 text-sm">
-          <Checkbox
-            checked={form.acceptPrivacy}
-            onCheckedChange={(v) => update("acceptPrivacy", Boolean(v))}
-            required
-          />
-          <span>
-            I agree to the{" "}
-            <Link href="/privacy" className="underline">
-              privacy policy
-            </Link>
-            .
+            Photo / media consent (optional).{" "}
+            <PolicyLinkButton docId="media">Details</PolicyLinkButton>
           </span>
         </label>
       </fieldset>
 
-      <Button
-        type="submit"
-        disabled={submitting || !paymentMethod}
-        className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:px-8"
-      >
-        {submitting
-          ? paymentMethod === "stripe"
-            ? "Starting checkout…"
-            : "Reserving…"
-          : paymentMethod === "stripe"
-            ? "Continue to payment"
-            : "Confirm reservation"}
-      </Button>
+      <div className="sticky bottom-0 z-10 -mx-4 border-t border-border bg-background/95 px-4 py-4 backdrop-blur supports-backdrop-filter:bg-background/80 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+        <div className="mb-3 rounded-lg border border-border bg-card px-3 py-2 text-sm sm:mb-4">
+          <p>
+            <span className="text-muted-foreground">Payment: </span>
+            <span className="font-medium">{paymentSummary}</span>
+            {paymentMethod ? (
+              <span className="text-muted-foreground">
+                {" "}
+                · {formatPrice(session.price_cents)}
+              </span>
+            ) : null}
+          </p>
+          {form.parentFirstName && form.athleteFirstName ? (
+            <p className="mt-1 text-muted-foreground">
+              {form.athleteFirstName} {form.athleteLastName} ·{" "}
+              {form.parentFirstName} {form.parentLastName}
+            </p>
+          ) : null}
+        </div>
+        <Button
+          type="submit"
+          disabled={submitting || !paymentMethod}
+          className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:px-8"
+        >
+          {submitting
+            ? paymentMethod === "stripe"
+              ? "Starting checkout…"
+              : "Reserving…"
+            : paymentMethod === "stripe"
+              ? "Continue to payment"
+              : "Confirm reservation"}
+        </Button>
+      </div>
     </form>
   );
 }

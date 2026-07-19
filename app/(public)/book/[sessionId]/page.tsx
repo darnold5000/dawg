@@ -2,6 +2,21 @@ import { notFound } from "next/navigation";
 import { BookingForm } from "@/components/public/booking-form";
 import { getSessionById } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
+import { paymentMethodLabel } from "@/lib/billing/payment-options";
+
+function bookingPaymentBlurb(
+  requirement: string | null | undefined,
+): string {
+  switch (requirement) {
+    case "pay_online":
+      return "No account required. You’ll pay securely online after confirming.";
+    case "online_or_facility":
+      return "No account required. Choose pay online or pay at the facility.";
+    case "pay_at_facility":
+    default:
+      return `No account required. ${paymentMethodLabel("pay_at_facility")} for this session.`;
+  }
+}
 
 export async function generateMetadata({
   params,
@@ -38,7 +53,7 @@ export default async function BookPage({
         {waitlistMode ? "Join Waitlist" : "Complete Booking"}
       </h1>
       <p className="mt-3 text-muted-foreground">
-        No account required. Payment is collected at the facility.
+        {bookingPaymentBlurb(session.payment_requirement)}
       </p>
       <div className="mt-8">
         <BookingForm session={session} waitlistMode={waitlistMode} />

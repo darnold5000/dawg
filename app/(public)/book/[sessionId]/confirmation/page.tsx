@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  amountDisplay,
+  BookingConfirmedView,
+  paymentDisplayLabel,
+} from "@/components/public/booking-confirmed-view";
 import { getSessionById } from "@/lib/data";
 import { SITE } from "@/lib/constants";
-import {
-  formatPrice,
-  formatSessionDate,
-  formatSessionTime,
-} from "@/lib/format";
 import { createMetadata } from "@/lib/seo";
 
 export const metadata = createMetadata({
@@ -26,6 +26,7 @@ export default async function BookingConfirmationPage({
     athlete?: string;
     waitlist?: string;
     demo?: string;
+    payment?: string;
   }>;
 }) {
   const { sessionId } = await params;
@@ -36,90 +37,51 @@ export default async function BookingConfirmationPage({
   if (q.waitlist === "1") {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
-        <p className="text-sm font-semibold uppercase tracking-widest text-brand">
+        <p className="text-sm font-semibold tracking-widest text-brand uppercase">
           Waitlist
         </p>
         <h1 className="mt-2 font-heading text-4xl tracking-wide">
-          You're on the list
+          You&apos;re on the list
         </h1>
         <p className="mt-4 text-muted-foreground">
-          We'll contact you if a spot opens for {session.title}.
+          We&apos;ll contact you if a spot opens for {session.title}. Check your
+          email for a waitlist confirmation when delivery is configured.
         </p>
-        <Button asChild className="mt-8 bg-brand text-brand-foreground hover:bg-brand/90">
+        <Button
+          asChild
+          className="mt-8 bg-brand text-brand-foreground hover:bg-brand/90"
+        >
           <Link href="/schedule">Back to Schedule</Link>
         </Button>
       </div>
     );
   }
 
+  const paymentMethod =
+    q.payment === "stripe" ? "stripe" : "pay_at_facility";
+  const location =
+    session.location_address ??
+    session.location_name ??
+    SITE.address.full;
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-      <p className="text-sm font-semibold uppercase tracking-widest text-brand">
-        Confirmed
-      </p>
-      <h1 className="mt-2 font-heading text-4xl tracking-wide">
-        Reservation complete
-      </h1>
-      {q.demo === "1" ? (
-        <p className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          Local confirmation only — connect the database to save bookings live.
-        </p>
-      ) : null}
-      <dl className="mt-8 space-y-3 rounded-xl border border-border bg-card p-6">
-        <div className="flex justify-between gap-4 text-sm">
-          <dt className="text-muted-foreground">Confirmation</dt>
-          <dd className="font-semibold">{q.confirmation ?? "—"}</dd>
-        </div>
-        <div className="flex justify-between gap-4 text-sm">
-          <dt className="text-muted-foreground">Session</dt>
-          <dd className="text-right font-medium">{session.title}</dd>
-        </div>
-        <div className="flex justify-between gap-4 text-sm">
-          <dt className="text-muted-foreground">When</dt>
-          <dd className="text-right font-medium">
-            {formatSessionDate(session.session_date)} ·{" "}
-            {formatSessionTime(session.start_time)}
-          </dd>
-        </div>
-        <div className="flex justify-between gap-4 text-sm">
-          <dt className="text-muted-foreground">Athlete</dt>
-          <dd className="font-medium">{q.athlete ?? "—"}</dd>
-        </div>
-        <div className="flex justify-between gap-4 text-sm">
-          <dt className="text-muted-foreground">Amount due</dt>
-          <dd className="font-medium">
-            {formatPrice(session.price_cents)} · Pay at facility
-          </dd>
-        </div>
-        <div className="flex justify-between gap-4 text-sm">
-          <dt className="text-muted-foreground">Location</dt>
-          <dd className="text-right font-medium">
-            {session.location_address ?? SITE.address.full}
-          </dd>
-        </div>
-      </dl>
-      <p className="mt-6 text-sm text-muted-foreground">
-        A confirmation email will be sent when email delivery is configured.
-        Questions? Call{" "}
-        <a href={SITE.phoneHref} className="font-medium text-foreground underline">
-          {SITE.phone}
-        </a>
-        .
-      </p>
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
-          <Link href="/schedule">Browse more sessions</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <a
-            href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(session.title)}&dates=${session.session_date.replace(/-/g, "")}T${session.start_time.replace(/:/g, "").slice(0, 6)}/${session.session_date.replace(/-/g, "")}T${session.end_time.replace(/:/g, "").slice(0, 6)}&details=${encodeURIComponent("DAWGZ Youth Training")}&location=${encodeURIComponent(session.location_address ?? SITE.address.full)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Add to Calendar
-          </a>
-        </Button>
-      </div>
-    </div>
+    <BookingConfirmedView
+      sessionTitle={session.title}
+      sessionDate={session.session_date}
+      startTime={session.start_time}
+      endTime={session.end_time}
+      athleteName={q.athlete ?? "—"}
+      coachName={session.trainer?.name}
+      location={location}
+      paymentLabel={paymentDisplayLabel(paymentMethod)}
+      amountLabel={amountDisplay(session.price_cents, paymentMethod)}
+      confirmationNumber={q.confirmation ?? "—"}
+      demo={q.demo === "1"}
+      confidenceMessage={
+        q.demo === "1"
+          ? "Your reservation is recorded locally for this demo. Connect Resend to email confirmations and calendar invites automatically."
+          : "We've emailed your confirmation and calendar invite. You don't need to screenshot this page — check your inbox in a few seconds."
+      }
+    />
   );
 }

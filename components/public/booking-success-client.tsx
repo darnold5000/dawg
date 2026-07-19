@@ -26,7 +26,7 @@ export function BookingSuccessPoller({
 
   return (
     <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-      Your payment was received and your booking is being confirmed
+      Confirming your booking and sending your email
       {ticks > 0 ? "…" : "."} This usually takes a few seconds.
     </p>
   );

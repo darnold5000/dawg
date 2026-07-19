@@ -181,10 +181,24 @@ export interface Booking {
   internal_notes: string | null;
   waiver_acknowledged_at: string | null;
   media_consent: boolean;
+  agreements_version: string | null;
+  agreements_accepted_at: string | null;
   booked_at: string;
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DeviceFamily {
+  id: string;
+  token_hash: string;
+  parent_id: string;
+  accepted_agreements_version: string | null;
+  accepted_agreements_at: string | null;
+  media_consent_preference: boolean;
+  last_used_at: string;
+  created_at: string;
+  revoked_at: string | null;
 }
 
 export interface BookingWithRelations extends Booking {
