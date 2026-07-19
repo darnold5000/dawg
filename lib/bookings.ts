@@ -20,7 +20,7 @@ import {
   setFamilyDeviceCookie,
 } from "@/lib/family-device";
 
-export const bookingSchema = z.object({
+const bookingFieldsSchema = z.object({
   sessionId: z.string().min(1),
   parentFirstName: z.string().min(1).max(80),
   parentLastName: z.string().min(1).max(80),
@@ -36,17 +36,42 @@ export const bookingSchema = z.object({
   medicalNotes: z.string().max(1000).optional(),
   customerNotes: z.string().max(1000).optional(),
   /** Required — never silently default when the session requires online payment. */
-  paymentMethod: z.enum(["stripe", "pay_at_facility"]),
+  paymentMethod: z.enum(["stripe", "pay_at_facility"], {
+    error: "Please select a payment method (Pay online or Pay at facility).",
+  }),
   /**
    * Combined required agreements (guardian + booking/cancellation/privacy/waiver).
    * May be omitted when this device already accepted the current policy version.
    */
   acceptRequiredAgreements: z.boolean().optional(),
-  mediaConsent: z.boolean(),
+  mediaConsent: z.boolean().default(false),
   rememberFamily: z.boolean().optional(),
 });
 
-export type BookingInput = z.infer<typeof bookingSchema>;
+/** Map legacy multi-checkbox payloads from cached clients onto the current schema. */
+export const bookingSchema = z.preprocess((raw) => {
+  if (!raw || typeof raw !== "object") return raw;
+  const body = { ...(raw as Record<string, unknown>) };
+
+  if (body.acceptRequiredAgreements == null) {
+    const legacyOk =
+      body.isGuardian === true &&
+      body.acceptCancellation === true &&
+      body.acceptWaiver === true &&
+      body.acceptTerms === true &&
+      body.acceptPrivacy === true;
+    if (legacyOk) body.acceptRequiredAgreements = true;
+  }
+
+  // Older clients sometimes omitted mediaConsent
+  if (typeof body.mediaConsent !== "boolean") {
+    body.mediaConsent = Boolean(body.mediaConsent);
+  }
+
+  return body;
+}, bookingFieldsSchema);
+
+export type BookingInput = z.infer<typeof bookingFieldsSchema>;
 
 export const waitlistSchema = z.object({
   sessionId: z.string().min(1),

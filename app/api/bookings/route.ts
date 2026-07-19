@@ -87,8 +87,16 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof ZodError) {
+      const flat = error.flatten();
+      const fieldMessages = Object.values(flat.fieldErrors)
+        .flat()
+        .filter(Boolean);
+      const first =
+        fieldMessages[0] ||
+        flat.formErrors[0] ||
+        "Please check the form and try again.";
       return NextResponse.json(
-        { error: "Please check the form and try again.", details: error.flatten() },
+        { error: first, details: flat },
         { status: 400 },
       );
     }
