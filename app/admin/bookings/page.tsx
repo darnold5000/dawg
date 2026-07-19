@@ -12,21 +12,32 @@ import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { formatSessionDateShort, formatSessionTime } from "@/lib/format";
 import type { Booking } from "@/lib/types/database";
 
+type BookingListRow = Booking & {
+  parent: { first_name: string; last_name: string } | null;
+  athlete: { first_name: string; last_name: string } | null;
+};
+
 export default async function AdminBookingsPage() {
   const profile = await requireStaff();
   const sessions = await getAdminSessions();
   const sessionMap = Object.fromEntries(sessions.map((s) => [s.id, s]));
 
-  let bookings: Booking[] = [];
+  let bookings: BookingListRow[] = [];
   if (isSupabaseConfigured() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const supabase = createServiceClient();
       const { data } = await supabase
         .from(DAWG_TABLES.bookings)
-        .select("*")
+        .select(
+          `
+          *,
+          parent:dawg_parents ( first_name, last_name ),
+          athlete:dawg_athletes ( first_name, last_name )
+        `,
+        )
         .order("booked_at", { ascending: false })
         .limit(100);
-      bookings = (data as Booking[]) ?? [];
+      bookings = (data as BookingListRow[]) ?? [];
     } catch {
       bookings = [];
     }
@@ -57,6 +68,8 @@ export default async function AdminBookingsPage() {
               <thead className={billingTableClassNames.tableHead}>
                 <tr>
                   <th className="px-3 py-3 sm:px-4">Confirmation</th>
+                  <th className="px-3 py-3 sm:px-4">Athlete</th>
+                  <th className="hidden px-4 py-3 sm:table-cell">Parent</th>
                   <th className="px-3 py-3 sm:px-4">Session</th>
                   <th className="hidden px-4 py-3 md:table-cell">Booking</th>
                   <th className="hidden px-4 py-3 lg:table-cell">Method</th>
@@ -68,6 +81,12 @@ export default async function AdminBookingsPage() {
               <tbody>
                 {bookings.map((booking) => {
                   const session = sessionMap[booking.session_id];
+                  const athleteName = booking.athlete
+                    ? `${booking.athlete.first_name} ${booking.athlete.last_name}`
+                    : "—";
+                  const parentName = booking.parent
+                    ? `${booking.parent.first_name} ${booking.parent.last_name}`
+                    : "—";
                   return (
                     <tr
                       key={booking.id}
@@ -80,6 +99,12 @@ export default async function AdminBookingsPage() {
                         >
                           {booking.confirmation_number}
                         </Link>
+                      </td>
+                      <td className="px-3 py-3 font-medium sm:px-4">
+                        {athleteName}
+                      </td>
+                      <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
+                        {parentName}
                       </td>
                       <td className="max-w-[10rem] truncate px-3 py-3 text-muted-foreground sm:max-w-none sm:px-4">
                         {session
