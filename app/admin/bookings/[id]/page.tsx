@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { AgreementsSummary } from "@/components/admin/agreements-summary";
 import { BookingBillingPanel } from "@/components/admin/billing/booking-billing-panel";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { requireStaff } from "@/lib/auth";
@@ -11,7 +12,11 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
-import { formatSessionDate, formatSessionTime } from "@/lib/format";
+import {
+  athleteAgeFromDob,
+  formatSessionDate,
+  formatSessionTime,
+} from "@/lib/format";
 import type {
   AttendanceStatus,
   BookingWithRelations,
@@ -109,6 +114,24 @@ export default async function AdminBookingDetailPage({
                 ? `${booking.athlete.first_name} ${booking.athlete.last_name}`
                 : "—"}
             </p>
+            {booking.athlete?.date_of_birth ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                DOB {String(booking.athlete.date_of_birth).slice(0, 10)}
+                {" · "}
+                Age{" "}
+                {athleteAgeFromDob(
+                  String(booking.athlete.date_of_birth).slice(0, 10),
+                )}
+              </p>
+            ) : null}
+            {booking.athlete?.primary_sport ? (
+              <p className="text-sm text-muted-foreground">
+                Sport: {booking.athlete.primary_sport}
+                {booking.athlete.experience_level
+                  ? ` · ${booking.athlete.experience_level}`
+                  : ""}
+              </p>
+            ) : null}
             <p className="mt-2 text-sm capitalize text-muted-foreground">
               Booking: {booking.status}
             </p>
@@ -118,8 +141,29 @@ export default async function AdminBookingDetailPage({
                 (booking.attendance_status ?? "registered") as AttendanceStatus,
               )}
             </p>
+            {booking.parent?.id ? (
+              <p className="mt-3">
+                <Link
+                  href={`/admin/clients/${booking.parent.id}`}
+                  className="text-sm underline underline-offset-2"
+                >
+                  View client profile
+                </Link>
+              </p>
+            ) : null}
           </div>
         </section>
+
+        {booking.athlete?.medical_notes?.trim() ? (
+          <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-5">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-900/70">
+              Medical / physical notes
+            </h3>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-amber-950">
+              {booking.athlete.medical_notes}
+            </p>
+          </section>
+        ) : null}
 
         {booking.customer_notes ? (
           <section className="rounded-xl border border-border bg-card p-5">
@@ -131,6 +175,8 @@ export default async function AdminBookingDetailPage({
             </p>
           </section>
         ) : null}
+
+        <AgreementsSummary booking={booking} />
 
         <BookingBillingPanel booking={booking} transactions={transactions} />
       </div>

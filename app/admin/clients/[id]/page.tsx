@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Mail, Phone } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { AgreementsSummary } from "@/components/admin/agreements-summary";
 import { ClientEmailForm } from "@/components/admin/client-email-form";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { Button } from "@/components/ui/button";
@@ -184,6 +185,9 @@ export default async function AdminClientDetailPage({
                     <th className="hidden px-3 py-2.5 sm:table-cell">
                       Athlete
                     </th>
+                    <th className="hidden px-3 py-2.5 md:table-cell">
+                      Agreements
+                    </th>
                     <th className="px-3 py-2.5">Payment</th>
                   </tr>
                 </thead>
@@ -207,6 +211,9 @@ export default async function AdminClientDetailPage({
                         {booking.athlete
                           ? `${booking.athlete.first_name} ${booking.athlete.last_name}`
                           : "—"}
+                      </td>
+                      <td className="hidden px-3 py-2.5 md:table-cell">
+                        <AgreementsSummary booking={booking} compact />
                       </td>
                       <td className="px-3 py-2.5">
                         <PaymentStatusBadge status={booking.payment_status} />
