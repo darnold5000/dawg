@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { bookingSchema, createPublicBooking } from "@/lib/bookings";
+import { createBookingCheckout } from "@/lib/billing/checkout";
+import {
+  bookingCancelUrl,
+  bookingSuccessUrl,
+} from "@/lib/billing/site-url";
+import { expirePendingBooking } from "@/lib/billing/adapter";
 
 const recent = new Map<string, number>();
 
@@ -35,10 +41,49 @@ export async function POST(request: Request) {
       );
     }
 
+    if (result.requiresCheckout && !result.demo) {
+      const checkout = await createBookingCheckout({
+        bookingId: result.booking.id,
+        successUrl: bookingSuccessUrl({
+          bookingId: result.booking.id,
+          token: result.booking.confirmation_token,
+        }),
+        cancelUrl: bookingCancelUrl({
+          bookingId: result.booking.id,
+          token: result.booking.confirmation_token,
+        }),
+      });
+
+      if (!checkout.ok) {
+        await expirePendingBooking({
+          bookingId: result.booking.id,
+          reason: checkout.error,
+        });
+        return NextResponse.json(
+          {
+            error: checkout.error || "Could not start online payment.",
+            code: checkout.code ?? "CHECKOUT_FAILED",
+          },
+          { status: 400 },
+        );
+      }
+
+      return NextResponse.json({
+        confirmationNumber: result.booking.confirmation_number,
+        confirmationToken: result.booking.confirmation_token,
+        bookingId: result.booking.id,
+        checkoutUrl: checkout.data.url,
+        checkoutSessionId: checkout.data.sessionId,
+        requiresCheckout: true,
+      });
+    }
+
     return NextResponse.json({
       confirmationNumber: result.booking.confirmation_number,
+      confirmationToken: result.booking.confirmation_token,
       bookingId: result.booking.id,
       demo: result.demo ?? false,
+      requiresCheckout: false,
     });
   } catch (error) {
     if (error instanceof ZodError) {

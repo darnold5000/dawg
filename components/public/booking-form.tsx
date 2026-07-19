@@ -18,6 +18,12 @@ import {
   type SavedFamily,
 } from "@/lib/returning-family";
 import {
+  allowedPaymentMethods,
+  defaultPaymentMethod,
+  paymentMethodLabel,
+} from "@/lib/billing/payment-options";
+import type { PaymentMethod } from "@/lib/types/database";
+import {
   formatPrice,
   formatSessionDate,
   formatSessionTime,
@@ -60,6 +66,11 @@ export function BookingForm({
   const [useSaved, setUseSaved] = useState(false);
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>("");
   const [form, setForm] = useState(emptyForm);
+
+  const paymentOptions = allowedPaymentMethods(session.payment_requirement);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
+    () => defaultPaymentMethod(session.payment_requirement) ?? "",
+  );
 
   useEffect(() => {
     const family = loadSavedFamily();
@@ -155,6 +166,11 @@ export function BookingForm({
         return;
       }
 
+      if (!paymentMethod) {
+        toast.error("Please select a payment method");
+        return;
+      }
+
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -171,6 +187,7 @@ export function BookingForm({
           experienceLevel: form.experienceLevel || undefined,
           medicalNotes: form.medicalNotes || undefined,
           customerNotes: form.customerNotes || undefined,
+          paymentMethod,
           isGuardian: form.isGuardian || undefined,
           acceptCancellation: form.acceptCancellation || undefined,
           acceptWaiver: form.acceptWaiver || undefined,
@@ -201,9 +218,15 @@ export function BookingForm({
         medicalNotes: form.medicalNotes || undefined,
       });
 
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
       const q = new URLSearchParams({
         confirmation: data.confirmationNumber,
         athlete: `${form.athleteFirstName} ${form.athleteLastName}`,
+        token: data.confirmationToken ?? "",
       });
       if (data.demo) q.set("demo", "1");
       router.push(`/book/${session.id}/confirmation?${q.toString()}`);
@@ -287,8 +310,8 @@ export function BookingForm({
         <h2 className="font-heading text-xl tracking-wide">{session.title}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {formatSessionDate(session.session_date)} ·{" "}
-          {formatSessionTime(session.start_time)} · {formatPrice(session.price_cents)}{" "}
-          · Pay at facility
+          {formatSessionTime(session.start_time)} ·{" "}
+          {formatPrice(session.price_cents)}
         </p>
         {!savedFamily ? (
           <p className="mt-3 text-sm text-muted-foreground">
@@ -509,6 +532,50 @@ export function BookingForm({
 
       <fieldset className="space-y-3 rounded-xl border border-border p-4">
         <legend className="px-1 font-heading text-lg tracking-wide">
+          Payment
+        </legend>
+        <p className="text-sm text-muted-foreground">
+          {formatPrice(session.price_cents)} due for this session
+        </p>
+        <div className="grid gap-3">
+          {paymentOptions.map((method) => (
+            <label
+              key={method}
+              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
+                paymentMethod === method
+                  ? "border-brand bg-brand/10"
+                  : "border-border"
+              }`}
+            >
+              <input
+                type="radio"
+                name="paymentMethod"
+                className="mt-1"
+                required
+                checked={paymentMethod === method}
+                onChange={() => setPaymentMethod(method)}
+                value={method}
+              />
+              <span>
+                <span className="font-medium">{paymentMethodLabel(method)}</span>
+                <span className="mt-0.5 block text-muted-foreground">
+                  {method === "stripe"
+                    ? "Secure card payment via Stripe. Spot is held for 15 minutes while you pay."
+                    : "Reserve your spot now and pay when you arrive."}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+        {!paymentMethod ? (
+          <p className="text-sm text-amber-800">
+            Select how you want to pay before confirming.
+          </p>
+        ) : null}
+      </fieldset>
+
+      <fieldset className="space-y-3 rounded-xl border border-border p-4">
+        <legend className="px-1 font-heading text-lg tracking-wide">
           Agreements
         </legend>
         <label className="flex items-start gap-3 text-sm">
@@ -579,10 +646,16 @@ export function BookingForm({
 
       <Button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || !paymentMethod}
         className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:px-8"
       >
-        {submitting ? "Reserving…" : "Confirm Reservation"}
+        {submitting
+          ? paymentMethod === "stripe"
+            ? "Starting checkout…"
+            : "Reserving…"
+          : paymentMethod === "stripe"
+            ? "Continue to payment"
+            : "Confirm reservation"}
       </Button>
     </form>
   );

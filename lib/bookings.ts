@@ -26,11 +26,8 @@ export const bookingSchema = z.object({
   experienceLevel: z.string().max(80).optional(),
   medicalNotes: z.string().max(1000).optional(),
   customerNotes: z.string().max(1000).optional(),
-  /** Default pay_at_facility until Checkout UI is wired. */
-  paymentMethod: z
-    .enum(["stripe", "pay_at_facility"])
-    .optional()
-    .default("pay_at_facility"),
+  /** Required — never silently default when the session requires online payment. */
+  paymentMethod: z.enum(["stripe", "pay_at_facility"]),
   isGuardian: z.literal(true),
   acceptCancellation: z.literal(true),
   acceptWaiver: z.literal(true),
@@ -107,8 +104,7 @@ export async function createPublicBooking(
   raw: BookingInput,
 ): Promise<BookingResult> {
   const input = bookingSchema.parse(raw);
-  const paymentMethod = (input.paymentMethod ??
-    "pay_at_facility") as PaymentMethod;
+  const paymentMethod = input.paymentMethod as PaymentMethod;
 
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     const demoBooking = emptyBookingFields({

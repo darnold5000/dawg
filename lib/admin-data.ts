@@ -32,12 +32,20 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
     const ids = data.map((s) => s.id);
     const { data: bookings } = await supabaseService
       .from(DAWG_TABLES.bookings)
-      .select("session_id")
+      .select("session_id, status, booking_expires_at")
       .in("session_id", ids)
-      .in("status", ["pending", "confirmed", "attended"]);
+      .in("status", ["pending", "confirmed"]);
 
+    const now = Date.now();
     const counts: Record<string, number> = {};
     for (const row of bookings ?? []) {
+      if (
+        row.status === "pending" &&
+        row.booking_expires_at &&
+        new Date(row.booking_expires_at).getTime() <= now
+      ) {
+        continue;
+      }
       counts[row.session_id] = (counts[row.session_id] ?? 0) + 1;
     }
 

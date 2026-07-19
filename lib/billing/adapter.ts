@@ -317,6 +317,79 @@ export async function markPaymentFailed(
   }
 }
 
+export async function markFacilityBookingUnpaid(input: {
+  bookingId: string;
+  note?: string;
+  markedByProfileId?: string | null;
+}): Promise<AdapterResult<Booking>> {
+  try {
+    const supabase = requireService();
+    const { data: existing, error: loadError } = await supabase
+      .from(DAWG_TABLES.bookings)
+      .select("*")
+      .eq("id", input.bookingId)
+      .maybeSingle();
+
+    if (loadError || !existing) {
+      return { ok: false, error: "Booking not found", code: "NOT_FOUND" };
+    }
+
+    const current = existing as Booking;
+    if (current.payment_method !== "pay_at_facility") {
+      return {
+        ok: false,
+        error: "Only pay-at-facility bookings can be marked unpaid manually",
+        code: "WRONG_METHOD",
+      };
+    }
+
+    const note = input.note
+      ? `${current.internal_notes ? `${current.internal_notes}\n` : ""}[unpaid] ${input.note}`
+      : current.internal_notes;
+
+    const { data, error } = await supabase
+      .from(DAWG_TABLES.bookings)
+      .update({
+        payment_status: "unpaid",
+        amount_paid_cents: 0,
+        paid_at: null,
+        internal_notes: note,
+      })
+      .eq("id", input.bookingId)
+      .select("*")
+      .maybeSingle();
+
+    if (error || !data) {
+      return {
+        ok: false,
+        error: error?.message ?? "Could not mark unpaid",
+        code: "MARK_UNPAID_FAILED",
+      };
+    }
+
+    await supabase.from(DAWG_TABLES.paymentTransactions).insert({
+      booking_id: input.bookingId,
+      transaction_type: "adjustment",
+      amount_cents: 0,
+      currency: current.currency,
+      status: "succeeded",
+      metadata: {
+        method: "pay_at_facility",
+        action: "mark_unpaid",
+        marked_by: input.markedByProfileId ?? null,
+        note: input.note ?? null,
+      },
+    });
+
+    return { ok: true, data: data as Booking };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Adapter error",
+    };
+  }
+}
+
 export async function markFacilityBookingPaid(
   input: MarkFacilityBookingPaidInput,
 ): Promise<AdapterResult<Booking>> {

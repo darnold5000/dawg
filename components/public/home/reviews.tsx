@@ -19,7 +19,19 @@ export function HomeReviews({ reviews }: { reviews: Review[] }) {
 
       {reviews.length === 0 ? (
         <div className="mt-8 rounded-xl border border-dashed border-border bg-card p-8 text-center">
-          <p className="text-muted-foreground">Reviews coming soon.</p>
+          <p className="font-medium">Parent reviews will appear here</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Follow{" "}
+            <a
+              href={SITE.facebookUrl}
+              className="underline underline-offset-2"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              DAWGZ on Facebook
+            </a>{" "}
+            for family updates, or contact us to share your experience.
+          </p>
         </div>
       ) : (
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">

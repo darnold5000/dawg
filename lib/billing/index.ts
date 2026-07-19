@@ -13,10 +13,20 @@ export {
   listPaymentTransactions,
   markConfirmationEmailSent,
   markFacilityBookingPaid,
+  markFacilityBookingUnpaid,
   markPaymentFailed,
   markStripeEventProcessed,
   refundBooking,
 } from "./adapter";
+
+export {
+  allowedPaymentMethods,
+  defaultPaymentMethod,
+  paymentMethodLabel,
+} from "./payment-options";
+
+// Do not re-export booking-lookup / webhook-handlers here — they pull in
+// next/headers via supabase/server and break client component bundles.
 
 export { createBookingCheckout } from "./checkout";
 export type { CreateBookingCheckoutResult } from "./checkout";

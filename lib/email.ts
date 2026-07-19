@@ -118,3 +118,59 @@ export async function sendWaitlistConfirmation(payload: {
     `,
   });
 }
+
+export async function sendContactNotification(payload: {
+  parentName: string;
+  email: string;
+  phone?: string;
+  athleteAge?: number;
+  message: string;
+}): Promise<void> {
+  const staffEmail = process.env.STAFF_NOTIFICATION_EMAIL ?? SITE.email;
+  if (!resend || !staffEmail) return;
+  const from = process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
+
+  await resend.emails.send({
+    from,
+    to: staffEmail,
+    replyTo: payload.email,
+    subject: `DAWGZ website contact — ${payload.parentName}`,
+    html: `
+      <div style="font-family: sans-serif;">
+        <h2>New contact form message</h2>
+        <p><strong>Name:</strong> ${payload.parentName}</p>
+        <p><strong>Email:</strong> ${payload.email}</p>
+        <p><strong>Phone:</strong> ${payload.phone || "—"}</p>
+        <p><strong>Athlete age:</strong> ${payload.athleteAge ?? "—"}</p>
+        <p><strong>Message:</strong></p>
+        <p style="white-space: pre-wrap;">${payload.message}</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendContactAcknowledgement(payload: {
+  parentName: string;
+  email: string;
+}): Promise<void> {
+  if (!resend) return;
+  const from = process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
+
+  await resend.emails.send({
+    from,
+    to: payload.email,
+    subject: "We received your message — DAWGZ Youth Training",
+    html: `
+      <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+        <h1>Thanks for reaching out</h1>
+        <p>Hi ${payload.parentName},</p>
+        <p>We received your message and will get back to you soon.</p>
+        <p>
+          ${SITE.name}<br/>
+          ${SITE.phone}<br/>
+          ${SITE.email}
+        </p>
+      </div>
+    `,
+  });
+}

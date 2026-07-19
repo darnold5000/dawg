@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { RosterAttendance } from "@/components/admin/roster-attendance";
 import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { getSessionRoster } from "@/lib/admin-data";
@@ -16,6 +17,10 @@ export default async function RosterPage({
   const { session, bookings } = await getSessionRoster(id);
   if (!session) notFound();
 
+  const activeBookings = bookings.filter(
+    (b) => b.status === "confirmed" || b.status === "pending",
+  );
+
   const csvRows = [
     [
       "Athlete",
@@ -25,10 +30,11 @@ export default async function RosterPage({
       "Email",
       "Sport",
       "Payment",
-      "Status",
+      "Booking",
+      "Attendance",
       "Notes",
     ].join(","),
-    ...bookings.map((b) =>
+    ...activeBookings.map((b) =>
       [
         `${b.athlete?.first_name ?? ""} ${b.athlete?.last_name ?? ""}`,
         b.athlete?.date_of_birth
@@ -40,6 +46,7 @@ export default async function RosterPage({
         b.athlete?.primary_sport ?? "",
         b.payment_status,
         b.status,
+        b.attendance_status ?? "registered",
         (b.customer_notes ?? "").replace(/,/g, ";"),
       ].join(","),
     ),
@@ -48,70 +55,40 @@ export default async function RosterPage({
 
   return (
     <AdminShell profile={profile}>
-      <div className="space-y-6">
+      <div className="mx-auto max-w-3xl space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-heading text-3xl tracking-wide">Roster</h2>
             <p className="text-sm text-muted-foreground">
               {session.title} · {formatSessionDate(session.session_date)} ·{" "}
-              {formatSessionTime(session.start_time)} · {bookings.length}/
+              {formatSessionTime(session.start_time)} · {activeBookings.length}/
               {session.capacity}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Tap attendance on each athlete — optimized for phone use courtside.
             </p>
           </div>
           <div className="flex gap-2">
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="sm">
               <a href={csvHref} download={`dawg-roster-${session.id}.csv`}>
                 Export CSV
               </a>
             </Button>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="sm">
               <Link href="/admin/sessions">Back</Link>
             </Button>
           </div>
         </div>
 
-        {bookings.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-8 text-sm text-muted-foreground">
-            No registrations yet.
-          </p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Athlete</th>
-                  <th className="px-3 py-2 font-medium">Age</th>
-                  <th className="px-3 py-2 font-medium">Parent</th>
-                  <th className="px-3 py-2 font-medium">Phone</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium">Payment</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map((b) => (
-                  <tr key={b.id} className="border-t border-border">
-                    <td className="px-3 py-2">
-                      {b.athlete?.first_name} {b.athlete?.last_name}
-                    </td>
-                    <td className="px-3 py-2">
-                      {b.athlete?.date_of_birth
-                        ? athleteAgeFromDob(b.athlete.date_of_birth)
-                        : "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      {b.parent?.first_name} {b.parent?.last_name}
-                      <div className="text-xs text-muted-foreground">
-                        {b.parent?.email}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">{b.parent?.phone}</td>
-                    <td className="px-3 py-2">{b.status}</td>
-                    <td className="px-3 py-2">{b.payment_status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {activeBookings.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-10 text-center">
+            <p className="font-medium">No registrations yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Athletes will appear here once parents book this session.
+            </p>
           </div>
+        ) : (
+          <RosterAttendance bookings={activeBookings} />
         )}
       </div>
     </AdminShell>

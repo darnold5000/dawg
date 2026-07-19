@@ -25,7 +25,7 @@ export const SITE = {
     name: "Signal Works",
     url: "https://signalworks.io",
   },
-  hoursPlaceholder: "Hours TBD — contact DAWGZ for current training times",
+  hoursPlaceholder: "Contact DAWGZ for current training times",
 } as const;
 
 export const NAV_LINKS = [

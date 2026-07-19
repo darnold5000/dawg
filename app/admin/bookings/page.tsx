@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { requireStaff } from "@/lib/auth";
 import { getAdminSessions } from "@/lib/admin-data";
-import { billingTableClassNames, formatMoney } from "@/lib/billing";
+import { billingTableClassNames, formatMoney } from "@/lib/billing/format";
 import {
   createServiceClient,
   isSupabaseConfigured,
@@ -42,24 +43,26 @@ export default async function AdminBookingsPage() {
         </div>
 
         {bookings.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-8 text-sm text-muted-foreground">
-            No bookings yet
-            {!isSupabaseConfigured()
-              ? " (connect Supabase to see live bookings)."
-              : "."}
-          </p>
+          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-10 text-center">
+            <p className="font-medium">No bookings yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {!isSupabaseConfigured()
+                ? "Connect Supabase to see live reservations."
+                : "New bookings from the public schedule will show up here."}
+            </p>
+          </div>
         ) : (
-          <div className={billingTableClassNames.tableWrap}>
+          <div className={`${billingTableClassNames.tableWrap} -mx-1`}>
             <table className={billingTableClassNames.table}>
               <thead className={billingTableClassNames.tableHead}>
                 <tr>
-                  <th className="px-4 py-3">Confirmation</th>
-                  <th className="px-4 py-3">Session</th>
-                  <th className="px-4 py-3">Booking</th>
-                  <th className="px-4 py-3">Method</th>
-                  <th className="px-4 py-3">Payment</th>
-                  <th className="px-4 py-3">Due</th>
-                  <th className="px-4 py-3">Paid</th>
+                  <th className="px-3 py-3 sm:px-4">Confirmation</th>
+                  <th className="px-3 py-3 sm:px-4">Session</th>
+                  <th className="hidden px-4 py-3 md:table-cell">Booking</th>
+                  <th className="hidden px-4 py-3 lg:table-cell">Method</th>
+                  <th className="px-3 py-3 sm:px-4">Payment</th>
+                  <th className="px-3 py-3 sm:px-4">Due</th>
+                  <th className="hidden px-4 py-3 sm:table-cell">Paid</th>
                 </tr>
               </thead>
               <tbody>
@@ -70,28 +73,35 @@ export default async function AdminBookingsPage() {
                       key={booking.id}
                       className={billingTableClassNames.tableRow}
                     >
-                      <td className="px-4 py-3 font-medium">
-                        {booking.confirmation_number}
+                      <td className="px-3 py-3 font-medium sm:px-4">
+                        <Link
+                          href={`/admin/bookings/${booking.id}`}
+                          className="underline underline-offset-2"
+                        >
+                          {booking.confirmation_number}
+                        </Link>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="max-w-[10rem] truncate px-3 py-3 text-muted-foreground sm:max-w-none sm:px-4">
                         {session
                           ? `${session.title} · ${formatSessionDateShort(session.session_date)} ${formatSessionTime(session.start_time)}`
                           : booking.session_id}
                       </td>
-                      <td className="px-4 py-3 capitalize">{booking.status}</td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="hidden px-4 py-3 capitalize md:table-cell">
+                        {booking.status}
+                      </td>
+                      <td className="hidden px-4 py-3 text-sm lg:table-cell">
                         {booking.payment_method?.replaceAll("_", " ") ?? "—"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 sm:px-4">
                         <PaymentStatusBadge status={booking.payment_status} />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 sm:px-4">
                         {formatMoney(
                           booking.amount_due_cents,
                           booking.currency?.toUpperCase() || "USD",
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="hidden px-4 py-3 sm:table-cell">
                         {formatMoney(
                           booking.amount_paid_cents,
                           booking.currency?.toUpperCase() || "USD",

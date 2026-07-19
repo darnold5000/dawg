@@ -259,6 +259,10 @@ create table if not exists public.dawg_payment_transactions (
 create index if not exists dawg_payment_transactions_booking_idx
   on public.dawg_payment_transactions (booking_id, created_at desc);
 
+create unique index if not exists dawg_payment_transactions_refund_uidx
+  on public.dawg_payment_transactions (stripe_refund_id)
+  where stripe_refund_id is not null;
+
 alter table public.dawg_stripe_events enable row level security;
 alter table public.dawg_payment_transactions enable row level security;
 

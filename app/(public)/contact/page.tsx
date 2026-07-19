@@ -1,3 +1,4 @@
+import { ContactForm } from "@/components/public/contact-form";
 import { HomeLocation } from "@/components/public/home/location";
 import { getBusinessSettings } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
@@ -19,9 +20,52 @@ export default async function ContactPage() {
           Contact DAWGZ Youth Training
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Reach out by phone, email, or Facebook — or book a session online
-          from the schedule.
+          Send a message, call, or book a session online from the schedule.
         </p>
+
+        <div className="relative mt-10 grid gap-10 lg:grid-cols-2 lg:items-start">
+          <ContactForm />
+          <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
+            <h2 className="font-heading text-xl tracking-wide">Reach us directly</h2>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Phone</dt>
+                <dd>
+                  <a
+                    href={SITE.phoneHref}
+                    className="font-medium underline underline-offset-2"
+                  >
+                    {settings.phone ?? SITE.phone}
+                  </a>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Email</dt>
+                <dd>
+                  <a
+                    href={`mailto:${settings.email ?? SITE.email}`}
+                    className="font-medium underline underline-offset-2"
+                  >
+                    {settings.email ?? SITE.email}
+                  </a>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Facebook</dt>
+                <dd>
+                  <a
+                    href={settings.facebook_url ?? SITE.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium underline underline-offset-2"
+                  >
+                    DAWGZ Youth Training
+                  </a>
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
       </div>
       <HomeLocation settings={settings} />
     </div>

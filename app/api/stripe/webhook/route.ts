@@ -1,10 +1,12 @@
 /**
  * POST /api/stripe/webhook
- * Route structure adapted from @signalworks/billing.
- * Event handlers (confirm/expire/refund sync) land in the next phase.
+ * Verifies signature, records dawg_stripe_events, processes booking updates.
  */
 import { NextResponse } from "next/server";
 import { isStripeConfigured, verifyStripeWebhook } from "@/lib/billing";
+import { processStripeWebhookEvent } from "@/lib/billing/webhook-handlers";
+
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   if (!isStripeConfigured()) {
@@ -25,11 +27,21 @@ export async function POST(request: Request) {
     );
   }
 
-  // Phase 5+: claimStripeEvent + handle by type via booking adapter.
-  return NextResponse.json({
-    received: true,
-    synced: false,
-    eventType: verified.event.type,
-    note: "Webhook verification OK — booking handlers not wired yet",
-  });
+  try {
+    const result = await processStripeWebhookEvent(verified.event);
+    return NextResponse.json({
+      received: true,
+      synced: result.processed,
+      bookingId: result.bookingId ?? null,
+      eventType: verified.event.type,
+    });
+  } catch (err) {
+    console.error("Stripe webhook processing error", err);
+    return NextResponse.json(
+      {
+        error: err instanceof Error ? err.message : "Webhook processing failed",
+      },
+      { status: 500 },
+    );
+  }
 }

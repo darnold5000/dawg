@@ -61,9 +61,8 @@ export default async function BookingConfirmationPage({
         Reservation complete
       </h1>
       {q.demo === "1" ? (
-        <p className="mt-3 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 text-sm">
-          Demo mode: Supabase is not configured. This confirmation was generated
-          locally.
+        <p className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          Local confirmation only — connect the database to save bookings live.
         </p>
       ) : null}
       <dl className="mt-8 space-y-3 rounded-xl border border-border bg-card p-6">

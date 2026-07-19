@@ -1,13 +1,12 @@
 /**
- * DAWG guest booking Checkout scaffold.
- * Uses Stripe Checkout mode "payment" with dynamic price_data.
- * Full route wiring is the next implementation phase.
- *
- * Does NOT use @signalworks/billing createProductCheckout.
+ * DAWG guest booking Checkout.
+ * mode: payment + dynamic price_data from DAWG DB.
+ * Hold expiry is DAWG booking_expires_at (15 min) — never Stripe expires_at.
  */
 import type Stripe from "stripe";
 import {
   attachCheckoutSession,
+  expirePendingBooking,
   getBookingForCheckout,
 } from "./adapter";
 import { getStripe, isStripeConfigured } from "./stripe/server";
@@ -49,7 +48,6 @@ export async function createBookingCheckout(params: {
     };
   }
 
-  // Never trust browser-supplied price — always load from DAWG DB (session above).
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
     {
       quantity: 1,
@@ -65,12 +63,6 @@ export async function createBookingCheckout(params: {
   ];
 
   try {
-    const expiresAt = booking.booking_expires_at
-      ? Math.floor(new Date(booking.booking_expires_at).getTime() / 1000)
-      : undefined;
-
-    // Stripe requires expires_at between 30 minutes and 24 hours from creation.
-    // Our hold is 15 minutes — omit Stripe expiry and rely on booking_expires_at.
     const checkout = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: booking.parent.email,
@@ -83,6 +75,7 @@ export async function createBookingCheckout(params: {
         sessionId: booking.session_id,
         athleteId: booking.athlete_id,
         business: "dawg",
+        confirmationToken: booking.confirmation_token,
       },
       payment_intent_data: {
         metadata: {
@@ -92,12 +85,14 @@ export async function createBookingCheckout(params: {
           business: "dawg",
         },
       },
-      ...(expiresAt && expiresAt - Math.floor(Date.now() / 1000) >= 30 * 60
-        ? { expires_at: expiresAt }
-        : {}),
+      // Intentionally omit expires_at — DAWG hold is 15 minutes.
     });
 
     if (!checkout.url) {
+      await expirePendingBooking({
+        bookingId: booking.id,
+        reason: "Checkout URL missing",
+      });
       return { ok: false, error: "Checkout URL missing", code: "NO_URL" };
     }
 
@@ -109,6 +104,10 @@ export async function createBookingCheckout(params: {
     });
 
     if (!attached.ok) {
+      await expirePendingBooking({
+        bookingId: booking.id,
+        reason: "Failed to attach Checkout session",
+      });
       return {
         ok: false,
         error: attached.error,
@@ -121,6 +120,10 @@ export async function createBookingCheckout(params: {
       data: { url: checkout.url, sessionId: checkout.id },
     };
   } catch (err) {
+    await expirePendingBooking({
+      bookingId: params.bookingId,
+      reason: "Checkout creation failed",
+    });
     const message =
       err instanceof Error ? err.message : "Could not create Checkout session";
     return { ok: false, error: message, code: "CHECKOUT_CREATE_FAILED" };
