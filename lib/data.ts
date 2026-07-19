@@ -167,6 +167,8 @@ export async function getSessionTypes(): Promise<SessionType[]> {
 export async function getUpcomingSessions(
   limit = 8,
 ): Promise<SessionWithRelations[]> {
+  // Demo content only when Supabase env is missing. Never mix fake sess-* IDs
+  // into a live project — booking API cannot create rows for those.
   if (!isSupabaseConfigured()) {
     return FALLBACK_SESSIONS.filter((s) => s.spots_remaining !== undefined).slice(
       0,
@@ -187,7 +189,7 @@ export async function getUpcomingSessions(
       .limit(limit);
 
     if (error || !data?.length) {
-      return FALLBACK_SESSIONS.slice(0, limit);
+      return [];
     }
 
     const [programs, types, trainers, counts] = await Promise.all([
@@ -204,7 +206,7 @@ export async function getUpcomingSessions(
       counts,
     });
   } catch {
-    return FALLBACK_SESSIONS.slice(0, limit);
+    return [];
   }
 }
 
@@ -251,7 +253,7 @@ export async function getFilteredSessions(
     }
 
     const { data, error } = await query;
-    if (error || !data) return FALLBACK_SESSIONS;
+    if (error || !data) return [];
 
     const [programs, types, trainers, counts] = await Promise.all([
       getPrograms(),
@@ -283,7 +285,7 @@ export async function getFilteredSessions(
 
     return sessions;
   } catch {
-    return FALLBACK_SESSIONS;
+    return [];
   }
 }
 
@@ -303,7 +305,7 @@ export async function getSessionById(
       .maybeSingle();
 
     if (error || !data) {
-      return FALLBACK_SESSIONS.find((s) => s.id === id) ?? null;
+      return null;
     }
 
     const [programs, types, trainers, counts] = await Promise.all([
@@ -320,6 +322,6 @@ export async function getSessionById(
       counts,
     })[0];
   } catch {
-    return FALLBACK_SESSIONS.find((s) => s.id === id) ?? null;
+    return null;
   }
 }

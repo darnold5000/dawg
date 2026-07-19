@@ -266,6 +266,14 @@ export async function createPublicBooking(
     .maybeSingle();
 
   if (sessionError || !session) {
+    if (String(input.sessionId).startsWith("sess-")) {
+      return {
+        ok: false,
+        error:
+          "This is a demo schedule placeholder. Publish a real session in Admin → Sessions, then book from that listing.",
+        code: "DEMO_SESSION",
+      };
+    }
     return { ok: false, error: "Session not found.", code: "SESSION_NOT_FOUND" };
   }
 
