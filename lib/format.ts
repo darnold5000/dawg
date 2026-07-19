@@ -13,12 +13,14 @@ export function formatSessionTime(time: string): string {
   return format(parse(normalized, "HH:mm:ss", new Date()), "h:mm a");
 }
 
-export function formatPrice(amount: number): string {
+/** Format integer cents as USD. Prefer this for all DAWG prices. */
+export function formatPrice(cents: number): string {
+  const fractionDigits = cents % 100 === 0 ? 0 : 2;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(amount);
+    maximumFractionDigits: fractionDigits,
+  }).format(cents / 100);
 }
 
 export function ageRangeLabel(

@@ -287,7 +287,7 @@ export function BookingForm({
         <h2 className="font-heading text-xl tracking-wide">{session.title}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {formatSessionDate(session.session_date)} ·{" "}
-          {formatSessionTime(session.start_time)} · {formatPrice(session.price)}{" "}
+          {formatSessionTime(session.start_time)} · {formatPrice(session.price_cents)}{" "}
           · Pay at facility
         </p>
         {!savedFamily ? (

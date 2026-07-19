@@ -47,7 +47,7 @@ export default async function EditSessionPage({
             maximum_age: session.maximum_age,
             skill_level: session.skill_level ?? undefined,
             capacity: session.capacity,
-            price: Number(session.price),
+            price: Number(session.price_cents) / 100,
             payment_requirement: session.payment_requirement,
             status: session.status,
             what_to_bring: session.what_to_bring ?? undefined,

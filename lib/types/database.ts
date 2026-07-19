@@ -12,22 +12,29 @@ export type BookingStatus =
   | "confirmed"
   | "cancelled"
   | "waitlisted"
+  | "expired";
+
+export type AttendanceStatus =
+  | "registered"
   | "attended"
   | "no_show"
-  | "refunded";
+  | "cancelled";
 
 export type PaymentStatus =
   | "not_required"
+  | "unpaid"
   | "pending"
-  | "deposit_paid"
   | "paid"
-  | "refunded"
-  | "pay_at_facility";
+  | "failed"
+  | "partially_refunded"
+  | "refunded";
+
+export type PaymentMethod = "stripe" | "pay_at_facility";
 
 export type PaymentRequirement =
-  | "full_at_booking"
-  | "deposit_at_booking"
-  | "pay_at_facility";
+  | "pay_online"
+  | "pay_at_facility"
+  | "online_or_facility";
 
 export interface Profile {
   id: string;
@@ -67,7 +74,7 @@ export interface Program {
   maximum_age: number | null;
   default_duration_minutes: number | null;
   default_capacity: number | null;
-  default_price: number | null;
+  default_price_cents: number | null;
   image_url: string | null;
   active: boolean;
   featured: boolean;
@@ -98,8 +105,9 @@ export interface TrainingSession {
   maximum_age: number | null;
   skill_level: string | null;
   capacity: number;
-  price: number;
-  deposit_amount: number | null;
+  price_cents: number;
+  deposit_amount_cents: number | null;
+  currency: string;
   payment_requirement: PaymentRequirement;
   location_name: string | null;
   location_address: string | null;
@@ -151,12 +159,24 @@ export interface Booking {
   parent_id: string;
   athlete_id: string;
   confirmation_number: string;
+  confirmation_token: string;
   status: BookingStatus;
+  attendance_status: AttendanceStatus;
+  payment_method: PaymentMethod | null;
   payment_status: PaymentStatus;
-  amount_due: number;
-  amount_paid: number;
+  amount_due_cents: number;
+  amount_paid_cents: number;
+  amount_refunded_cents: number;
+  currency: string;
+  stripe_customer_id: string | null;
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
+  stripe_charge_id: string | null;
+  paid_at: string | null;
+  refunded_at: string | null;
+  payment_failure_message: string | null;
+  booking_expires_at: string | null;
+  confirmation_email_sent_at: string | null;
   customer_notes: string | null;
   internal_notes: string | null;
   waiver_acknowledged_at: string | null;
@@ -171,6 +191,32 @@ export interface BookingWithRelations extends Booking {
   parent?: Parent;
   athlete?: Athlete;
   session?: TrainingSession;
+}
+
+export interface PaymentTransaction {
+  id: string;
+  booking_id: string;
+  transaction_type: "payment" | "refund" | "adjustment";
+  stripe_payment_intent_id: string | null;
+  stripe_charge_id: string | null;
+  stripe_refund_id: string | null;
+  amount_cents: number;
+  currency: string;
+  status: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface StripeEventRow {
+  id: string;
+  stripe_event_id: string;
+  event_type: string;
+  booking_id: string | null;
+  processed: boolean;
+  processing_error: string | null;
+  payload: unknown;
+  created_at: string;
+  processed_at: string | null;
 }
 
 export interface WaitlistEntry {

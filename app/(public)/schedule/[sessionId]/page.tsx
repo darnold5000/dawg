@@ -76,7 +76,7 @@ export default async function SessionDetailPage({
         </div>
         <div>
           <dt className="text-sm text-muted-foreground">Price</dt>
-          <dd className="font-medium">{formatPrice(session.price)}</dd>
+          <dd className="font-medium">{formatPrice(session.price_cents)}</dd>
         </div>
         <div>
           <dt className="text-sm text-muted-foreground">Spots</dt>

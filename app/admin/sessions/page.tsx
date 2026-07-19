@@ -49,7 +49,7 @@ export default async function AdminSessionsPage() {
                   {formatSessionDateShort(session.session_date)} ·{" "}
                   {formatSessionTime(session.start_time)} ·{" "}
                   {session.booked_count ?? 0}/{session.capacity} ·{" "}
-                  {formatPrice(session.price)}
+                  {formatPrice(session.price_cents)}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">

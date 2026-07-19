@@ -5,7 +5,8 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { generateConfirmationNumber } from "@/lib/format";
-import type { Booking } from "@/lib/types/database";
+import type { Booking, PaymentMethod } from "@/lib/types/database";
+import { markConfirmationEmailSent } from "@/lib/billing/adapter";
 import {
   sendBookingConfirmation,
   sendStaffBookingNotification,
@@ -25,6 +26,11 @@ export const bookingSchema = z.object({
   experienceLevel: z.string().max(80).optional(),
   medicalNotes: z.string().max(1000).optional(),
   customerNotes: z.string().max(1000).optional(),
+  /** Default pay_at_facility until Checkout UI is wired. */
+  paymentMethod: z
+    .enum(["stripe", "pay_at_facility"])
+    .optional()
+    .default("pay_at_facility"),
   isGuardian: z.literal(true),
   acceptCancellation: z.literal(true),
   acceptWaiver: z.literal(true),
@@ -50,38 +56,85 @@ export type BookingResult =
       ok: true;
       booking: Booking;
       demo?: boolean;
+      requiresCheckout?: boolean;
     }
   | { ok: false; error: string; code?: string };
+
+function emptyBookingFields(
+  partial: Partial<Booking> &
+    Pick<
+      Booking,
+      | "id"
+      | "session_id"
+      | "parent_id"
+      | "athlete_id"
+      | "confirmation_number"
+      | "status"
+      | "payment_status"
+      | "payment_method"
+      | "amount_due_cents"
+    >,
+): Booking {
+  const now = new Date().toISOString();
+  return {
+    confirmation_token: crypto.randomUUID(),
+    attendance_status: "registered",
+    amount_paid_cents: 0,
+    amount_refunded_cents: 0,
+    currency: "usd",
+    stripe_customer_id: null,
+    stripe_checkout_session_id: null,
+    stripe_payment_intent_id: null,
+    stripe_charge_id: null,
+    paid_at: null,
+    refunded_at: null,
+    payment_failure_message: null,
+    booking_expires_at: null,
+    confirmation_email_sent_at: null,
+    customer_notes: null,
+    internal_notes: null,
+    waiver_acknowledged_at: now,
+    media_consent: false,
+    booked_at: now,
+    cancelled_at: null,
+    created_at: now,
+    updated_at: now,
+    ...partial,
+  };
+}
 
 export async function createPublicBooking(
   raw: BookingInput,
 ): Promise<BookingResult> {
   const input = bookingSchema.parse(raw);
+  const paymentMethod = (input.paymentMethod ??
+    "pay_at_facility") as PaymentMethod;
 
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    // Demo mode for local development without Supabase
-    const demoBooking: Booking = {
+    const demoBooking = emptyBookingFields({
       id: crypto.randomUUID(),
       session_id: input.sessionId,
       parent_id: crypto.randomUUID(),
       athlete_id: crypto.randomUUID(),
       confirmation_number: generateConfirmationNumber(),
-      status: "confirmed",
-      payment_status: "pay_at_facility",
-      amount_due: 0,
-      amount_paid: 0,
-      stripe_checkout_session_id: null,
-      stripe_payment_intent_id: null,
+      status: paymentMethod === "stripe" ? "pending" : "confirmed",
+      payment_method: paymentMethod,
+      payment_status: paymentMethod === "stripe" ? "pending" : "unpaid",
+      amount_due_cents: 0,
       customer_notes: input.customerNotes ?? null,
       internal_notes: "[DEMO] Created without Supabase",
-      waiver_acknowledged_at: new Date().toISOString(),
       media_consent: input.mediaConsent,
-      booked_at: new Date().toISOString(),
-      cancelled_at: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      booking_expires_at:
+        paymentMethod === "stripe"
+          ? new Date(Date.now() + 15 * 60_000).toISOString()
+          : null,
+    });
+    return {
+      ok: true,
+      booking: demoBooking,
+      demo: true,
+      requiresCheckout: paymentMethod === "stripe",
     };
-    return { ok: true, booking: demoBooking, demo: true };
   }
 
   const supabase = createServiceClient();
@@ -104,7 +157,30 @@ export async function createPublicBooking(
     };
   }
 
-  // Upsert-ish parent by email
+  const requirement = session.payment_requirement as string;
+  if (
+    paymentMethod === "stripe" &&
+    requirement !== "pay_online" &&
+    requirement !== "online_or_facility"
+  ) {
+    return {
+      ok: false,
+      error: "Online payment is not available for this session.",
+      code: "ONLINE_PAYMENT_NOT_ALLOWED",
+    };
+  }
+  if (
+    paymentMethod === "pay_at_facility" &&
+    requirement !== "pay_at_facility" &&
+    requirement !== "online_or_facility"
+  ) {
+    return {
+      ok: false,
+      error: "Pay at facility is not available for this session.",
+      code: "FACILITY_PAYMENT_NOT_ALLOWED",
+    };
+  }
+
   let parentId: string;
   const { data: existingParent } = await supabase
     .from(DAWG_TABLES.parents)
@@ -158,6 +234,9 @@ export async function createPublicBooking(
   }
 
   const confirmation = generateConfirmationNumber();
+  const paymentStatus =
+    paymentMethod === "stripe" ? "pending" : "unpaid";
+
   const { data: booking, error: bookingError } = await supabase.rpc(
     "dawg_try_create_booking",
     {
@@ -165,11 +244,13 @@ export async function createPublicBooking(
       p_parent_id: parentId,
       p_athlete_id: athlete.id,
       p_confirmation_number: confirmation,
-      p_amount_due: session.price,
-      p_payment_status: "pay_at_facility",
+      p_amount_due_cents: session.price_cents,
+      p_payment_status: paymentStatus,
+      p_payment_method: paymentMethod,
       p_customer_notes: input.customerNotes || null,
       p_waiver_acknowledged_at: new Date().toISOString(),
       p_media_consent: input.mediaConsent,
+      p_hold_minutes: 15,
     },
   );
 
@@ -182,6 +263,20 @@ export async function createPublicBooking(
         code: "SESSION_FULL",
       };
     }
+    if (message.includes("ONLINE_PAYMENT_NOT_ALLOWED")) {
+      return {
+        ok: false,
+        error: "Online payment is not available for this session.",
+        code: "ONLINE_PAYMENT_NOT_ALLOWED",
+      };
+    }
+    if (message.includes("FACILITY_PAYMENT_NOT_ALLOWED")) {
+      return {
+        ok: false,
+        error: "Pay at facility is not available for this session.",
+        code: "FACILITY_PAYMENT_NOT_ALLOWED",
+      };
+    }
     return {
       ok: false,
       error: "Could not complete booking. Please try again.",
@@ -191,31 +286,44 @@ export async function createPublicBooking(
 
   const created = booking as Booking;
 
-  await Promise.allSettled([
-    sendBookingConfirmation({
-      booking: created,
-      parentEmail: input.parentEmail,
-      parentName: `${input.parentFirstName} ${input.parentLastName}`,
-      athleteName: `${input.athleteFirstName} ${input.athleteLastName}`,
-      sessionTitle: session.title,
-      sessionDate: session.session_date,
-      startTime: session.start_time,
-      location: session.location_address,
-      amountDue: Number(session.price),
-    }),
-    sendStaffBookingNotification({
-      booking: created,
-      parentEmail: input.parentEmail,
-      parentName: `${input.parentFirstName} ${input.parentLastName}`,
-      parentPhone: input.parentPhone,
-      athleteName: `${input.athleteFirstName} ${input.athleteLastName}`,
-      sessionTitle: session.title,
-      sessionDate: session.session_date,
-      startTime: session.start_time,
-    }),
-  ]);
+  // Pay-at-facility: send confirmation immediately (one-shot).
+  // Stripe: wait for verified payment webhook before emailing.
+  if (paymentMethod === "pay_at_facility") {
+    await Promise.allSettled([
+      sendBookingConfirmation({
+        booking: created,
+        parentEmail: input.parentEmail,
+        parentName: `${input.parentFirstName} ${input.parentLastName}`,
+        athleteName: `${input.athleteFirstName} ${input.athleteLastName}`,
+        sessionTitle: session.title,
+        sessionDate: session.session_date,
+        startTime: session.start_time,
+        location: session.location_address,
+        amountDueCents: Number(session.price_cents),
+        paymentMethod: "pay_at_facility",
+      }).then(async () => {
+        await markConfirmationEmailSent(created.id);
+      }),
+      sendStaffBookingNotification({
+        booking: created,
+        parentEmail: input.parentEmail,
+        parentName: `${input.parentFirstName} ${input.parentLastName}`,
+        parentPhone: input.parentPhone,
+        athleteName: `${input.athleteFirstName} ${input.athleteLastName}`,
+        sessionTitle: session.title,
+        sessionDate: session.session_date,
+        startTime: session.start_time,
+        paymentStatus: created.payment_status,
+        amountDueCents: Number(session.price_cents),
+      }),
+    ]);
+  }
 
-  return { ok: true, booking: created };
+  return {
+    ok: true,
+    booking: created,
+    requiresCheckout: paymentMethod === "stripe",
+  };
 }
 
 export async function joinWaitlist(

@@ -36,12 +36,21 @@ async function bookingCounts(
     const supabase = createServiceClient();
     const { data } = await supabase
       .from(DAWG_TABLES.bookings)
-      .select("session_id")
+      .select("session_id, status, booking_expires_at")
       .in("session_id", sessionIds)
-      .in("status", ["pending", "confirmed", "attended"]);
+      .in("status", ["pending", "confirmed"]);
 
+    const now = Date.now();
     const counts: Record<string, number> = {};
     for (const row of data ?? []) {
+      if (row.status === "pending") {
+        if (
+          row.booking_expires_at &&
+          new Date(row.booking_expires_at).getTime() <= now
+        ) {
+          continue;
+        }
+      }
       counts[row.session_id] = (counts[row.session_id] ?? 0) + 1;
     }
     return counts;

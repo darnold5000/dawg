@@ -5,6 +5,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { dollarsToCents } from "@/lib/billing/format";
 import type { PaymentRequirement, SessionStatus } from "@/lib/types/database";
 
 export const sessionFormSchema = z.object({
@@ -20,12 +21,13 @@ export const sessionFormSchema = z.object({
   maximum_age: z.coerce.number().int().optional().nullable(),
   skill_level: z.string().max(80).optional().nullable(),
   capacity: z.coerce.number().int().positive(),
+  /** Admin form dollars — converted to price_cents before insert. */
   price: z.coerce.number().nonnegative(),
   deposit_amount: z.coerce.number().nonnegative().optional().nullable(),
   payment_requirement: z.enum([
-    "full_at_booking",
-    "deposit_at_booking",
+    "pay_online",
     "pay_at_facility",
+    "online_or_facility",
   ]),
   location_name: z.string().optional().nullable(),
   location_address: z.string().optional().nullable(),
@@ -132,8 +134,12 @@ export async function createSessionsFromForm(
     maximum_age: parsed.maximum_age ?? null,
     skill_level: parsed.skill_level || null,
     capacity: parsed.capacity,
-    price: parsed.price,
-    deposit_amount: parsed.deposit_amount ?? null,
+    price_cents: dollarsToCents(parsed.price),
+    deposit_amount_cents:
+      parsed.deposit_amount != null
+        ? dollarsToCents(parsed.deposit_amount)
+        : null,
+    currency: "usd",
     payment_requirement: parsed.payment_requirement as PaymentRequirement,
     location_name: parsed.location_name || null,
     location_address: parsed.location_address || null,

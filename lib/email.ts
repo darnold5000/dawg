@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { SITE } from "@/lib/constants";
 import { formatPrice, formatSessionDate, formatSessionTime } from "@/lib/format";
-import type { Booking } from "@/lib/types/database";
+import type { Booking, PaymentMethod, PaymentStatus } from "@/lib/types/database";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -14,7 +14,9 @@ type ConfirmPayload = {
   sessionDate: string;
   startTime: string;
   location: string | null;
-  amountDue: number;
+  amountDueCents: number;
+  amountPaidCents?: number;
+  paymentMethod: PaymentMethod;
 };
 
 type StaffPayload = {
@@ -26,11 +28,17 @@ type StaffPayload = {
   sessionTitle: string;
   sessionDate: string;
   startTime: string;
+  paymentStatus: PaymentStatus;
+  amountDueCents: number;
 };
 
 export async function sendBookingConfirmation(payload: ConfirmPayload): Promise<void> {
   if (!resend) return;
   const from = process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
+  const paidOnline = payload.paymentMethod === "stripe";
+  const amountLabel = paidOnline
+    ? `${formatPrice(payload.amountPaidCents ?? payload.amountDueCents)} (paid online)`
+    : `${formatPrice(payload.amountDueCents)} (pay at facility)`;
 
   await resend.emails.send({
     from,
@@ -47,10 +55,14 @@ export async function sendBookingConfirmation(payload: ConfirmPayload): Promise<
           <tr><td style="padding: 8px 0;"><strong>Date</strong></td><td>${formatSessionDate(payload.sessionDate)}</td></tr>
           <tr><td style="padding: 8px 0;"><strong>Time</strong></td><td>${formatSessionTime(payload.startTime)}</td></tr>
           <tr><td style="padding: 8px 0;"><strong>Athlete</strong></td><td>${payload.athleteName}</td></tr>
-          <tr><td style="padding: 8px 0;"><strong>Amount due</strong></td><td>${formatPrice(payload.amountDue)} (pay at facility)</td></tr>
+          <tr><td style="padding: 8px 0;"><strong>Payment</strong></td><td>${amountLabel}</td></tr>
           <tr><td style="padding: 8px 0;"><strong>Location</strong></td><td>${payload.location ?? SITE.address.full}</td></tr>
         </table>
-        <p><strong>Payment is due at the facility.</strong></p>
+        <p><strong>${
+          paidOnline
+            ? "Your online payment was received."
+            : "Payment is due at the facility."
+        }</strong></p>
         <p>
           ${SITE.name}<br/>
           ${SITE.address.full}<br/>
@@ -78,6 +90,7 @@ export async function sendStaffBookingNotification(payload: StaffPayload): Promi
         <p>${formatSessionDate(payload.sessionDate)} at ${formatSessionTime(payload.startTime)}</p>
         <p>Parent: ${payload.parentName} · ${payload.parentPhone} · ${payload.parentEmail}</p>
         <p>Athlete: ${payload.athleteName}</p>
+        <p>Payment: ${payload.paymentStatus} · ${formatPrice(payload.amountDueCents)}</p>
       </div>
     `,
   });

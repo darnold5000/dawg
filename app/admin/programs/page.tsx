@@ -32,8 +32,8 @@ export default async function AdminProgramsPage() {
               <p className="mt-3 text-sm">
                 {ageRangeLabel(program.minimum_age, program.maximum_age)} ·{" "}
                 {program.default_duration_minutes} min · from{" "}
-                {program.default_price != null
-                  ? formatPrice(Number(program.default_price))
+                {program.default_price_cents != null
+                  ? formatPrice(Number(program.default_price_cents))
                   : "TBD"}
               </p>
             </article>

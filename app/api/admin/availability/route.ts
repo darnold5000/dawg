@@ -7,6 +7,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { dollarsToCents } from "@/lib/billing/format";
 import { SITE } from "@/lib/constants";
 
 const schema = z.object({
@@ -52,7 +53,8 @@ export async function POST(request: Request) {
       minimum_age: body.minimum_age ?? null,
       maximum_age: body.maximum_age ?? null,
       capacity: body.capacity,
-      price: body.price,
+      price_cents: dollarsToCents(body.price),
+      currency: "usd",
       payment_requirement: "pay_at_facility",
       location_name: SITE.name,
       location_address: SITE.address.full,

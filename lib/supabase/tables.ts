@@ -15,4 +15,6 @@ export const DAWG_TABLES = {
   reviews: "dawg_reviews",
   businessSettings: "dawg_business_settings",
   blockedTimes: "dawg_blocked_times",
+  stripeEvents: "dawg_stripe_events",
+  paymentTransactions: "dawg_payment_transactions",
 } as const;

@@ -1,6 +1,8 @@
 import { AdminShell } from "@/components/admin/admin-shell";
+import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { requireStaff } from "@/lib/auth";
 import { getAdminSessions } from "@/lib/admin-data";
+import { billingTableClassNames, formatMoney } from "@/lib/billing";
 import {
   createServiceClient,
   isSupabaseConfigured,
@@ -35,7 +37,7 @@ export default async function AdminBookingsPage() {
         <div>
           <h2 className="font-heading text-3xl tracking-wide">Bookings</h2>
           <p className="text-sm text-muted-foreground">
-            Recent reservations across all sessions
+            Recent reservations · payment status and amounts
           </p>
         </div>
 
@@ -47,28 +49,59 @@ export default async function AdminBookingsPage() {
               : "."}
           </p>
         ) : (
-          <div className="grid gap-3">
-            {bookings.map((booking) => {
-              const session = sessionMap[booking.session_id];
-              return (
-                <div
-                  key={booking.id}
-                  className="rounded-xl border border-border bg-card p-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-medium">{booking.confirmation_number}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {booking.status} · {booking.payment_status}
-                    </p>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {session
-                      ? `${session.title} · ${formatSessionDateShort(session.session_date)} ${formatSessionTime(session.start_time)}`
-                      : booking.session_id}
-                  </p>
-                </div>
-              );
-            })}
+          <div className={billingTableClassNames.tableWrap}>
+            <table className={billingTableClassNames.table}>
+              <thead className={billingTableClassNames.tableHead}>
+                <tr>
+                  <th className="px-4 py-3">Confirmation</th>
+                  <th className="px-4 py-3">Session</th>
+                  <th className="px-4 py-3">Booking</th>
+                  <th className="px-4 py-3">Method</th>
+                  <th className="px-4 py-3">Payment</th>
+                  <th className="px-4 py-3">Due</th>
+                  <th className="px-4 py-3">Paid</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.map((booking) => {
+                  const session = sessionMap[booking.session_id];
+                  return (
+                    <tr
+                      key={booking.id}
+                      className={billingTableClassNames.tableRow}
+                    >
+                      <td className="px-4 py-3 font-medium">
+                        {booking.confirmation_number}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {session
+                          ? `${session.title} · ${formatSessionDateShort(session.session_date)} ${formatSessionTime(session.start_time)}`
+                          : booking.session_id}
+                      </td>
+                      <td className="px-4 py-3 capitalize">{booking.status}</td>
+                      <td className="px-4 py-3 text-sm">
+                        {booking.payment_method?.replaceAll("_", " ") ?? "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <PaymentStatusBadge status={booking.payment_status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {formatMoney(
+                          booking.amount_due_cents,
+                          booking.currency?.toUpperCase() || "USD",
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {formatMoney(
+                          booking.amount_paid_cents,
+                          booking.currency?.toUpperCase() || "USD",
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

@@ -6,6 +6,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { dollarsToCents } from "@/lib/billing/format";
 import { sessionFormSchema } from "@/lib/sessions";
 
 export async function PATCH(
@@ -46,8 +47,12 @@ export async function PATCH(
         maximum_age: parsed.maximum_age ?? null,
         skill_level: parsed.skill_level || null,
         capacity: parsed.capacity,
-        price: parsed.price,
-        deposit_amount: parsed.deposit_amount ?? null,
+        price_cents: dollarsToCents(parsed.price),
+        deposit_amount_cents:
+          parsed.deposit_amount != null
+            ? dollarsToCents(parsed.deposit_amount)
+            : null,
+        currency: "usd",
         payment_requirement: parsed.payment_requirement,
         location_name: parsed.location_name || null,
         location_address: parsed.location_address || null,

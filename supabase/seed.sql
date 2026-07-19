@@ -48,25 +48,25 @@ on conflict (slug) do nothing;
 
 insert into public.dawg_programs (
   name, slug, short_description, full_description, minimum_age, maximum_age,
-  default_duration_minutes, default_capacity, default_price, image_url, active, featured, display_order
+  default_duration_minutes, default_capacity, default_price_cents, image_url, active, featured, display_order
 )
 values
   ('Little Dawgz', 'little-dawgs',
    'For younger athletes learning proper movement, balance, coordination, speed, and body control in a positive environment.',
    'Little Dawgz introduces foundational athletic skills through fun, age-appropriate drills.',
-   5, 10, 45, 10, 25, '/images/dawg/programs/little-dawgs.jpg', true, true, 1),
+   5, 10, 45, 10, 2500, '/images/dawg/programs/little-dawgs.jpg', true, true, 1),
   ('Big Dawgz', 'big-dawgs',
    'Advanced athletic development for older youth athletes — strength, speed, agility, conditioning, and competitive movement.',
    'Big Dawgz challenges older athletes with progressive strength, speed, and agility training.',
-   11, 18, 60, 12, 30, '/images/dawg/programs/big-dawgs.jpg', true, true, 2),
+   11, 18, 60, 12, 3000, '/images/dawg/programs/big-dawgs.jpg', true, true, 2),
   ('Private Training', 'private-training',
    'Individualized instruction based on the athlete''s age, sport, experience, and development goals.',
    'One-on-one sessions with customized plans for speed, strength, agility, or sport-specific performance.',
-   5, 18, 60, 1, 60, '/images/dawg/programs/private.jpg', true, true, 3),
+   5, 18, 60, 1, 6000, '/images/dawg/programs/private.jpg', true, true, 3),
   ('Small-Group Training', 'small-group-training',
    'Focused instruction for siblings, teammates, or small groups who want to train together.',
    'Small-group sessions keep coaching attention high while building teamwork.',
-   7, 18, 60, 4, 40, '/images/dawg/programs/small-group.jpg', true, true, 4)
+   7, 18, 60, 4, 4000, '/images/dawg/programs/small-group.jpg', true, true, 4)
 on conflict (slug) do nothing;
 
 insert into public.dawg_trainers (name, title, bio, photo_url, specialties, active, display_order)
@@ -84,7 +84,7 @@ where not exists (select 1 from public.dawg_trainers where name = 'Coach Jordan'
 insert into public.dawg_sessions (
   program_id, session_type_id, trainer_id, title, description,
   session_date, start_time, end_time, minimum_age, maximum_age, skill_level,
-  capacity, price, payment_requirement, location_name, location_address,
+  capacity, price_cents, currency, payment_requirement, location_name, location_address,
   what_to_bring, cancellation_policy, status, published_at
 )
 select
@@ -97,7 +97,7 @@ select
   '16:00',
   '16:45',
   5, 10, 'Beginner',
-  10, 25, 'pay_at_facility',
+  10, 2500, 'usd', 'pay_at_facility',
   'DAWGZ Youth Training',
   '920 Training Center Dr, Plainfield, IN 46168',
   'Athletic shoes, water bottle, comfortable training clothes',
@@ -113,7 +113,7 @@ where p.slug = 'little-dawgs' and st.slug = 'group-class' and t.name = 'Coach Jo
 insert into public.dawg_sessions (
   program_id, session_type_id, trainer_id, title, description,
   session_date, start_time, end_time, minimum_age, maximum_age, skill_level,
-  capacity, price, payment_requirement, location_name, location_address,
+  capacity, price_cents, currency, payment_requirement, location_name, location_address,
   what_to_bring, cancellation_policy, status, published_at
 )
 select
@@ -123,7 +123,7 @@ select
   (current_date + 4),
   '17:00', '18:00',
   11, 18, 'Intermediate',
-  12, 30, 'pay_at_facility',
+  12, 3000, 'usd', 'pay_at_facility',
   'DAWGZ Youth Training',
   '920 Training Center Dr, Plainfield, IN 46168',
   'Athletic shoes, water bottle, comfortable training clothes',
@@ -138,7 +138,7 @@ where p.slug = 'big-dawgs' and st.slug = 'group-class' and t.name = 'Coach Jorda
 insert into public.dawg_sessions (
   program_id, session_type_id, trainer_id, title, description,
   session_date, start_time, end_time, minimum_age, maximum_age, skill_level,
-  capacity, price, payment_requirement, location_name, location_address,
+  capacity, price_cents, currency, payment_requirement, location_name, location_address,
   what_to_bring, cancellation_policy, status, published_at
 )
 select
@@ -148,7 +148,7 @@ select
   (current_date + 5),
   '15:00', '16:00',
   7, 18, 'All levels',
-  1, 60, 'pay_at_facility',
+  1, 6000, 'usd', 'pay_at_facility',
   'DAWGZ Youth Training',
   '920 Training Center Dr, Plainfield, IN 46168',
   'Athletic shoes, water bottle',

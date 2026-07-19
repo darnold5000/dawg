@@ -58,7 +58,8 @@ export function SessionForm({
     maximum_age: initial?.maximum_age?.toString() ?? "",
     skill_level: initial?.skill_level ?? "",
     capacity: initial?.capacity?.toString() ?? "10",
-    price: initial?.price?.toString() ?? "25",
+    // Form stores dollars; API converts to cents
+    price: initial?.price != null ? String(initial.price) : "25",
     payment_requirement: initial?.payment_requirement ?? "pay_at_facility",
     status: initial?.status ?? "published",
     what_to_bring:
@@ -285,8 +286,8 @@ export function SessionForm({
             onChange={(e) => update("payment_requirement", e.target.value)}
           >
             <option value="pay_at_facility">Pay at facility</option>
-            <option value="deposit_at_booking">Deposit at booking (Stripe later)</option>
-            <option value="full_at_booking">Full at booking (Stripe later)</option>
+            <option value="pay_online">Pay online (Stripe)</option>
+            <option value="online_or_facility">Online or pay at facility</option>
           </select>
         </div>
         {mode === "create" ? (

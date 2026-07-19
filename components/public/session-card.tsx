@@ -52,7 +52,7 @@ export function SessionCard({ session }: { session: SessionWithRelations }) {
             {ageRangeLabel(session.minimum_age, session.maximum_age)}
             {session.trainer?.name ? ` · ${session.trainer.name}` : ""}
             {" · "}
-            {formatPrice(session.price)}
+            {formatPrice(session.price_cents)}
           </p>
         </div>
         <div className="flex shrink-0 gap-2">

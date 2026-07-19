@@ -72,8 +72,8 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
                   <div>
                     <dt className="text-muted-foreground">From</dt>
                     <dd className="font-semibold text-gold">
-                      {program.default_price != null
-                        ? formatPrice(program.default_price)
+                      {program.default_price_cents != null
+                        ? formatPrice(program.default_price_cents)
                         : "See schedule"}
                     </dd>
                   </div>

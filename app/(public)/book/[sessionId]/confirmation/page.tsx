@@ -89,7 +89,7 @@ export default async function BookingConfirmationPage({
         <div className="flex justify-between gap-4 text-sm">
           <dt className="text-muted-foreground">Amount due</dt>
           <dd className="font-medium">
-            {formatPrice(session.price)} · Pay at facility
+            {formatPrice(session.price_cents)} · Pay at facility
           </dd>
         </div>
         <div className="flex justify-between gap-4 text-sm">
