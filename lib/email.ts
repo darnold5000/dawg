@@ -11,6 +11,27 @@ function fromAddress() {
   return process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
 }
 
+function requireResend() {
+  if (!resend) {
+    console.error("[email] RESEND_API_KEY is not set — skipping send");
+    throw new Error("EMAIL_NOT_CONFIGURED");
+  }
+  return resend;
+}
+
+async function sendEmail(
+  payload: Parameters<NonNullable<typeof resend>["emails"]["send"]>[0],
+  label: string,
+) {
+  const client = requireResend();
+  const { data, error } = await client.emails.send(payload);
+  if (error) {
+    console.error(`[email] ${label} failed:`, error);
+    throw new Error(error.message || `EMAIL_SEND_FAILED:${label}`);
+  }
+  return data;
+}
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -72,8 +93,6 @@ function firstName(fullName: string) {
 export async function sendBookingConfirmation(
   payload: ConfirmPayload,
 ): Promise<void> {
-  if (!resend) return;
-
   const paidOnline = payload.paymentMethod === "stripe";
   const paymentText = paymentLabel(payload.paymentMethod, { paid: paidOnline });
   const location = escapeHtml(payload.location ?? SITE.address.full);
@@ -99,19 +118,20 @@ export async function sendBookingConfirmation(
 
   const hi = escapeHtml(firstName(payload.parentName));
 
-  await resend.emails.send({
-    from: fromAddress(),
-    to: payload.parentEmail,
-    replyTo: SITE.email,
-    subject: "Your DAWG Training Session is Confirmed",
-    attachments: [
-      {
-        filename: "dawg-session.ics",
-        content: Buffer.from(ics, "utf8"),
-        contentType: "text/calendar; charset=utf-8; method=PUBLISH",
-      },
-    ],
-    html: `
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: payload.parentEmail,
+      replyTo: SITE.email,
+      subject: "Your DAWG Training Session is Confirmed",
+      attachments: [
+        {
+          filename: "dawg-session.ics",
+          content: Buffer.from(ics, "utf8"),
+          contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+        },
+      ],
+      html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
         <h1 style="font-size: 24px; margin: 0 0 8px;">You're all set!</h1>
         <p style="margin: 0 0 24px; color: #444;">Hi ${hi},</p>
@@ -137,14 +157,19 @@ export async function sendBookingConfirmation(
         </p>
       </div>
     `,
-  });
+    },
+    "booking-confirmation",
+  );
 }
 
 export async function sendStaffBookingNotification(
   payload: StaffPayload,
 ): Promise<void> {
   const staffEmail = process.env.STAFF_NOTIFICATION_EMAIL ?? SITE.email;
-  if (!resend || !staffEmail) return;
+  if (!staffEmail) {
+    console.error("[email] STAFF_NOTIFICATION_EMAIL / SITE.email missing");
+    throw new Error("STAFF_EMAIL_NOT_CONFIGURED");
+  }
 
   const site = getSiteUrl();
   const viewUrl = `${site}/admin/bookings/${payload.booking.id}`;
@@ -157,11 +182,12 @@ export async function sendStaffBookingNotification(
           ? "Paid Online"
           : "Pay at Facility";
 
-  await resend.emails.send({
-    from: fromAddress(),
-    to: staffEmail,
-    subject: `New Booking — ${payload.athleteName}`,
-    html: `
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: staffEmail,
+      subject: `New Booking — ${payload.athleteName}`,
+      html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
         <h1 style="font-size: 22px; margin: 0 0 16px;">New Booking</h1>
         <p style="margin: 0 0 8px; font-size: 18px; font-weight: 700;">${escapeHtml(payload.athleteName)}</p>
@@ -179,7 +205,9 @@ export async function sendStaffBookingNotification(
         </p>
       </div>
     `,
-  });
+    },
+    "staff-booking",
+  );
 }
 
 // Launch: cancellations disabled — keep for later.
@@ -232,14 +260,13 @@ export async function sendWaitlistConfirmation(payload: {
   parentName: string;
   athleteName: string;
 }): Promise<void> {
-  if (!resend) return;
-
-  await resend.emails.send({
-    from: fromAddress(),
-    to: payload.email,
-    replyTo: SITE.email,
-    subject: "You're on the DAWG waitlist",
-    html: `
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: payload.email,
+      replyTo: SITE.email,
+      subject: "You're on the DAWG waitlist",
+      html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto;">
         <h1 style="font-size: 22px;">You're on the list</h1>
         <p>Hi ${escapeHtml(firstName(payload.parentName))},</p>
@@ -247,7 +274,9 @@ export async function sendWaitlistConfirmation(payload: {
         <p style="color: #888;">${escapeHtml(SITE.name)} · ${SITE.phone}</p>
       </div>
     `,
-  });
+    },
+    "waitlist",
+  );
 }
 
 export async function sendContactNotification(payload: {
@@ -258,14 +287,18 @@ export async function sendContactNotification(payload: {
   message: string;
 }): Promise<void> {
   const staffEmail = process.env.STAFF_NOTIFICATION_EMAIL ?? SITE.email;
-  if (!resend || !staffEmail) return;
+  if (!staffEmail) {
+    console.error("[email] STAFF_NOTIFICATION_EMAIL / SITE.email missing");
+    throw new Error("STAFF_EMAIL_NOT_CONFIGURED");
+  }
 
-  await resend.emails.send({
-    from: fromAddress(),
-    to: staffEmail,
-    replyTo: payload.email,
-    subject: `DAWG website contact — ${payload.parentName}`,
-    html: `
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: staffEmail,
+      replyTo: payload.email,
+      subject: `DAWG website contact — ${payload.parentName}`,
+      html: `
       <div style="font-family: sans-serif;">
         <h2>New contact form message</h2>
         <p><strong>Name:</strong> ${escapeHtml(payload.parentName)}</p>
@@ -276,21 +309,22 @@ export async function sendContactNotification(payload: {
         <p style="white-space: pre-wrap;">${escapeHtml(payload.message)}</p>
       </div>
     `,
-  });
+    },
+    "contact-notification",
+  );
 }
 
 export async function sendContactAcknowledgement(payload: {
   parentName: string;
   email: string;
 }): Promise<void> {
-  if (!resend) return;
-
-  await resend.emails.send({
-    from: fromAddress(),
-    to: payload.email,
-    replyTo: SITE.email,
-    subject: "We received your message — DAWG Youth Training",
-    html: `
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: payload.email,
+      replyTo: SITE.email,
+      subject: "We received your message — DAWG Youth Training",
+      html: `
       <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
         <h1>Thanks for reaching out</h1>
         <p>Hi ${escapeHtml(firstName(payload.parentName))},</p>
@@ -302,5 +336,7 @@ export async function sendContactAcknowledgement(payload: {
         </p>
       </div>
     `,
-  });
+    },
+    "contact-ack",
+  );
 }

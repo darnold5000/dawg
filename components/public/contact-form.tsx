@@ -97,11 +97,12 @@ export function ContactForm() {
         </p>
       </div>
 
-      {/* Honeypot */}
+      {/* Honeypot — unusual name + autocomplete off so browsers don't autofill */}
       <div className="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden>
-        <Label htmlFor="company">Company</Label>
+        <Label htmlFor="website_url_hp">Website</Label>
         <Input
-          id="company"
+          id="website_url_hp"
+          name="website_url_hp"
           tabIndex={-1}
           autoComplete="off"
           value={form.company}
@@ -154,6 +155,7 @@ export function ContactForm() {
           <Textarea
             id="message"
             required
+            minLength={5}
             rows={5}
             value={form.message}
             onChange={(e) => update("message", e.target.value)}

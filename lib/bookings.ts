@@ -436,7 +436,7 @@ export async function createPublicBooking(
   // Pay-at-facility: send confirmation immediately (one-shot).
   // Stripe: wait for verified payment webhook before emailing.
   if (paymentMethod === "pay_at_facility") {
-    await Promise.allSettled([
+    const emailResults = await Promise.allSettled([
       (async () => {
         let coachName: string | null = null;
         if (session.trainer_id) {
@@ -477,6 +477,11 @@ export async function createPublicBooking(
         amountDueCents: Number(session.price_cents),
       }),
     ]);
+    for (const result of emailResults) {
+      if (result.status === "rejected") {
+        console.error("[bookings] confirmation email failed:", result.reason);
+      }
+    }
   }
 
   return {

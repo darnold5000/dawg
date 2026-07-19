@@ -11,8 +11,11 @@ export const contactSchema = z.object({
       return Number.isFinite(n) ? n : undefined;
     }, z.number().int().min(3).max(21).optional()),
   message: z.string().trim().min(5, "Message is required").max(2000),
-  /** Honeypot — must stay empty. */
-  company: z.string().max(0).optional().default(""),
+  /**
+   * Honeypot — bots/autofill may fill this. Accept any string here and
+   * short-circuit in the API (do not reject with Zod max(0)).
+   */
+  company: z.string().optional().default(""),
 });
 
 export type ContactInput = z.infer<typeof contactSchema>;

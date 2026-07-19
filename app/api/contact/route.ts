@@ -18,8 +18,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = contactSchema.parse(body);
 
-    // Honeypot triggered — pretend success
-    if (parsed.company) {
+    // Honeypot triggered — pretend success (do not email)
+    if ((parsed.company ?? "").trim()) {
       return NextResponse.json({ ok: true });
     }
 
@@ -32,7 +32,19 @@ export async function POST(request: Request) {
       );
     }
 
-    await Promise.allSettled([
+    if (!process.env.RESEND_API_KEY) {
+      console.error("[api/contact] RESEND_API_KEY is not set");
+      return NextResponse.json(
+        {
+          error:
+            "Email is not configured yet. Please call or email DAWG directly.",
+          code: "EMAIL_NOT_CONFIGURED",
+        },
+        { status: 503 },
+      );
+    }
+
+    const results = await Promise.allSettled([
       sendContactNotification({
         parentName: parsed.parentName,
         email: parsed.email,
@@ -46,11 +58,29 @@ export async function POST(request: Request) {
       }),
     ]);
 
+    const failed = results.filter((r) => r.status === "rejected");
+    if (failed.length === results.length) {
+      console.error("[api/contact] all email sends failed", failed);
+      return NextResponse.json(
+        {
+          error:
+            "Could not send your message right now. Please try again or call DAWG.",
+          code: "EMAIL_SEND_FAILED",
+        },
+        { status: 502 },
+      );
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof ZodError) {
+      const flat = error.flatten();
+      const first =
+        Object.values(flat.fieldErrors).flat().find(Boolean) ||
+        flat.formErrors[0] ||
+        "Please check the form and try again.";
       return NextResponse.json(
-        { error: "Please check the form and try again.", details: error.flatten() },
+        { error: first, details: flat },
         { status: 400 },
       );
     }
