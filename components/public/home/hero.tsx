@@ -21,7 +21,7 @@ export function HomeHero() {
         <div className="rise-in order-2 lg:order-1">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-gold">
             <Zap className="h-3.5 w-3.5" aria-hidden />
-            Plainfield, Indiana
+            Mooresville, Indiana
           </p>
           <p className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-white/80">
             <MapPin className="h-4 w-4 text-brand" aria-hidden />
@@ -65,10 +65,10 @@ export function HomeHero() {
             <Image
               src="/images/dawg/logo.jpg"
               alt={`${SITE.name} logo`}
-              width={612}
-              height={440}
+              width={818}
+              height={960}
               priority
-              className="relative h-auto w-full rounded-2xl border border-white/10 bg-black object-contain shadow-[0_20px_80px_rgba(31,92,255,0.35)]"
+              className="relative h-auto w-full rounded-2xl border border-white/10 shadow-[0_20px_80px_rgba(31,92,255,0.35)]"
               sizes="(max-width: 1024px) 90vw, 480px"
             />
           </div>

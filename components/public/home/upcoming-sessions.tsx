@@ -31,7 +31,7 @@ export function HomeUpcomingSessions({
       <div className="mt-10 grid gap-4">
         {sessions.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">
-            No upcoming sessions published yet. Check back soon or message DAWGZ
+            No upcoming sessions published yet. Check back soon or message DAWG
             on Facebook.
           </p>
         ) : (

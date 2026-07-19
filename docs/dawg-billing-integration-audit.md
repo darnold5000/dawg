@@ -21,7 +21,7 @@
 | Validation | Zod 4.4 |
 | Stripe dependency | **Not installed** (env stubs only) |
 | Monorepo | **No** — standalone Next app |
-| Deploy target | `NEXT_PUBLIC_SITE_URL=https://dawgz.hiresignalworks.com` (Vercel-oriented; `@vercel/analytics` present; no `vercel.json`) |
+| Deploy target | `NEXT_PUBLIC_SITE_URL=https://dawg-ashen.vercel.app` (Vercel-oriented; `@vercel/analytics` present; no `vercel.json`) |
 
 ### Database schema (current)
 

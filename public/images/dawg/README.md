@@ -1,14 +1,12 @@
-# DAWGZ image assets
+# DAWG image assets
+
+Official logo and training photos from the DAWG Facebook page (client-approved).
 
 ```
-logo.svg                 Brand mark (replace with approved JPG/PNG when available)
-hero/training.svg
-gallery/*.svg            Launch gallery (replace with approved photos)
-programs/*.svg
-trainers/placeholder.svg
-og-default.svg
+logo.jpg              # Official DAWG logo (brick wall background)
+hero/training.jpg
+gallery/*.jpg
+trainers/avery.jpg    # Brand mark (logo) until a coach portrait is provided
 ```
 
-**Before production launch:** swap SVG placeholders for approved DAWGZ photos and a final logo file. Gallery code in `lib/gallery.ts` points at `gallery/*` paths — update paths/alt text when real images land.
-
-**Palette from logo:** charcoal / grayscale · spike red collar · black background
+**Palette from logo:** electric blue `#1F5CFF` · spike gold `#FFD400` · charcoal `#07090F`

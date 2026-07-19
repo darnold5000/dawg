@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     }
     console.error(error);
     return NextResponse.json(
-      { error: "Could not send your message. Please try again or call DAWGZ." },
+      { error: "Could not send your message. Please try again or call DAWG." },
       { status: 500 },
     );
   }

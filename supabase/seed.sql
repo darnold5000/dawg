@@ -1,4 +1,4 @@
--- SAMPLE seed data for DAWGZ. Remove or replace sessions before launch.
+-- SAMPLE seed data for DAWG. Remove or replace sessions before launch.
 -- Run after 001_initial.sql
 
 insert into public.dawg_business_settings (
@@ -6,31 +6,32 @@ insert into public.dawg_business_settings (
   facebook_url, business_hours, cancellation_policy, booking_policy, map_embed_url
 )
 select
-  'DAWGZ Youth Training',
-  '(317) 555-0194',
-  'coach@dawgzyouth.com',
-  '920 Training Center Dr',
-  'Plainfield',
+  'DAWG Youth Training',
+  '(317) 835-1076',
+  'coachavery1287@gmail.com',
+  '477 Town Center St',
+  'Mooresville',
   'IN',
-  '46168',
-  'https://www.facebook.com/DawgzYouthTraining',
-  'Hours TBD — contact DAWGZ for current training times',
-  'Please cancel at least 24 hours in advance when possible. Contact DAWGZ to reschedule.',
+  '46158',
+  'https://www.facebook.com/DawgYouthTraining',
+  'Hours TBD — contact DAWG for current training times',
+  'Please cancel at least 24 hours in advance when possible. Contact DAWG to reschedule.',
   'Reservations hold your athlete''s spot. Payment is due at the facility unless otherwise noted. Parent or legal guardian must book for minors.',
-  'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3060!2d-86.389!3d39.704!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2s920%20Training%20Center%20Dr%2C%20Plainfield%2C%20IN%2046168!5e0!3m2!1sen!2sus!4v1'
+  'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3080.5!2d-86.37!3d39.61!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2s477%20Town%20Center%20St%2C%20Mooresville%2C%20IN!5e0!3m2!1sen!2sus!4v1'
 where not exists (select 1 from public.dawg_business_settings);
 
--- Always keep portfolio contact anonymized on this branch
+-- Restore real DAWG contact/location if a prior demo anonymization was applied
 update public.dawg_business_settings set
-  business_name = 'DAWGZ Youth Training',
-  phone = '(317) 555-0194',
-  email = 'coach@dawgzyouth.com',
-  address_line_1 = '920 Training Center Dr',
-  city = 'Plainfield',
+  business_name = 'DAWG Youth Training',
+  phone = '(317) 835-1076',
+  email = 'coachavery1287@gmail.com',
+  address_line_1 = '477 Town Center St',
+  city = 'Mooresville',
   state = 'IN',
-  postal_code = '46168',
-  facebook_url = 'https://www.facebook.com/DawgzYouthTraining',
-  map_embed_url = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3060!2d-86.389!3d39.704!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2s920%20Training%20Center%20Dr%2C%20Plainfield%2C%20IN%2046168!5e0!3m2!1sen!2sus!4v1';
+  postal_code = '46158',
+  facebook_url = 'https://www.facebook.com/DawgYouthTraining',
+  map_embed_url = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3080.5!2d-86.37!3d39.61!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2s477%20Town%20Center%20St%2C%20Mooresville%2C%20IN!5e0!3m2!1sen!2sus!4v1',
+  business_hours = 'Hours TBD — contact DAWG for current training times';
 
 update public.dawg_trainers set name = 'Coach Jordan'
 where name = 'Coach Avery';
@@ -51,13 +52,13 @@ insert into public.dawg_programs (
   default_duration_minutes, default_capacity, default_price_cents, image_url, active, featured, display_order
 )
 values
-  ('Little Dawgz', 'little-dawgs',
+  ('Little Dawgs', 'little-dawgs',
    'For younger athletes learning proper movement, balance, coordination, speed, and body control in a positive environment.',
-   'Little Dawgz introduces foundational athletic skills through fun, age-appropriate drills.',
+   'Little Dawgs introduces foundational athletic skills through fun, age-appropriate drills.',
    5, 10, 45, 10, 2500, '/images/dawg/programs/little-dawgs.jpg', true, true, 1),
-  ('Big Dawgz', 'big-dawgs',
+  ('Big Dawgs', 'big-dawgs',
    'Advanced athletic development for older youth athletes — strength, speed, agility, conditioning, and competitive movement.',
-   'Big Dawgz challenges older athletes with progressive strength, speed, and agility training.',
+   'Big Dawgs challenges older athletes with progressive strength, speed, and agility training.',
    11, 18, 60, 12, 3000, '/images/dawg/programs/big-dawgs.jpg', true, true, 2),
   ('Private Training', 'private-training',
    'Individualized instruction based on the athlete''s age, sport, experience, and development goals.',
@@ -73,7 +74,7 @@ insert into public.dawg_trainers (name, title, bio, photo_url, specialties, acti
 select
   'Coach Jordan',
   'Owner / Head Trainer',
-  'DAWGZ specifically emphasizes developing both physical and mental attributes in athletes within a positive and engaging setting.',
+  'DAWG specifically emphasizes developing both physical and mental attributes in athletes within a positive and engaging setting.',
   '/images/dawg/trainers/placeholder.svg',
   array['Speed', 'Agility', 'Youth Athletic Development'],
   true,
@@ -91,15 +92,15 @@ select
   p.id,
   st.id,
   t.id,
-  'Little Dawgz Speed & Agility',
-  'Age-appropriate athletic training at DAWGZ Youth Training.',
+  'Little Dawgs Speed & Agility',
+  'Age-appropriate athletic training at DAWG Youth Training.',
   (current_date + 3),
   '16:00',
   '16:45',
   5, 10, 'Beginner',
   10, 2500, 'usd', 'pay_at_facility',
-  'DAWGZ Youth Training',
-  '920 Training Center Dr, Plainfield, IN 46168',
+  'DAWG Youth Training',
+  '477 Town Center St, Mooresville, IN 46158',
   'Athletic shoes, water bottle, comfortable training clothes',
   'Please cancel at least 24 hours in advance when possible.',
   'published',
@@ -108,7 +109,7 @@ from public.dawg_programs p
 cross join public.dawg_session_types st
 cross join public.dawg_trainers t
 where p.slug = 'little-dawgs' and st.slug = 'group-class' and t.name = 'Coach Jordan'
-  and not exists (select 1 from public.dawg_sessions where title like 'Little Dawgz Speed%');
+  and not exists (select 1 from public.dawg_sessions where title like 'Little Dawgs Speed%');
 
 insert into public.dawg_sessions (
   program_id, session_type_id, trainer_id, title, description,
@@ -118,14 +119,14 @@ insert into public.dawg_sessions (
 )
 select
   p.id, st.id, t.id,
-  'Big Dawgz Strength & Speed',
-  'Age-appropriate athletic training at DAWGZ Youth Training.',
+  'Big Dawgs Strength & Speed',
+  'Age-appropriate athletic training at DAWG Youth Training.',
   (current_date + 4),
   '17:00', '18:00',
   11, 18, 'Intermediate',
   12, 3000, 'usd', 'pay_at_facility',
-  'DAWGZ Youth Training',
-  '920 Training Center Dr, Plainfield, IN 46168',
+  'DAWG Youth Training',
+  '477 Town Center St, Mooresville, IN 46158',
   'Athletic shoes, water bottle, comfortable training clothes',
   'Please cancel at least 24 hours in advance when possible.',
   'published', now()
@@ -133,7 +134,7 @@ from public.dawg_programs p
 cross join public.dawg_session_types st
 cross join public.dawg_trainers t
 where p.slug = 'big-dawgs' and st.slug = 'group-class' and t.name = 'Coach Jordan'
-  and not exists (select 1 from public.dawg_sessions where title like 'Big Dawgz Strength%');
+  and not exists (select 1 from public.dawg_sessions where title like 'Big Dawgs Strength%');
 
 insert into public.dawg_sessions (
   program_id, session_type_id, trainer_id, title, description,
@@ -149,8 +150,8 @@ select
   '15:00', '16:00',
   7, 18, 'All levels',
   1, 6000, 'usd', 'pay_at_facility',
-  'DAWGZ Youth Training',
-  '920 Training Center Dr, Plainfield, IN 46168',
+  'DAWG Youth Training',
+  '477 Town Center St, Mooresville, IN 46158',
   'Athletic shoes, water bottle',
   'Please cancel at least 24 hours in advance when possible.',
   'published', now()
@@ -165,15 +166,15 @@ insert into public.dawg_reviews (
 )
 select * from (values
   ('Brad Allen', 'Parent · Facebook review', 5,
-   'Working with Jordan is a true blessing. My boys have been going to the Dawgz house for a little over 6 months and their transformation is incredible. Not only are they stronger and more agile but their confidence in themselves is skyrocketing! Can’t recommend Jordan highly enough!',
+   'Working with Jordan is a true blessing. My boys have been going to the Dawgs house for a little over 6 months and their transformation is incredible. Not only are they stronger and more agile but their confidence in themselves is skyrocketing! Can’t recommend Jordan highly enough!',
    true, true, 1),
   ('Jessica M.', 'Parent of a youth athlete', 5,
    'My daughter looks forward to every session. The coaching is positive, the workouts are challenging, and we’ve seen real gains in her speed and confidence on the field.',
    true, true, 2),
-  ('Marcus T.', 'Parent · Big Dawgz', 5,
-   'DAWGZ has been a game changer for my son. Better movement, stronger legs, and a mindset that shows up in practice and games. Jordan knows how to push kids the right way.',
+  ('Marcus T.', 'Parent · Big Dawgs', 5,
+   'DAWG has been a game changer for my son. Better movement, stronger legs, and a mindset that shows up in practice and games. Jordan knows how to push kids the right way.',
    true, true, 3),
-  ('Amanda R.', 'Parent of a Little Dawgz', 5,
+  ('Amanda R.', 'Parent of a Little Dawgs', 5,
    'Perfect environment for younger athletes. Fun, structured, and encouraging — my kids leave sweaty, smiling, and proud of what they worked on.',
    true, false, 4),
   ('Chris D.', 'Parent · Private training', 5,
@@ -222,7 +223,7 @@ begin
       v_encrypted_pw,
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
-      '{"full_name":"DAWGZ Admin"}'::jsonb,
+      '{"full_name":"DAWG Admin"}'::jsonb,
       now(),
       now(),
       '',
@@ -253,7 +254,7 @@ begin
   end if;
 
   insert into public.dawg_profiles (id, full_name, email, role, active)
-  values (v_user_id, 'DAWGZ Admin', v_email, 'owner', true)
+  values (v_user_id, 'DAWG Admin', v_email, 'owner', true)
   on conflict (id) do update
     set full_name = excluded.full_name,
         email = excluded.email,

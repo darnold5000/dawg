@@ -55,7 +55,7 @@ export function BookingConfirmedView({
       confirmationNumber,
       coachName,
     }),
-    uid: `${confirmationNumber}@dawgz`,
+    uid: `${confirmationNumber}@dawg`,
   };
 
   return (
@@ -123,7 +123,7 @@ export function BookingConfirmedView({
         <p className="text-sm font-medium">Add to calendar</p>
         <div className="mt-2 flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
-            <a href={appleCalendarHref(event)} download="dawgz-session.ics">
+            <a href={appleCalendarHref(event)} download="dawg-session.ics">
               Apple
             </a>
           </Button>

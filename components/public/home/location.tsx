@@ -24,7 +24,7 @@ export function HomeLocation({ settings }: { settings: BusinessSettings }) {
             Location
           </p>
           <h2 className="font-heading text-4xl tracking-wide md:text-5xl">
-            Train in <span className="text-brand">Plainfield</span>
+            Train in <span className="text-brand">Mooresville</span>
           </h2>
         </div>
 
@@ -72,7 +72,7 @@ export function HomeLocation({ settings }: { settings: BusinessSettings }) {
 
             <div className="flex flex-wrap gap-3">
               <Button asChild className="bg-gold font-bold text-gold-foreground hover:bg-gold/90">
-                <a href={`tel:${phone.replace(/\D/g, "")}`}>Call DAWGZ</a>
+                <a href={`tel:${phone.replace(/\D/g, "")}`}>Call DAWG</a>
               </Button>
               <Button asChild variant="outline">
                 <a href={`mailto:${email}`}>Send an Email</a>
@@ -93,7 +93,7 @@ export function HomeLocation({ settings }: { settings: BusinessSettings }) {
 
           <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
             <iframe
-              title="DAWGZ Youth Training location map"
+              title="DAWG Youth Training location map"
               src={mapUrl}
               className="h-[320px] w-full border-0 md:h-full md:min-h-[360px]"
               loading="lazy"

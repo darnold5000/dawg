@@ -21,12 +21,12 @@ export async function generateMetadata({
   if (!session)
     return createMetadata({
       title: "Session",
-      description: "Training session details at DAWGZ Youth Training.",
+      description: "Training session details at DAWG Youth Training.",
       path: `/schedule/${sessionId}`,
     });
   return createMetadata({
     title: session.title,
-    description: session.description ?? `Book ${session.title} at DAWGZ Youth Training.`,
+    description: session.description ?? `Book ${session.title} at DAWG Youth Training.`,
     path: `/schedule/${sessionId}`,
   });
 }
@@ -72,7 +72,7 @@ export default async function SessionDetailPage({
         </div>
         <div>
           <dt className="text-sm text-muted-foreground">Trainer</dt>
-          <dd className="font-medium">{session.trainer?.name ?? "DAWGZ staff"}</dd>
+          <dd className="font-medium">{session.trainer?.name ?? "DAWG staff"}</dd>
         </div>
         <div>
           <dt className="text-sm text-muted-foreground">Price</dt>

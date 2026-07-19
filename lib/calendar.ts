@@ -49,14 +49,14 @@ export function buildIcsCalendar(event: CalendarEventInput): string {
   const dtStamp = `${stamp.getUTCFullYear()}${pad(stamp.getUTCMonth() + 1)}${pad(stamp.getUTCDate())}T${pad(stamp.getUTCHours())}${pad(stamp.getUTCMinutes())}${pad(stamp.getUTCSeconds())}Z`;
   const uid =
     event.uid ??
-    `${dtStart}-${event.title.replace(/\s+/g, "-").toLowerCase()}@dawgz`;
+    `${dtStart}-${event.title.replace(/\s+/g, "-").toLowerCase()}@dawg`;
   const location = event.location ?? SITE.address.full;
   const description = event.details ?? SITE.name;
 
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//DAWGZ Youth Training//Booking//EN",
+    "PRODID:-//DAWG Youth Training//Booking//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

@@ -5,7 +5,7 @@ import { createMetadata } from "@/lib/seo";
 export const metadata = createMetadata({
   title: "Training Schedule",
   description:
-    "Browse and book youth athletic training sessions at DAWGZ in Plainfield, Indiana.",
+    "Browse and book youth athletic training sessions at DAWG in Mooresville, Indiana.",
   path: "/schedule",
 });
 

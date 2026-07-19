@@ -27,8 +27,8 @@ export function bookingPolicyDoc(): PolicyDoc {
     paragraphs: [
       "Reservations hold your athlete’s spot for the selected session. Payment is due according to the payment option shown for that session (online and/or at the facility).",
       "A parent or legal guardian must complete bookings for minors and acknowledge facility policies during checkout.",
-      `Please cancel or reschedule at least 24 hours in advance when possible by contacting DAWGZ at ${SITE.phone} or ${SITE.email}.`,
-      "Final booking-policy wording should be reviewed and approved by DAWGZ before launch.",
+      `Please cancel or reschedule at least 24 hours in advance when possible by contacting DAWG at ${SITE.phone} or ${SITE.email}.`,
+      "Final booking-policy wording should be reviewed and approved by DAWG before launch.",
     ],
   };
 }
@@ -40,7 +40,7 @@ export function cancellationPolicyDoc(sessionText?: string | null): PolicyDoc {
     paragraphs: [
       sessionText?.trim() ||
         "Please cancel at least 24 hours in advance when possible so another athlete can take the spot.",
-      `Contact DAWGZ at ${SITE.phone} or ${SITE.email} to cancel or reschedule.`,
+      `Contact DAWG at ${SITE.phone} or ${SITE.email} to cancel or reschedule.`,
       "Owner-approved cancellation terms should replace this placeholder before launch.",
     ],
   };
@@ -53,7 +53,7 @@ export function privacyPolicyDoc(): PolicyDoc {
     paragraphs: [
       `${SITE.name} collects parent and athlete information solely to manage training reservations, communicate about sessions, and operate the business. We do not sell personal information.`,
       "Booking forms may collect names, email addresses, phone numbers, athlete dates of birth, sports information, and optional medical notes needed for safe training.",
-      `Contact us at ${SITE.email} or ${SITE.phone} with privacy questions. This page is a starting draft and should be reviewed by DAWGZ before launch.`,
+      `Contact us at ${SITE.email} or ${SITE.phone} with privacy questions. This page is a starting draft and should be reviewed by DAWG before launch.`,
     ],
   };
 }
@@ -63,8 +63,8 @@ export function waiverDoc(): PolicyDoc {
     id: "waiver",
     title: "Liability waiver",
     paragraphs: [
-      "Liability waiver language will be provided and approved by DAWGZ (and counsel as needed) before online checkboxes are treated as a complete legal waiver.",
-      "By continuing, you acknowledge that athletic training involves inherent risks and that final waiver terms will apply once published by DAWGZ.",
+      "Liability waiver language will be provided and approved by DAWG (and counsel as needed) before online checkboxes are treated as a complete legal waiver.",
+      "By continuing, you acknowledge that athletic training involves inherent risks and that final waiver terms will apply once published by DAWG.",
       "This is a preliminary acknowledgment only — not final attorney-approved waiver text.",
     ],
   };
@@ -75,8 +75,8 @@ export function mediaConsentDoc(): PolicyDoc {
     id: "media",
     title: "Photo / media consent",
     paragraphs: [
-      "Optional: DAWGZ may take photos or short video during training for coaching feedback, facility displays, or social media.",
-      "You can decline media consent and still book a session. Final media-release wording should be approved by DAWGZ before launch.",
+      "Optional: DAWG may take photos or short video during training for coaching feedback, facility displays, or social media.",
+      "You can decline media consent and still book a session. Final media-release wording should be approved by DAWG before launch.",
     ],
   };
 }

@@ -1,27 +1,13 @@
-import dynamic from "next/dynamic";
 import { HomeHero } from "@/components/public/home/hero";
 import { HomeIntro } from "@/components/public/home/intro";
 import { HomePrograms } from "@/components/public/home/programs";
 import { HomeUpcomingSessions } from "@/components/public/home/upcoming-sessions";
 import { HomeWhyDawg } from "@/components/public/home/why-dawg";
 import { HomeTrainers } from "@/components/public/home/trainers";
+import { HomeGallery } from "@/components/public/home/gallery";
 import { HomeReviews } from "@/components/public/home/reviews";
 import { HomeLocation } from "@/components/public/home/location";
 import { HomeCta } from "@/components/public/home/cta";
-
-const HomeGallery = dynamic(
-  () =>
-    import("@/components/public/home/gallery").then((m) => m.HomeGallery),
-  {
-    loading: () => (
-      <section className="bg-surface py-20 md:py-28">
-        <div className="mx-auto max-w-7xl px-4 text-muted-foreground sm:px-6">
-          Loading gallery…
-        </div>
-      </section>
-    ),
-  },
-);
 import {
   getBusinessSettings,
   getPrograms,
@@ -32,9 +18,9 @@ import {
 import { createMetadata } from "@/lib/seo";
 
 export const metadata = createMetadata({
-  title: "Youth Athletic Training in Plainfield, Indiana",
+  title: "Youth Athletic Training in Mooresville, Indiana",
   description:
-    "DAWGZ Youth Training helps young athletes build strength, speed, agility, confidence, and discipline. Book group classes and private training online.",
+    "DAWG Youth Training helps young athletes build strength, speed, agility, confidence, and discipline. Book group classes and private training online.",
   path: "/",
 });
 

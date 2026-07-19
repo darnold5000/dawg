@@ -27,7 +27,7 @@ export async function generateMetadata({
   const session = await getSessionById(sessionId);
   return createMetadata({
     title: session ? `Book ${session.title}` : "Book Session",
-    description: "Reserve a DAWGZ Youth Training session online.",
+    description: "Reserve a DAWG Youth Training session online.",
     path: `/book/${sessionId}`,
   });
 }

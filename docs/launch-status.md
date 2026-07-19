@@ -1,6 +1,6 @@
 # DAWG Launch status
 
-Signal Works **$49/month Launch** package for DAWGZ Youth Training.
+Signal Works **$49/month Launch** package for DAWG Youth Training.
 
 ## Completed Launch features
 
@@ -54,7 +54,7 @@ These are content/ops items, not missing product features:
 
 | Item | Notes |
 | --- | --- |
-| Approved JPG/PNG photos | Replace gallery/program/trainer SVG placeholders with real DAWGZ photos |
+| Approved JPG/PNG photos | Replace gallery/program/trainer SVG placeholders with real DAWG photos |
 | Final logo file | Prefer raster logo in `public/images/dawg/` |
 | Real business phone / email / address | Confirm in admin settings + env notification email |
 | Published schedule | Create live sessions (or approve seeded ones) |

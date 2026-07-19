@@ -1,6 +1,6 @@
-# DAWGZ Youth Training
+# DAWG Youth Training
 
-Launch package site for DAWGZ Youth Training (Plainfield, Indiana): public marketing site, group/private scheduling, guest Stripe Checkout, pay-at-facility bookings, and a staff admin dashboard.
+Launch package site for DAWG Youth Training (Mooresville, Indiana): public marketing site, group/private scheduling, guest Stripe Checkout, pay-at-facility bookings, and a staff admin dashboard.
 
 ## Stack
 

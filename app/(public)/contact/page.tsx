@@ -6,7 +6,7 @@ import { SITE } from "@/lib/constants";
 
 export const metadata = createMetadata({
   title: "Contact",
-  description: `Contact ${SITE.name} in Plainfield, Indiana for youth athletic training.`,
+  description: `Contact ${SITE.name} in Mooresville, Indiana for youth athletic training.`,
   path: "/contact",
 });
 
@@ -17,7 +17,7 @@ export default async function ContactPage() {
     <div className="pt-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <h1 className="font-heading text-4xl tracking-wide md:text-5xl">
-          Contact DAWGZ Youth Training
+          Contact DAWG
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           Send a message, call, or book a session online from the schedule.
@@ -59,7 +59,7 @@ export default async function ContactPage() {
                     rel="noopener noreferrer"
                     className="font-medium underline underline-offset-2"
                   >
-                    DAWGZ Youth Training
+                    DAWG Youth Training
                   </a>
                 </dd>
               </div>

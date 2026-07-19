@@ -94,7 +94,7 @@ export async function sendBookingConfirmation(
       confirmationNumber: payload.booking.confirmation_number,
       coachName: coach,
     }),
-    uid: `${payload.booking.id}@dawgz`,
+    uid: `${payload.booking.id}@dawg`,
   });
 
   const hi = escapeHtml(firstName(payload.parentName));
@@ -106,7 +106,7 @@ export async function sendBookingConfirmation(
     subject: "Your DAWG Training Session is Confirmed",
     attachments: [
       {
-        filename: "dawgz-session.ics",
+        filename: "dawg-session.ics",
         content: Buffer.from(ics, "utf8"),
         contentType: "text/calendar; charset=utf-8; method=PUBLISH",
       },
@@ -238,7 +238,7 @@ export async function sendWaitlistConfirmation(payload: {
     from: fromAddress(),
     to: payload.email,
     replyTo: SITE.email,
-    subject: "You're on the DAWGZ waitlist",
+    subject: "You're on the DAWG waitlist",
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto;">
         <h1 style="font-size: 22px;">You're on the list</h1>
@@ -264,7 +264,7 @@ export async function sendContactNotification(payload: {
     from: fromAddress(),
     to: staffEmail,
     replyTo: payload.email,
-    subject: `DAWGZ website contact — ${payload.parentName}`,
+    subject: `DAWG website contact — ${payload.parentName}`,
     html: `
       <div style="font-family: sans-serif;">
         <h2>New contact form message</h2>
@@ -289,7 +289,7 @@ export async function sendContactAcknowledgement(payload: {
     from: fromAddress(),
     to: payload.email,
     replyTo: SITE.email,
-    subject: "We received your message — DAWGZ Youth Training",
+    subject: "We received your message — DAWG Youth Training",
     html: `
       <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
         <h1>Thanks for reaching out</h1>

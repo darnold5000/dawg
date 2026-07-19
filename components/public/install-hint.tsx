@@ -54,14 +54,14 @@ export function InstallHint() {
         <p className="min-w-0 flex-1 text-foreground/90">
           {ios ? (
             <>
-              Save DAWGZ to your phone: tap{" "}
+              Save DAWG to your phone: tap{" "}
               <Share className="mx-0.5 inline size-3.5 text-gold" aria-hidden />{" "}
               <span className="font-medium">Share</span>, then{" "}
               <span className="font-medium">Add to Home Screen</span>.
             </>
           ) : (
             <>
-              Save DAWGZ to your phone: open the browser menu and choose{" "}
+              Save DAWG to your phone: open the browser menu and choose{" "}
               <span className="font-medium">Install app</span> or{" "}
               <span className="font-medium">Add to Home screen</span>.
             </>

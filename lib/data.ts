@@ -1,5 +1,4 @@
 import { format } from "date-fns";
-import { SITE } from "@/lib/constants";
 import {
   createClient,
   createServiceClient,
@@ -132,22 +131,8 @@ export async function getPublishedReviews(): Promise<Review[]> {
 }
 
 export async function getBusinessSettings(): Promise<BusinessSettings> {
-  const demoContact = {
-    business_name: SITE.name,
-    phone: SITE.phone,
-    email: SITE.email,
-    address_line_1: SITE.address.line1,
-    address_line_2: null as string | null,
-    city: SITE.address.city,
-    state: SITE.address.state,
-    postal_code: SITE.address.postalCode,
-    map_embed_url: SITE.mapEmbedUrl,
-    facebook_url: SITE.facebookUrl,
-    business_hours: SITE.hoursPlaceholder,
-  };
-
   if (!isSupabaseConfigured()) {
-    return { ...FALLBACK_SETTINGS, ...demoContact };
+    return FALLBACK_SETTINGS;
   }
   try {
     const supabase = await createClient();
@@ -156,11 +141,10 @@ export async function getBusinessSettings(): Promise<BusinessSettings> {
       .select("*")
       .limit(1)
       .maybeSingle();
-    if (error || !data) return { ...FALLBACK_SETTINGS, ...demoContact };
-    // Portfolio rebrand: always show anonymized contact/location from SITE.
-    return { ...(data as BusinessSettings), ...demoContact };
+    if (error || !data) return FALLBACK_SETTINGS;
+    return data as BusinessSettings;
   } catch {
-    return { ...FALLBACK_SETTINGS, ...demoContact };
+    return FALLBACK_SETTINGS;
   }
 }
 

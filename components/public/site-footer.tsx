@@ -11,16 +11,16 @@ export function SiteFooter() {
             <Image
               src="/images/dawg/logo.jpg"
               alt=""
-              width={56}
+              width={40}
               height={40}
-              className="h-10 w-auto rounded-md object-contain ring-2 ring-brand/50"
+              className="h-10 w-10 rounded-md object-cover ring-2 ring-brand/50"
             />
             <span className="font-heading text-xl tracking-wide text-gold">
               {SITE.shortName}
             </span>
           </div>
           <p className="max-w-sm text-sm leading-relaxed text-white/70">
-            Youth athletic training in Plainfield, Indiana — building strength,
+            Youth athletic training in Mooresville, Indiana — building strength,
             speed, agility, confidence, and discipline.
           </p>
         </div>

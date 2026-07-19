@@ -20,7 +20,7 @@ import { DAWG_TABLES } from "@/lib/supabase/tables";
 
 export const metadata = createMetadata({
   title: "Payment successful",
-  description: "Your DAWGZ booking payment confirmation.",
+  description: "Your DAWG booking payment confirmation.",
   path: "/booking/success",
 });
 
@@ -73,7 +73,7 @@ export default async function BookingSuccessPage({
       <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
         <h1 className="font-heading text-3xl tracking-wide">Booking not found</h1>
         <p className="mt-3 text-muted-foreground">
-          We could not load this confirmation. Check your email or contact DAWGZ.
+          We could not load this confirmation. Check your email or contact DAWG.
         </p>
         <Button
           asChild

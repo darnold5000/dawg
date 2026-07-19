@@ -57,7 +57,7 @@ export function AdminShell({
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Staff Dashboard
             </p>
-            <h1 className="font-heading text-lg tracking-wide">DAWGZ Admin</h1>
+            <h1 className="font-heading text-lg tracking-wide">DAWG Admin</h1>
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden text-sm text-muted-foreground sm:inline">

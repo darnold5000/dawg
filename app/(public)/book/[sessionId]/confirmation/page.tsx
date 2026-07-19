@@ -12,7 +12,7 @@ import { createMetadata } from "@/lib/seo";
 
 export const metadata = createMetadata({
   title: "Booking Confirmation",
-  description: "Your DAWGZ Youth Training reservation confirmation.",
+  description: "Your DAWG Youth Training reservation confirmation.",
   path: "/book/confirmation",
 });
 
