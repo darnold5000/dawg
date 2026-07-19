@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   ClipboardList,
+  ContactRound,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -23,6 +24,7 @@ const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/sessions", label: "Sessions", icon: CalendarDays },
   { href: "/admin/bookings", label: "Bookings", icon: ClipboardList },
+  { href: "/admin/clients", label: "Clients", icon: ContactRound },
   { href: "/admin/availability", label: "Availability", icon: Clock },
   { href: "/admin/programs", label: "Programs", icon: Dumbbell, adminOnly: true },
   { href: "/admin/trainers", label: "Trainers", icon: Users, adminOnly: true },

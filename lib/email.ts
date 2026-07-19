@@ -340,3 +340,34 @@ export async function sendContactAcknowledgement(payload: {
     "contact-ack",
   );
 }
+
+/** Staff-initiated message to a parent from the Clients page. */
+export async function sendParentStaffMessage(payload: {
+  parentName: string;
+  email: string;
+  subject: string;
+  message: string;
+}): Promise<void> {
+  const hi = escapeHtml(firstName(payload.parentName));
+  const bodyHtml = escapeHtml(payload.message).replace(/\n/g, "<br/>");
+
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: payload.email,
+      replyTo: SITE.email,
+      subject: payload.subject,
+      html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
+        <p style="margin: 0 0 16px;">Hi ${hi},</p>
+        <div style="margin: 0 0 24px; line-height: 1.5;">${bodyHtml}</div>
+        <p style="margin: 0; color: #666; font-size: 13px;">
+          ${escapeHtml(SITE.name)} · ${SITE.phone}<br/>
+          Reply to this email to reach us directly.
+        </p>
+      </div>
+    `,
+    },
+    "staff-to-parent",
+  );
+}

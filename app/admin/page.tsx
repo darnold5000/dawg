@@ -3,6 +3,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { getDashboardMetrics } from "@/lib/admin-data";
+import { formatMoney } from "@/lib/billing/format";
 import { formatSessionTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -48,8 +49,9 @@ export default async function AdminDashboardPage() {
     },
     {
       label: "Revenue this month",
-      value: "—",
-      hint: "Stripe coming later",
+      value: formatMoney(metrics.revenueThisMonth),
+      href: "/admin/bookings",
+      hint: "Paid online + marked paid at facility",
     },
   ];
 

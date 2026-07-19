@@ -75,6 +75,17 @@ export async function getDashboardMetrics() {
   const sessions = await getAdminSessions();
   const today = format(new Date(), "yyyy-MM-dd");
   const weekEnd = format(addDays(new Date(), 7), "yyyy-MM-dd");
+  const now = new Date();
+  const monthStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1,
+  ).toISOString();
+  const nextMonthStart = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    1,
+  ).toISOString();
 
   const todaysSessions = sessions.filter(
     (s) => s.session_date === today && s.status !== "cancelled",
@@ -100,13 +111,43 @@ export async function getDashboardMetrics() {
       s.status === "published",
   ).length;
 
+  let revenueThisMonth = 0;
+  let waitlisted = 0;
+
+  if (isSupabaseConfigured() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const supabase = createServiceClient();
+      const [{ data: paidRows }, { count: waitlistCount }] = await Promise.all([
+        supabase
+          .from(DAWG_TABLES.bookings)
+          .select("amount_paid_cents, amount_refunded_cents")
+          .in("payment_status", ["paid", "partially_refunded"])
+          .gte("paid_at", monthStart)
+          .lt("paid_at", nextMonthStart),
+        supabase
+          .from(DAWG_TABLES.bookings)
+          .select("id", { count: "exact", head: true })
+          .eq("status", "waitlisted"),
+      ]);
+
+      revenueThisMonth = (paidRows ?? []).reduce((sum, row) => {
+        const paid = Number(row.amount_paid_cents) || 0;
+        const refunded = Number(row.amount_refunded_cents) || 0;
+        return sum + Math.max(0, paid - refunded);
+      }, 0);
+      waitlisted = waitlistCount ?? 0;
+    } catch {
+      // keep zeros
+    }
+  }
+
   return {
     todaysSessions,
     weekBookings,
     availableSpots,
     privateUpcoming,
-    revenueThisMonth: 0,
-    waitlisted: 0,
+    revenueThisMonth,
+    waitlisted,
   };
 }
 
