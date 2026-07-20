@@ -9,6 +9,7 @@ import {
   markStripeEventProcessed,
 } from "./adapter";
 import { applyPaidCheckoutSession } from "./reconcile-checkout";
+import { applyPaidPackageCheckoutSession } from "./reconcile-package";
 import {
   createServiceClient,
   isSupabaseConfigured,
@@ -40,6 +41,13 @@ async function loadBooking(bookingId: string): Promise<Booking | null> {
 async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session,
 ): Promise<string | null> {
+  const isPackage =
+    session.metadata?.kind === "package" ||
+    Boolean(session.metadata?.purchaseId);
+  if (isPackage && !session.metadata?.bookingId) {
+    await applyPaidPackageCheckoutSession(session);
+    return null;
+  }
   const applied = await applyPaidCheckoutSession(session);
   return applied.bookingId;
 }
@@ -47,6 +55,28 @@ async function handleCheckoutCompleted(
 async function handleCheckoutExpired(
   session: Stripe.Checkout.Session,
 ): Promise<string | null> {
+  if (
+    (session.metadata?.kind === "package" || session.metadata?.purchaseId) &&
+    !session.metadata?.bookingId
+  ) {
+    const purchaseId =
+      session.metadata?.purchaseId ?? session.client_reference_id;
+    if (
+      typeof purchaseId === "string" &&
+      purchaseId.length > 0 &&
+      isSupabaseConfigured() &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
+      const supabase = createServiceClient();
+      await supabase
+        .from(DAWG_TABLES.packagePurchases)
+        .update({ status: "expired", updated_at: new Date().toISOString() })
+        .eq("id", purchaseId)
+        .eq("status", "pending");
+    }
+    return null;
+  }
+
   const bookingId =
     bookingIdFromMetadata(session.metadata) ??
     (typeof session.client_reference_id === "string"

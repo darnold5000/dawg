@@ -18,4 +18,8 @@ export const DAWG_TABLES = {
   stripeEvents: "dawg_stripe_events",
   paymentTransactions: "dawg_payment_transactions",
   deviceFamilies: "dawg_device_families",
+  packages: "dawg_packages",
+  packagePurchases: "dawg_package_purchases",
+  packageRedemptions: "dawg_package_redemptions",
+  intakeSubmissions: "dawg_intake_submissions",
 } as const;

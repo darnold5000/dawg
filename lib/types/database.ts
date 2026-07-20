@@ -29,7 +29,13 @@ export type PaymentStatus =
   | "partially_refunded"
   | "refunded";
 
-export type PaymentMethod = "stripe" | "pay_at_facility";
+export type PaymentMethod = "stripe" | "pay_at_facility" | "package_credit";
+
+export type PackagePurchaseStatus =
+  | "pending"
+  | "paid"
+  | "refunded"
+  | "expired";
 
 export type PaymentRequirement =
   | "pay_online"
@@ -287,4 +293,63 @@ export interface BlockedTime {
   reason: string | null;
   created_by: string | null;
   created_at: string;
+}
+
+export interface TrainingPackage {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  session_count: number;
+  price_cents: number;
+  currency: string;
+  active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PackagePurchase {
+  id: string;
+  parent_id: string;
+  package_id: string;
+  athlete_id: string | null;
+  status: PackagePurchaseStatus;
+  sessions_total: number;
+  sessions_remaining: number;
+  amount_paid_cents: number;
+  currency: string;
+  stripe_checkout_session_id: string | null;
+  stripe_payment_intent_id: string | null;
+  stripe_customer_id: string | null;
+  paid_at: string | null;
+  refunded_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PackagePurchaseWithPackage extends PackagePurchase {
+  package?: TrainingPackage | null;
+}
+
+export interface IntakeSubmission {
+  id: string;
+  parent_id: string;
+  athlete_id: string;
+  school_grade: string | null;
+  height_weight: string | null;
+  sport_position: string | null;
+  health_issues: string | null;
+  emergency_contact_1_name: string | null;
+  emergency_contact_1_phone: string | null;
+  emergency_contact_2_name: string | null;
+  emergency_contact_2_phone: string | null;
+  package_interest: "single" | "pack-10" | "pack-20" | null;
+  shirt_size: string | null;
+  goal: string | null;
+  media_consent: boolean;
+  agreements_version: string;
+  waiver_accepted_at: string;
+  created_at: string;
+  updated_at: string;
 }

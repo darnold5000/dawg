@@ -187,20 +187,22 @@ export function BookingConfirmedView({
 }
 
 export function paymentDisplayLabel(
-  method: "stripe" | "pay_at_facility" | string | null | undefined,
+  method: "stripe" | "pay_at_facility" | "package_credit" | string | null | undefined,
   opts?: { paid?: boolean },
 ): string {
   if (method === "stripe") {
     return opts?.paid === false ? "Pay online" : "Paid online";
   }
+  if (method === "package_credit") return "Package credit";
   return "Pay at facility";
 }
 
 export function amountDisplay(
   cents: number,
-  method: "stripe" | "pay_at_facility" | string | null | undefined,
+  method: "stripe" | "pay_at_facility" | "package_credit" | string | null | undefined,
 ): string {
   const price = formatPrice(cents);
   if (method === "stripe") return price;
+  if (method === "package_credit") return `${price} (package credit)`;
   return `${price} due at facility`;
 }

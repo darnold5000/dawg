@@ -8,7 +8,9 @@ import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-ba
 import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { getClientFamily } from "@/lib/admin-clients";
-import { formatDate } from "@/lib/billing/format";
+import { formatDate, formatMoney } from "@/lib/billing/format";
+import { listIntakesForParent } from "@/lib/intake";
+import { listPurchasesForParent } from "@/lib/packages";
 import {
   formatSessionDateShort,
   formatSessionTime,
@@ -25,6 +27,11 @@ export default async function AdminClientDetailPage({
   if (!family) notFound();
 
   const { parent, athletes, bookings } = family;
+  const [intakes, purchases] = await Promise.all([
+    listIntakesForParent(parent.id),
+    listPurchasesForParent(parent.id),
+  ]);
+  const intakeByAthlete = new Map(intakes.map((i) => [i.athlete_id, i]));
   const mailto = `mailto:${encodeURIComponent(parent.email)}?subject=${encodeURIComponent(
     "Message from DAWG Youth Training",
   )}`;
@@ -148,8 +155,131 @@ export default async function AdminClientDetailPage({
                       </dd>
                     </div>
                   </dl>
+                  {(() => {
+                    const intake = intakeByAthlete.get(athlete.id);
+                    if (!intake) {
+                      return (
+                        <p className="mt-3 text-sm text-amber-800">
+                          Intake not completed for this athlete.
+                        </p>
+                      );
+                    }
+                    return (
+                      <div className="mt-4 border-t border-border pt-4 text-sm">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Intake
+                        </p>
+                        <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                          <div>
+                            <dt className="text-muted-foreground">School / grade</dt>
+                            <dd>{intake.school_grade || "—"}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted-foreground">Height / weight</dt>
+                            <dd>{intake.height_weight || "—"}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted-foreground">Position</dt>
+                            <dd>{intake.sport_position || "—"}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted-foreground">Shirt size</dt>
+                            <dd>{intake.shirt_size || "—"}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted-foreground">Package interest</dt>
+                            <dd>{intake.package_interest || "—"}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted-foreground">Waiver accepted</dt>
+                            <dd>
+                              {intake.waiver_accepted_at
+                                ? formatDate(intake.waiver_accepted_at)
+                                : "—"}{" "}
+                              <span className="text-muted-foreground">
+                                (v {intake.agreements_version})
+                              </span>
+                            </dd>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <dt className="text-muted-foreground">
+                              Emergency contact 1
+                            </dt>
+                            <dd>
+                              {intake.emergency_contact_1_name || "—"} ·{" "}
+                              {intake.emergency_contact_1_phone || "—"}
+                            </dd>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <dt className="text-muted-foreground">
+                              Emergency contact 2
+                            </dt>
+                            <dd>
+                              {intake.emergency_contact_2_name || "—"} ·{" "}
+                              {intake.emergency_contact_2_phone || "—"}
+                            </dd>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <dt className="text-muted-foreground">Health / allergies</dt>
+                            <dd className="whitespace-pre-wrap">
+                              {intake.health_issues?.trim() || "—"}
+                            </dd>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <dt className="text-muted-foreground">Goal</dt>
+                            <dd className="whitespace-pre-wrap">
+                              {intake.goal?.trim() || "—"}
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
+            </div>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <h3 className="font-heading text-xl tracking-wide">Packages</h3>
+          {purchases.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
+              No package purchases yet.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2.5">Package</th>
+                    <th className="px-3 py-2.5">Status</th>
+                    <th className="px-3 py-2.5">Remaining</th>
+                    <th className="px-3 py-2.5">Paid</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchases.map((p) => (
+                    <tr key={p.id} className="border-t border-border">
+                      <td className="px-3 py-2.5 font-medium">
+                        {p.package?.name ?? "Package"}
+                      </td>
+                      <td className="px-3 py-2.5 capitalize">{p.status}</td>
+                      <td className="px-3 py-2.5">
+                        {p.sessions_remaining} / {p.sessions_total}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {formatMoney(p.amount_paid_cents)}
+                        {p.paid_at ? (
+                          <span className="block text-xs text-muted-foreground">
+                            {formatDate(p.paid_at)}
+                          </span>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </section>

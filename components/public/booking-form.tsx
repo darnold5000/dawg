@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -71,13 +72,24 @@ export function BookingForm({
   const [editingDetails, setEditingDetails] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [creditsRemaining, setCreditsRemaining] = useState(0);
+  const [intakeRequired, setIntakeRequired] = useState(true);
+  const [contextLoading, setContextLoading] = useState(false);
 
-  const paymentOptions = allowedPaymentMethods(session.payment_requirement);
+  const paymentOptions = useMemo(
+    () =>
+      allowedPaymentMethods(session.payment_requirement, {
+        hasPackageCredit: creditsRemaining > 0,
+      }),
+    [session.payment_requirement, creditsRemaining],
+  );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
     () => defaultPaymentMethod(session.payment_requirement) ?? "",
   );
 
   const agreementsNeeded = !savedFamily?.agreementsCurrent;
+
+  const intakeReturn = `/intake?return=${encodeURIComponent(`/book/${session.id}`)}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -204,6 +216,63 @@ export function BookingForm({
     editingDetails,
   ]);
 
+  useEffect(() => {
+    if (!hydrated || waitlistMode) return;
+    let cancelled = false;
+
+    async function loadContext() {
+      setContextLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (form.parentEmail) params.set("email", form.parentEmail);
+        if (
+          selectedAthleteId &&
+          selectedAthleteId !== "__new__" &&
+          /^[0-9a-f-]{36}$/i.test(selectedAthleteId)
+        ) {
+          params.set("athleteId", selectedAthleteId);
+        }
+        const res = await fetch(
+          `/api/family/booking-context?${params.toString()}`,
+          { credentials: "same-origin" },
+        );
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as {
+          intakeRequired?: boolean;
+          creditsRemaining?: number;
+        };
+        if (cancelled) return;
+        setIntakeRequired(Boolean(data.intakeRequired));
+        const credits = Number(data.creditsRemaining) || 0;
+        setCreditsRemaining(credits);
+        setPaymentMethod((prev) => {
+          const next = allowedPaymentMethods(session.payment_requirement, {
+            hasPackageCredit: credits > 0,
+          });
+          if (prev && next.includes(prev)) return prev;
+          return (
+            defaultPaymentMethod(session.payment_requirement, {
+              hasPackageCredit: credits > 0,
+            }) ?? ""
+          );
+        });
+      } finally {
+        if (!cancelled) setContextLoading(false);
+      }
+    }
+
+    void loadContext();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    hydrated,
+    waitlistMode,
+    form.parentEmail,
+    selectedAthleteId,
+    session.payment_requirement,
+  ]);
+
   function applyFamily(family: SavedFamily, athlete: SavedAthlete) {
     setSelectedAthleteId(athlete.id);
     setEditingDetails(false);
@@ -311,6 +380,12 @@ export function BookingForm({
         return;
       }
 
+      if (intakeRequired) {
+        toast.error("Complete client intake for this athlete before booking");
+        router.push(intakeReturn);
+        return;
+      }
+
       if (agreementsNeeded && !form.acceptRequiredAgreements) {
         toast.error("Please accept the required agreements");
         return;
@@ -370,6 +445,9 @@ export function BookingForm({
         toast.error(data.error ?? "Booking failed");
         if (data.code === "SESSION_FULL") {
           router.push(`/book/${session.id}?waitlist=1`);
+        }
+        if (data.code === "INTAKE_REQUIRED") {
+          router.push(intakeReturn);
         }
         return;
       }
@@ -483,6 +561,27 @@ export function BookingForm({
           {formatPrice(session.price_cents)}
         </p>
       </div>
+
+      {intakeRequired && !contextLoading ? (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-medium">Client intake required</p>
+          <p className="mt-1">
+            Each athlete must complete intake (health, emergency contacts, and
+            waiver) before the first booking.
+          </p>
+          <Button asChild className="mt-3 bg-brand text-brand-foreground hover:bg-brand/90">
+            <Link href={intakeReturn}>Complete intake</Link>
+          </Button>
+        </div>
+      ) : null}
+
+      {creditsRemaining > 0 ? (
+        <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+          You have <span className="font-medium text-foreground">{creditsRemaining}</span>{" "}
+          package session
+          {creditsRemaining === 1 ? "" : "s"} remaining.
+        </p>
+      ) : null}
 
       {savedFamily ? (
         <div className="rounded-xl border border-brand/40 bg-brand/10 p-4">
@@ -765,7 +864,9 @@ export function BookingForm({
                 <span className="mt-0.5 block text-muted-foreground">
                   {method === "stripe"
                     ? "Secure card payment via Stripe. Spot is held for 15 minutes while you pay."
-                    : "Reserve your spot now and pay when you arrive."}
+                    : method === "package_credit"
+                      ? `Redeem 1 of your ${creditsRemaining} remaining package session${creditsRemaining === 1 ? "" : "s"}.`
+                      : "Reserve your spot now and pay when you arrive."}
                 </span>
               </span>
             </label>
@@ -862,16 +963,20 @@ export function BookingForm({
         </div>
         <Button
           type="submit"
-          disabled={submitting || !paymentMethod}
+          disabled={submitting || !paymentMethod || intakeRequired}
           className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:px-8"
         >
-          {submitting
-            ? paymentMethod === "stripe"
-              ? "Starting checkout…"
-              : "Reserving…"
-            : paymentMethod === "stripe"
-              ? "Continue to payment"
-              : "Confirm reservation"}
+          {intakeRequired
+            ? "Complete intake to book"
+            : submitting
+              ? paymentMethod === "stripe"
+                ? "Starting checkout…"
+                : "Reserving…"
+              : paymentMethod === "stripe"
+                ? "Continue to payment"
+                : paymentMethod === "package_credit"
+                  ? "Confirm with package credit"
+                  : "Confirm reservation"}
         </Button>
       </div>
     </form>

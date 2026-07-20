@@ -44,6 +44,7 @@ function paymentLabel(method: PaymentMethod, opts?: { paid?: boolean }) {
   if (method === "stripe") {
     return opts?.paid === false ? "Pay Online" : "Paid Online";
   }
+  if (method === "package_credit") return "Package credit";
   return "Pay at Facility";
 }
 
@@ -176,11 +177,13 @@ export async function sendStaffBookingNotification(
   const method =
     payload.paymentMethod === "stripe"
       ? "Paid Online"
-      : payload.paymentMethod === "pay_at_facility"
-        ? "Pay at Facility"
-        : payload.paymentStatus === "paid"
-          ? "Paid Online"
-          : "Pay at Facility";
+      : payload.paymentMethod === "package_credit"
+        ? "Package credit"
+        : payload.paymentMethod === "pay_at_facility"
+          ? "Pay at Facility"
+          : payload.paymentStatus === "paid"
+            ? "Paid Online"
+            : "Pay at Facility";
 
   await sendEmail(
     {
@@ -338,6 +341,64 @@ export async function sendContactAcknowledgement(payload: {
     `,
     },
     "contact-ack",
+  );
+}
+
+export async function sendPackagePurchaseConfirmation(payload: {
+  parentEmail: string;
+  parentName: string;
+  packageName: string;
+  sessionsTotal: number;
+  amountPaidCents: number;
+}): Promise<void> {
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: payload.parentEmail,
+      replyTo: SITE.email,
+      subject: `Your DAWG package — ${payload.packageName}`,
+      html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
+        <h1 style="font-size: 22px; margin: 0 0 12px;">Package purchased</h1>
+        <p>Hi ${escapeHtml(firstName(payload.parentName))},</p>
+        <p>Your <strong>${escapeHtml(payload.packageName)}</strong> is ready.</p>
+        <p><strong>${payload.sessionsTotal}</strong> session${payload.sessionsTotal === 1 ? "" : "s"} · ${escapeHtml(formatPrice(payload.amountPaidCents))} paid</p>
+        <p>Book from the schedule and choose <strong>Use package credit</strong> at checkout.</p>
+        <p style="color: #666; font-size: 13px;">${escapeHtml(SITE.name)} · ${SITE.phone}</p>
+      </div>
+    `,
+    },
+    "package-purchase",
+  );
+}
+
+export async function sendIntakeStaffNotification(payload: {
+  parentName: string;
+  parentEmail: string;
+  parentPhone: string;
+  athleteName: string;
+  packageInterest?: string | null;
+}): Promise<void> {
+  const staffEmail = process.env.STAFF_NOTIFICATION_EMAIL ?? SITE.email;
+  if (!staffEmail) throw new Error("STAFF_EMAIL_NOT_CONFIGURED");
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: staffEmail,
+      replyTo: payload.parentEmail,
+      subject: `New DAWG intake — ${payload.athleteName}`,
+      html: `
+      <div style="font-family: sans-serif;">
+        <h2>New client intake</h2>
+        <p><strong>Athlete:</strong> ${escapeHtml(payload.athleteName)}</p>
+        <p><strong>Parent:</strong> ${escapeHtml(payload.parentName)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(payload.parentEmail)}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(payload.parentPhone)}</p>
+        <p><strong>Package interest:</strong> ${escapeHtml(payload.packageInterest || "—")}</p>
+      </div>
+    `,
+    },
+    "intake-staff",
   );
 }
 

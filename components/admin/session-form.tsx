@@ -59,7 +59,7 @@ export function SessionForm({
     skill_level: initial?.skill_level ?? "",
     capacity: initial?.capacity?.toString() ?? "10",
     // Form stores dollars; API converts to cents
-    price: initial?.price != null ? String(initial.price) : "25",
+    price: initial?.price != null ? String(initial.price) : "25", // $25 single-session default
     payment_requirement: initial?.payment_requirement ?? "online_or_facility",
     status: initial?.status ?? "published",
     what_to_bring:
