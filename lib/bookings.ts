@@ -20,7 +20,6 @@ import {
   setFamilyDeviceCookie,
 } from "@/lib/family-device";
 import { athleteHasIntake } from "@/lib/intake";
-import { listActiveCreditsForParent } from "@/lib/packages";
 
 const bookingFieldsSchema = z.object({
   sessionId: z.string().min(1),
@@ -45,12 +44,10 @@ const bookingFieldsSchema = z.object({
   medicalNotes: z.string().max(1000).optional(),
   customerNotes: z.string().max(1000).optional(),
   /** Required — never silently default when the session requires online payment. */
-  paymentMethod: z.enum(["stripe", "pay_at_facility", "package_credit"], {
+  paymentMethod: z.enum(["stripe", "pay_at_facility"], {
     error:
-      "Please select a payment method (Pay online, package credit, or Pay at facility).",
+      "Please select a payment method (Pay online or Pay at facility).",
   }),
-  /** When using package_credit, optionally pin a specific purchase. */
-  packagePurchaseId: z.string().uuid().optional(),
   /**
    * Combined required agreements (guardian + booking/cancellation/privacy/waiver).
    * May be omitted when this device already accepted the current policy version.
@@ -385,30 +382,9 @@ export async function createPublicBooking(
     };
   }
 
-  let creditPurchaseId: string | null = null;
-  if (paymentMethod === "package_credit") {
-    const credits = await listActiveCreditsForParent(parentId, athlete.id);
-    const chosen =
-      (input.packagePurchaseId
-        ? credits.find((c) => c.id === input.packagePurchaseId)
-        : null) ?? credits[0];
-    if (!chosen) {
-      return {
-        ok: false,
-        error: "No package credits remaining. Purchase a package or pay another way.",
-        code: "NO_CREDITS",
-      };
-    }
-    creditPurchaseId = chosen.id;
-  }
-
   const confirmation = generateConfirmationNumber();
   const paymentStatus =
-    paymentMethod === "stripe"
-      ? "pending"
-      : paymentMethod === "package_credit"
-        ? "paid"
-        : "unpaid";
+    paymentMethod === "stripe" ? "pending" : "unpaid";
 
   const { data: booking, error: bookingError } = await supabase.rpc(
     "dawg_try_create_booking",
@@ -472,37 +448,6 @@ export async function createPublicBooking(
 
   const created = booking as Booking;
 
-  if (paymentMethod === "package_credit" && creditPurchaseId) {
-    const { error: redeemError } = await supabase.rpc(
-      "dawg_redeem_package_credit",
-      {
-        p_purchase_id: creditPurchaseId,
-        p_booking_id: created.id,
-        p_parent_id: parentId,
-      },
-    );
-    if (redeemError) {
-      console.error("[bookings] redeem credit failed", redeemError);
-      // Booking exists — mark unpaid note for staff rather than leaving orphan credit
-      await supabase
-        .from(DAWG_TABLES.bookings)
-        .update({
-          payment_status: "unpaid",
-          payment_method: "pay_at_facility",
-          amount_paid_cents: 0,
-          paid_at: null,
-          internal_notes: `[credit redeem failed] ${redeemError.message}`,
-        })
-        .eq("id", created.id);
-      return {
-        ok: false,
-        error:
-          "Could not redeem package credit. Please try again or choose another payment method.",
-        code: "CREDIT_REDEEM_FAILED",
-      };
-    }
-  }
-
   await supabase
     .from(DAWG_TABLES.bookings)
     .update({
@@ -534,12 +479,8 @@ export async function createPublicBooking(
     console.error("[bookings] remember-family side effect failed:", rememberError);
   }
 
-  // Facility + package credit: confirm + email immediately.
-  // Stripe: wait for verified payment webhook before emailing.
-  if (
-    paymentMethod === "pay_at_facility" ||
-    paymentMethod === "package_credit"
-  ) {
+  // Facility bookings: confirm + email immediately. Stripe waits for webhook.
+  if (paymentMethod === "pay_at_facility") {
     const emailResults = await Promise.allSettled([
       (async () => {
         let coachName: string | null = null;
@@ -576,8 +517,7 @@ export async function createPublicBooking(
         sessionTitle: session.title,
         sessionDate: session.session_date,
         startTime: session.start_time,
-        paymentStatus:
-          paymentMethod === "package_credit" ? "paid" : created.payment_status,
+        paymentStatus: created.payment_status,
         paymentMethod,
         amountDueCents: Number(session.price_cents),
       }),

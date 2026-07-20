@@ -10,12 +10,12 @@ function bookingPaymentBlurb(
 ): string {
   switch (requirement) {
     case "pay_online":
-      return "Pay securely online with Stripe or use a package credit.";
+      return "Pay securely online with Stripe to hold your spot.";
     case "online_or_facility":
-      return "Use a package credit, pay online, or pay at the facility.";
+      return "Join the roster — pay online or at the facility. Package credits are applied when your athlete attends.";
     case "pay_at_facility":
     default:
-      return `Use a package credit or ${paymentMethodLabel("pay_at_facility").toLowerCase()}.`;
+      return `Join the roster and ${paymentMethodLabel("pay_at_facility").toLowerCase()}.`;
   }
 }
 

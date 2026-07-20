@@ -90,6 +90,15 @@ export const loggedInPackageCheckoutSchema = z.object({
   athleteId: z.string().uuid().optional().nullable(),
 });
 
+/** Guest checkout — parent contact only; credits assigned at attendance. */
+export const publicPackageCheckoutSchema = z.object({
+  packageSlug: z.enum(["single", "pack-10", "pack-20"]),
+  parentFirstName: z.string().trim().min(1).max(80),
+  parentLastName: z.string().trim().min(1).max(80),
+  parentEmail: z.string().trim().email().max(160),
+  parentPhone: z.string().trim().min(7).max(40),
+});
+
 export type PackageCheckoutInput = z.infer<typeof packageCheckoutSchema>;
 
 export type LoggedInPackageCheckoutInput = z.infer<

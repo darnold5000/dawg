@@ -81,8 +81,17 @@ function enrichSessions(
   });
 }
 
+const HIDDEN_PROGRAM_SLUGS = new Set([
+  "private-training",
+  "small-group-training",
+]);
+
+const HIDDEN_TRAINER_NAMES = new Set(["Coach Jordan"]);
+
 export async function getPrograms(): Promise<Program[]> {
-  if (!isSupabaseConfigured()) return FALLBACK_PROGRAMS;
+  if (!isSupabaseConfigured()) {
+    return FALLBACK_PROGRAMS.filter((p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug));
+  }
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -90,15 +99,21 @@ export async function getPrograms(): Promise<Program[]> {
       .select("*")
       .eq("active", true)
       .order("display_order");
-    if (error || !data?.length) return FALLBACK_PROGRAMS;
-    return data as Program[];
+    if (error || !data?.length) {
+      return FALLBACK_PROGRAMS.filter((p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug));
+    }
+    return (data as Program[]).filter(
+      (p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug),
+    );
   } catch {
-    return FALLBACK_PROGRAMS;
+    return FALLBACK_PROGRAMS.filter((p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug));
   }
 }
 
 export async function getTrainers(): Promise<Trainer[]> {
-  if (!isSupabaseConfigured()) return FALLBACK_TRAINERS;
+  if (!isSupabaseConfigured()) {
+    return FALLBACK_TRAINERS.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name));
+  }
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -106,10 +121,14 @@ export async function getTrainers(): Promise<Trainer[]> {
       .select("*")
       .eq("active", true)
       .order("display_order");
-    if (error || !data?.length) return FALLBACK_TRAINERS;
-    return data as Trainer[];
+    if (error || !data?.length) {
+      return FALLBACK_TRAINERS.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name));
+    }
+    return (data as Trainer[]).filter(
+      (t) => !HIDDEN_TRAINER_NAMES.has(t.name),
+    );
   } catch {
-    return FALLBACK_TRAINERS;
+    return FALLBACK_TRAINERS.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name));
   }
 }
 
@@ -204,7 +223,9 @@ export async function getUpcomingSessions(
       types,
       trainers,
       counts,
-    });
+    }).filter(
+      (s) => !s.program || !HIDDEN_PROGRAM_SLUGS.has(s.program.slug),
+    );
   } catch {
     return [];
   }
@@ -221,6 +242,9 @@ export async function getFilteredSessions(
 ): Promise<SessionWithRelations[]> {
   if (!isSupabaseConfigured()) {
     return FALLBACK_SESSIONS.filter((session) => {
+      if (session.program && HIDDEN_PROGRAM_SLUGS.has(session.program.slug)) {
+        return false;
+      }
       if (filters.type && session.session_type?.slug !== filters.type)
         return false;
       if (filters.date && session.session_date !== filters.date) return false;
@@ -283,7 +307,9 @@ export async function getFilteredSessions(
       }
     }
 
-    return sessions;
+    return sessions.filter(
+      (s) => !s.program || !HIDDEN_PROGRAM_SLUGS.has(s.program.slug),
+    );
   } catch {
     return [];
   }

@@ -52,7 +52,7 @@ export function AdminShell({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="admin-app min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-white shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div>

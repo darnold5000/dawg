@@ -1,5 +1,5 @@
 import { ScheduleBrowser } from "@/components/public/schedule-browser";
-import { getFilteredSessions, getSessionTypes } from "@/lib/data";
+import { getFilteredSessions } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
 
 export const metadata = createMetadata({
@@ -9,20 +9,8 @@ export const metadata = createMetadata({
   path: "/schedule",
 });
 
-export default async function SchedulePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ type?: string; age?: string; date?: string }>;
-}) {
-  const params = await searchParams;
-  const [sessions, sessionTypes] = await Promise.all([
-    getFilteredSessions({
-      type: params.type,
-      age: params.age,
-      date: params.date,
-    }),
-    getSessionTypes(),
-  ]);
+export default async function SchedulePage() {
+  const sessions = await getFilteredSessions({});
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 md:py-16">
@@ -34,18 +22,12 @@ export default async function SchedulePage({
           Book Training
         </h1>
         <p className="mt-4 text-muted-foreground">
-          Filter by session type, age, or date. Reserve online — payment at the
-          facility.
+          Reserve a spot on the roster — payment is handled at the facility or
+          with a session package.
         </p>
       </div>
       <div className="mt-8">
-        <ScheduleBrowser
-          sessions={sessions}
-          sessionTypes={sessionTypes}
-          initialType={params.type}
-          initialAge={params.age}
-          initialDate={params.date}
-        />
+        <ScheduleBrowser sessions={sessions} />
       </div>
     </div>
   );
