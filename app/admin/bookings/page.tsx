@@ -2,10 +2,8 @@ import Link from "next/link";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { requireStaff } from "@/lib/auth";
-import {
-  adminBookingPaymentTypeLabel,
-  getPackageRedemptionsForBookings,
-} from "@/lib/admin-booking-display";
+import { adminBookingPaymentTypeLabel } from "@/lib/admin-booking-labels";
+import { getPackageRedemptionsForBookings } from "@/lib/admin-package-redemptions";
 import { getAdminSessions } from "@/lib/admin-data";
 import { billingTableClassNames, formatMoney } from "@/lib/billing/format";
 import {

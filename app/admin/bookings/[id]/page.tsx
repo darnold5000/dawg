@@ -6,10 +6,8 @@ import { BookingBillingPanel } from "@/components/admin/billing/booking-billing-
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { requireStaff } from "@/lib/auth";
 import { listPaymentTransactions } from "@/lib/billing/adapter";
-import {
-  adminBookingPaymentTypeLabel,
-  getPackageRedemptionsForBookings,
-} from "@/lib/admin-booking-display";
+import { adminBookingPaymentTypeLabel } from "@/lib/admin-booking-labels";
+import { getPackageRedemptionsForBookings } from "@/lib/admin-package-redemptions";
 import { attendanceLabel } from "@/lib/attendance";
 import {
   createServiceClient,

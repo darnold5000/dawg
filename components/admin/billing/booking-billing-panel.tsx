@@ -11,7 +11,7 @@ import {
   formatMoney,
 } from "@/lib/billing/format";
 import type { Booking, PaymentTransaction } from "@/lib/types/database";
-import { adminBookingPaymentTypeLabel } from "@/lib/admin-booking-display";
+import { adminBookingPaymentTypeLabel } from "@/lib/admin-booking-labels";
 
 export function BookingBillingPanel({
   booking,

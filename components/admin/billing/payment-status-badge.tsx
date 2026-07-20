@@ -1,6 +1,6 @@
 import { cn } from "@/lib/billing/format";
 import { paymentStatusTone } from "@/lib/billing/types";
-import { adminPaymentStatusLabel } from "@/lib/admin-booking-display";
+import { adminPaymentStatusLabel } from "@/lib/admin-booking-labels";
 import type { PaymentStatus } from "@/lib/types/database";
 
 const toneClass: Record<string, string> = {

@@ -7,11 +7,14 @@ import { ClientEmailForm } from "@/components/admin/client-email-form";
 import { MergeParentForm } from "@/components/admin/merge-parent-form";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { Button } from "@/components/ui/button";
+import { PackageCreditAdjustmentPanel } from "@/components/admin/package-credit-adjustment-panel";
 import { requireStaff } from "@/lib/auth";
+import { isAdminRole } from "@/lib/roles";
 import { getClientFamily } from "@/lib/admin-clients";
+import { listPackageCreditAdjustments } from "@/lib/admin-package-credits";
 import { formatDate, formatMoney } from "@/lib/billing/format";
 import { listIntakesForParent } from "@/lib/intake";
-import { listPurchasesForParent } from "@/lib/packages";
+import { listActivePackages, listPurchasesForParent } from "@/lib/packages";
 import {
   formatSessionDateShort,
   formatSessionTime,
@@ -28,9 +31,13 @@ export default async function AdminClientDetailPage({
   if (!family) notFound();
 
   const { parent, athletes, bookings } = family;
-  const [intakes, purchases] = await Promise.all([
+  const [intakes, purchases, packages, adjustments] = await Promise.all([
     listIntakesForParent(parent.id),
     listPurchasesForParent(parent.id),
+    listActivePackages(),
+    profile.role && isAdminRole(profile.role)
+      ? listPackageCreditAdjustments(parent.id)
+      : Promise.resolve([]),
   ]);
   const intakeByAthlete = new Map(intakes.map((i) => [i.athlete_id, i]));
   const mailto = `mailto:${encodeURIComponent(parent.email)}?subject=${encodeURIComponent(
@@ -284,6 +291,16 @@ export default async function AdminClientDetailPage({
             </div>
           )}
         </section>
+
+        {isAdminRole(profile.role) ? (
+          <PackageCreditAdjustmentPanel
+            parentId={parent.id}
+            purchases={purchases}
+            athletes={athletes}
+            packages={packages}
+            adjustments={adjustments}
+          />
+        ) : null}
 
         <section className="rounded-xl border border-border bg-card p-5">
           <h3 className="font-heading text-xl tracking-wide">Email parent</h3>

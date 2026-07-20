@@ -333,6 +333,25 @@ export interface PackagePurchaseWithPackage extends PackagePurchase {
   package?: TrainingPackage | null;
 }
 
+export type PackageCreditAdjustmentAction = "grant" | "add" | "remove";
+
+export interface PackageCreditAdjustment {
+  id: string;
+  parent_id: string;
+  purchase_id: string | null;
+  staff_profile_id: string | null;
+  action: PackageCreditAdjustmentAction;
+  delta: number;
+  sessions_before: number | null;
+  sessions_after: number | null;
+  reason: string;
+  created_at: string;
+  staff?: Pick<Profile, "full_name" | "email"> | null;
+  purchase?: {
+    package?: Pick<TrainingPackage, "name"> | null;
+  } | null;
+}
+
 export interface IntakeSubmission {
   id: string;
   parent_id: string;
