@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { claimPath } from "@/lib/family-auth";
+import { claimPath } from "@/lib/family-auth-url";
 
 export function IntakeAlreadyComplete({
   returnTo,
