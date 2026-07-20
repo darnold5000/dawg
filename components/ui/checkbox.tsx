@@ -21,7 +21,7 @@ export function Checkbox({
     <input
       type="checkbox"
       className={cn(
-        "mt-0.5 h-4 w-4 shrink-0 rounded border border-input accent-[var(--brand)]",
+        "mt-0.5 h-5 w-5 shrink-0 rounded border border-input bg-white accent-brand shadow-sm",
         className,
       )}
       checked={checked}

@@ -34,7 +34,7 @@ export default async function AdminSessionsPage() {
           {sessions.map((session) => (
             <div
               key={session.id}
-              className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap gap-2">

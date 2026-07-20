@@ -71,7 +71,7 @@ export function AvailabilityTool({ trainers }: { trainers: Trainer[] }) {
           <Label htmlFor="trainer_id">Trainer</Label>
           <select
             id="trainer_id"
-            className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+            className="form-select"
             value={form.trainer_id}
             onChange={(e) => setForm({ ...form, trainer_id: e.target.value })}
           >

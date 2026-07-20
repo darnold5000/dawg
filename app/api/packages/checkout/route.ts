@@ -1,56 +1,131 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { createPackageCheckout } from "@/lib/billing/package-checkout";
-import { packageCheckoutSchema } from "@/lib/packages";
-import { submitIntake } from "@/lib/intake";
+import { loggedInPackageCheckoutSchema } from "@/lib/packages";
+import {
+  loginPath,
+  parentEmailMatches,
+  requireFamilySessionApi,
+} from "@/lib/family-auth";
+import { parentHasAnyIntake } from "@/lib/intake";
+import {
+  createServiceClient,
+  isSupabaseConfigured,
+} from "@/lib/supabase/server";
+import { DAWG_TABLES } from "@/lib/supabase/tables";
 
 export async function POST(request: Request) {
+  const family = await requireFamilySessionApi();
+  if (family instanceof NextResponse) {
+    const body = await request.json().catch(() => ({}));
+    const returnTo =
+      typeof body.returnTo === "string" ? body.returnTo : "/packages";
+    return NextResponse.json(
+      {
+        error: "Sign in to purchase a package.",
+        code: "AUTH_REQUIRED",
+        loginUrl: loginPath(returnTo),
+      },
+      { status: 401 },
+    );
+  }
+
+  const hasIntake = await parentHasAnyIntake(family.parentId);
+  if (!hasIntake) {
+    return NextResponse.json(
+      {
+        error: "Complete athlete intake before purchasing.",
+        code: "INTAKE_REQUIRED",
+      },
+      { status: 403 },
+    );
+  }
+
   try {
     const body = await request.json();
-    const parsed = packageCheckoutSchema.parse(body);
+    const parsed = loggedInPackageCheckoutSchema.parse(body);
 
-    const intakeResult = await submitIntake({
-      parentFirstName: parsed.parentFirstName,
-      parentLastName: parsed.parentLastName,
-      parentEmail: parsed.parentEmail,
-      parentPhone: parsed.parentPhone,
-      athleteFirstName: parsed.athleteFirstName,
-      athleteLastName: parsed.athleteLastName,
-      athleteDob: parsed.athleteDob,
-      schoolGrade: parsed.schoolGrade,
-      heightWeight: parsed.heightWeight,
-      sportPosition: parsed.sportPosition,
-      healthIssues: parsed.healthIssues,
-      emergencyContact1Name: parsed.emergencyContact1Name,
-      emergencyContact1Phone: parsed.emergencyContact1Phone,
-      emergencyContact2Name: parsed.emergencyContact2Name,
-      emergencyContact2Phone: parsed.emergencyContact2Phone,
-      packageInterest: parsed.packageSlug,
-      shirtSize: parsed.shirtSize,
-      goal: parsed.goal,
-      acceptWaiver: parsed.acceptWaiver,
-      mediaConsent: parsed.mediaConsent,
-      rememberFamily: parsed.rememberFamily,
-    });
-
-    if (!intakeResult.ok) {
+    if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json(
-        { error: intakeResult.error, code: intakeResult.code },
+        { error: "Service unavailable." },
+        { status: 503 },
+      );
+    }
+
+    const supabase = createServiceClient();
+    const { data: parent } = await supabase
+      .from(DAWG_TABLES.parents)
+      .select("id, first_name, last_name, email, phone")
+      .eq("id", family.parentId)
+      .maybeSingle();
+
+    if (!parent?.email) {
+      return NextResponse.json(
+        { error: "Parent record not found." },
         { status: 400 },
       );
     }
 
+    if (!parentEmailMatches(family, parent.email)) {
+      return NextResponse.json(
+        { error: "Session mismatch. Please sign in again." },
+        { status: 403 },
+      );
+    }
+
+    let athleteId = parsed.athleteId ?? family.athletes[0]?.id ?? null;
+    if (athleteId && !family.athletes.some((a) => a.id === athleteId)) {
+      return NextResponse.json(
+        { error: "Invalid athlete for this family." },
+        { status: 403 },
+      );
+    }
+
+    if (!athleteId) {
+      const { data: athletes } = await supabase
+        .from(DAWG_TABLES.athletes)
+        .select("id")
+        .eq("parent_id", family.parentId)
+        .limit(1);
+      athleteId = athletes?.[0]?.id ?? null;
+    }
+
+    const athlete =
+      family.athletes.find((a) => a.id === athleteId) ?? family.athletes[0];
+
     const result = await createPackageCheckout({
-      ...parsed,
-      parentId: intakeResult.parentId,
-      athleteId: intakeResult.athleteId,
+      packageSlug: parsed.packageSlug,
+      parentId: family.parentId,
+      athleteId,
+      parentFirstName: parent.first_name ?? family.parentFirstName,
+      parentLastName: parent.last_name ?? family.parentLastName,
+      parentEmail: parent.email,
+      parentPhone: parent.phone ?? family.parentPhone,
+      athleteFirstName: athlete?.firstName ?? "Athlete",
+      athleteLastName: athlete?.lastName ?? "",
+      athleteDob: athlete?.dob ?? "2000-01-01",
+      schoolGrade: "",
+      heightWeight: "",
+      sportPosition: "",
+      healthIssues: "",
+      emergencyContact1Name: "On file",
+      emergencyContact1Phone: parent.phone ?? family.parentPhone,
+      emergencyContact2Name: "",
+      emergencyContact2Phone: "",
+      shirtSize: null,
+      goal: "",
+      acceptWaiver: true,
+      mediaConsent: family.mediaConsentPreference,
+      rememberFamily: false,
     });
+
     if (!result.ok) {
       return NextResponse.json(
         { error: result.error, code: result.code },
         { status: 400 },
       );
     }
+
     return NextResponse.json({
       checkoutUrl: result.data.url,
       purchaseId: result.data.purchaseId,

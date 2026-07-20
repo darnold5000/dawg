@@ -75,7 +75,7 @@ export default async function AdminDashboardPage() {
             const className = cn(
               "rounded-xl border border-border bg-card p-5 shadow-sm transition",
               card.href &&
-                "hover:border-ink/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink",
+                "hover:border-brand/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
             );
 
             const body = (

@@ -9,6 +9,7 @@ import {
   bookingCancelUrl,
   bookingSuccessUrl,
 } from "@/lib/billing/site-url";
+import { requireFamilySessionApi } from "@/lib/family-auth";
 
 const bodySchema = z.object({
   token: z.string().uuid(),
@@ -43,6 +44,21 @@ export async function POST(
       return NextResponse.json(
         { error: "This booking is not an online payment" },
         { status: 400 },
+      );
+    }
+
+    const family = await requireFamilySessionApi();
+    if (family instanceof NextResponse) {
+      return NextResponse.json(
+        { error: "Sign in to continue payment.", code: "AUTH_REQUIRED" },
+        { status: 401 },
+      );
+    }
+
+    if (booking.parent_id && booking.parent_id !== family.parentId) {
+      return NextResponse.json(
+        { error: "This booking belongs to another account." },
+        { status: 403 },
       );
     }
 

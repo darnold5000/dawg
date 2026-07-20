@@ -217,7 +217,7 @@ export function ScheduleBrowser({
             type="button"
             className={cn(
               "rounded-md px-3 py-1.5 text-sm font-medium",
-              view === "list" ? "bg-ink text-primary-foreground" : "text-muted-foreground",
+              view === "list" ? "bg-brand text-brand-foreground" : "text-muted-foreground",
             )}
             onClick={() => setView("list")}
           >
@@ -228,7 +228,7 @@ export function ScheduleBrowser({
             className={cn(
               "rounded-md px-3 py-1.5 text-sm font-medium",
               view === "calendar"
-                ? "bg-ink text-primary-foreground"
+                ? "bg-brand text-brand-foreground"
                 : "text-muted-foreground",
             )}
             onClick={() => setView("calendar")}

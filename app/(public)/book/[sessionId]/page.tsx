@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { BookingForm } from "@/components/public/booking-form";
 import { getSessionById } from "@/lib/data";
+import { requireFamilyWithIntake } from "@/lib/family-auth";
 import { createMetadata } from "@/lib/seo";
 import { paymentMethodLabel } from "@/lib/billing/payment-options";
 
@@ -9,12 +10,12 @@ function bookingPaymentBlurb(
 ): string {
   switch (requirement) {
     case "pay_online":
-      return "No account required. You’ll pay securely online after confirming.";
+      return "Pay securely online with Stripe or use a package credit.";
     case "online_or_facility":
-      return "No account required. Choose pay online or pay at the facility.";
+      return "Use a package credit, pay online, or pay at the facility.";
     case "pay_at_facility":
     default:
-      return `No account required. ${paymentMethodLabel("pay_at_facility")} for this session.`;
+      return `Use a package credit or ${paymentMethodLabel("pay_at_facility").toLowerCase()}.`;
   }
 }
 
@@ -41,6 +42,9 @@ export default async function BookPage({
 }) {
   const { sessionId } = await params;
   const { waitlist } = await searchParams;
+  const returnTo = `/book/${sessionId}${waitlist === "1" ? "?waitlist=1" : ""}`;
+  await requireFamilyWithIntake(returnTo);
+
   const session = await getSessionById(sessionId);
   if (!session) notFound();
 

@@ -12,6 +12,7 @@ import {
   formatSessionDateShort,
   formatSessionTime,
 } from "@/lib/format";
+import { bookLoginPath } from "@/lib/family-auth-url";
 
 export function SessionCard({ session }: { session: SessionWithRelations }) {
   const [open, setOpen] = useState(false);
@@ -68,14 +69,14 @@ export function SessionCard({ session }: { session: SessionWithRelations }) {
           ) : null}
           {full ? (
             <Button asChild variant="secondary">
-              <Link href={`/book/${session.id}?waitlist=1`}>Join Waitlist</Link>
+              <Link href={bookLoginPath(session.id, true)}>Join Waitlist</Link>
             </Button>
           ) : (
             <Button
               asChild
               className="bg-gold font-bold text-gold-foreground hover:bg-gold/90"
             >
-              <Link href={`/book/${session.id}`}>Book</Link>
+              <Link href={bookLoginPath(session.id)}>Book</Link>
             </Button>
           )}
         </div>

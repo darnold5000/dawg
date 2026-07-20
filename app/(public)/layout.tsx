@@ -17,7 +17,7 @@ export default function PublicLayout({
       </a>
       <SiteHeader />
       <InstallHint />
-      <main id="main-content" className="flex-1">
+      <main id="main-content" className="flex-1 bg-background">
         {children}
       </main>
       <SiteFooter />

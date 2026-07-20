@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requestFamilyLogin } from "@/lib/family-login";
+import { sanitizeReturnPath } from "@/lib/family-auth";
 
 const bodySchema = z.object({
   email: z.string().trim().email().max(160),
+  returnTo: z.string().optional(),
 });
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email } = bodySchema.parse(body);
-    const result = await requestFamilyLogin(email);
+    const { email, returnTo } = bodySchema.parse(body);
+    const result = await requestFamilyLogin(
+      email,
+      sanitizeReturnPath(returnTo, "/schedule"),
+    );
     if (!result.ok) {
       return NextResponse.json(
         { error: result.error, code: result.code },

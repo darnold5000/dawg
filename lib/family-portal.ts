@@ -3,7 +3,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
-import { loadRememberedFamily } from "@/lib/family-device";
+import { getAuthenticatedParentId } from "@/lib/family-auth";
 import type {
   Athlete,
   PackagePurchaseWithPackage,
@@ -34,10 +34,10 @@ export type FamilyPortalData = {
   totalCreditsRemaining: number;
 };
 
-export async function getAuthenticatedFamily(): Promise<FamilyPortalData | null> {
-  const family = await loadRememberedFamily();
-  if (!family) return null;
-  return getFamilyPortalData(family.parentId);
+export async function getFamilyPortalForSession(): Promise<FamilyPortalData | null> {
+  const parentId = await getAuthenticatedParentId();
+  if (!parentId) return null;
+  return getFamilyPortalData(parentId);
 }
 
 export async function getFamilyPortalData(

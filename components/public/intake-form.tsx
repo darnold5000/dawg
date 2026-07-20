@@ -273,7 +273,7 @@ export function IntakeForm({ returnTo }: { returnTo?: string }) {
           <Label htmlFor="inShirt">Shirt size</Label>
           <select
             id="inShirt"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className="form-select"
             value={form.shirtSize}
             onChange={(e) => update("shirtSize", e.target.value)}
           >

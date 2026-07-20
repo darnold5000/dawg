@@ -6,13 +6,14 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NAV_LINKS, SITE } from "@/lib/constants";
+import { loginPath } from "@/lib/family-auth-url";
 import { cn } from "@/lib/utils";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/80 bg-ink/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-ink/95 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link
           href="/"
@@ -43,7 +44,7 @@ export function SiteHeader() {
             </Link>
           ))}
           <Button asChild className="ml-2 bg-gold font-bold text-gold-foreground hover:bg-gold/90">
-            <Link href="/schedule">Book Training</Link>
+            <Link href={loginPath("/schedule")}>Book Training</Link>
           </Button>
         </nav>
 
@@ -78,7 +79,7 @@ export function SiteHeader() {
             </Link>
           ))}
           <Button asChild className="mt-2 bg-gold font-bold text-gold-foreground hover:bg-gold/90">
-            <Link href="/schedule" onClick={() => setOpen(false)}>
+            <Link href={loginPath("/schedule")} onClick={() => setOpen(false)}>
               Book Training
             </Link>
           </Button>

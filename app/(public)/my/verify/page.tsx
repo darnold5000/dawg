@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { verifyFamilyLoginToken } from "@/lib/family-login";
+import { consumeAuthReturnCookie } from "@/lib/family-auth";
+import { parentHasAnyIntake } from "@/lib/intake";
+import { registerPath } from "@/lib/family-auth-url";
 import { createMetadata } from "@/lib/seo";
 
 export const metadata = createMetadata({
@@ -38,11 +41,17 @@ export default async function MyVerifyPage({
         <h1 className="font-heading text-3xl tracking-wide">Link expired</h1>
         <p className="mt-3 text-muted-foreground">{result.error}</p>
         <Button asChild className="mt-6 bg-brand text-brand-foreground hover:bg-brand/90">
-          <Link href="/my">Request a new link</Link>
+          <Link href="/my/login">Request a new link</Link>
         </Button>
       </div>
     );
   }
 
-  redirect("/my");
+  const returnTo = await consumeAuthReturnCookie("/schedule");
+  const hasIntake = await parentHasAnyIntake(result.parentId);
+  if (!hasIntake) {
+    redirect(registerPath(returnTo));
+  }
+
+  redirect(returnTo);
 }

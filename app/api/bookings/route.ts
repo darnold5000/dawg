@@ -7,6 +7,12 @@ import {
   bookingSuccessUrl,
 } from "@/lib/billing/site-url";
 import { expirePendingBooking } from "@/lib/billing/adapter";
+import {
+  loginPath,
+  parentEmailMatches,
+  requireFamilySessionApi,
+} from "@/lib/family-auth";
+import { parentHasAnyIntake } from "@/lib/intake";
 
 const recent = new Map<string, number>();
 
@@ -22,6 +28,40 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = bookingSchema.parse(body);
+
+    const family = await requireFamilySessionApi();
+    if (family instanceof NextResponse) {
+      return NextResponse.json(
+        {
+          error: "Sign in to book a session.",
+          code: "AUTH_REQUIRED",
+          loginUrl: loginPath(`/book/${parsed.sessionId}`),
+        },
+        { status: 401 },
+      );
+    }
+
+    if (!parentEmailMatches(family, parsed.parentEmail)) {
+      return NextResponse.json(
+        {
+          error: "Use the email for your signed-in account.",
+          code: "EMAIL_MISMATCH",
+        },
+        { status: 403 },
+      );
+    }
+
+    const hasIntake = await parentHasAnyIntake(family.parentId);
+    if (!hasIntake) {
+      return NextResponse.json(
+        {
+          error: "Complete athlete intake before booking.",
+          code: "INTAKE_REQUIRED",
+        },
+        { status: 403 },
+      );
+    }
+
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 

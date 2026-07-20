@@ -133,7 +133,7 @@ export function SessionForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={onSubmit} className="form-panel max-w-3xl space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="title">Title</Label>
@@ -148,7 +148,7 @@ export function SessionForm({
           <Label htmlFor="program_id">Program</Label>
           <select
             id="program_id"
-            className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+            className="form-select"
             value={form.program_id}
             onChange={(e) => update("program_id", e.target.value)}
           >
@@ -164,7 +164,7 @@ export function SessionForm({
           <Label htmlFor="session_type_id">Session type</Label>
           <select
             id="session_type_id"
-            className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+            className="form-select"
             value={form.session_type_id}
             onChange={(e) => update("session_type_id", e.target.value)}
           >
@@ -180,7 +180,7 @@ export function SessionForm({
           <Label htmlFor="trainer_id">Trainer</Label>
           <select
             id="trainer_id"
-            className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+            className="form-select"
             value={form.trainer_id}
             onChange={(e) => update("trainer_id", e.target.value)}
           >
@@ -196,7 +196,7 @@ export function SessionForm({
           <Label htmlFor="status">Status</Label>
           <select
             id="status"
-            className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+            className="form-select"
             value={form.status}
             onChange={(e) => update("status", e.target.value)}
           >
@@ -281,7 +281,7 @@ export function SessionForm({
           <Label htmlFor="payment_requirement">Payment</Label>
           <select
             id="payment_requirement"
-            className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+            className="form-select"
             value={form.payment_requirement}
             onChange={(e) => update("payment_requirement", e.target.value)}
           >
@@ -296,7 +296,7 @@ export function SessionForm({
               <Label htmlFor="recurrence">Recurrence</Label>
               <select
                 id="recurrence"
-                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                className="form-select"
                 value={form.recurrence}
                 onChange={(e) => update("recurrence", e.target.value)}
               >
@@ -310,7 +310,7 @@ export function SessionForm({
               <Label htmlFor="recurrence_weeks">Schedule length</Label>
               <select
                 id="recurrence_weeks"
-                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm disabled:opacity-50"
+                className="form-select disabled:opacity-50"
                 value={form.recurrence_weeks}
                 onChange={(e) => update("recurrence_weeks", e.target.value)}
                 disabled={form.recurrence === "none"}
@@ -346,7 +346,7 @@ export function SessionForm({
                         onClick={() => toggleRecurrenceDay(day)}
                         className={
                           selected
-                            ? "rounded-md bg-ink px-3 py-2 text-sm font-semibold text-primary-foreground"
+                            ? "rounded-md bg-brand px-3 py-2 text-sm font-semibold text-brand-foreground"
                             : "rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
                         }
                         aria-pressed={selected}

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,23 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PolicyLinkButton } from "@/components/public/policy-dialog";
-import { formatPrice } from "@/lib/format";
-import type { TrainingPackage } from "@/lib/types/database";
+import { loginPath } from "@/lib/family-auth-url";
 
 const SHIRT_SIZES = ["Small", "Medium", "Large", "XL", "XXL", "3XL"] as const;
 
-export function PackagePurchaseForm({
-  packages,
-  initialSlug,
-}: {
-  packages: TrainingPackage[];
-  initialSlug?: string;
-}) {
-  const [packageSlug, setPackageSlug] = useState(
-    initialSlug && packages.some((p) => p.slug === initialSlug)
-      ? initialSlug
-      : packages[0]?.slug ?? "single",
-  );
+export function FamilyRegisterForm({ returnTo }: { returnTo: string }) {
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     parentFirstName: "",
@@ -46,10 +37,7 @@ export function PackagePurchaseForm({
     goal: "",
     acceptWaiver: false,
     mediaConsent: false,
-    rememberFamily: true,
   });
-
-  const selected = packages.find((p) => p.slug === packageSlug);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -63,26 +51,24 @@ export function PackagePurchaseForm({
     }
     setSubmitting(true);
     try {
-      const res = await fetch("/api/packages/checkout", {
+      const res = await fetch("/api/my/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          packageSlug,
           ...form,
           shirtSize: form.shirtSize || null,
           acceptWaiver: true as const,
+          returnTo,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Could not start checkout");
+        toast.error(data.error ?? "Could not create account");
         return;
       }
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-      toast.error("Checkout URL missing");
+      toast.success("Account created");
+      router.push(data.redirectTo ?? returnTo);
+      router.refresh();
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -92,68 +78,42 @@ export function PackagePurchaseForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      <fieldset className="space-y-3">
-        <legend className="font-heading text-lg tracking-wide">
-          Choose a package
-        </legend>
-        <div className="grid gap-3">
-          {packages.map((pkg) => (
-            <label
-              key={pkg.id}
-              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 text-sm ${
-                packageSlug === pkg.slug
-                  ? "border-brand bg-brand/10"
-                  : "border-border"
-              }`}
-            >
-              <input
-                type="radio"
-                name="packageSlug"
-                className="mt-1"
-                checked={packageSlug === pkg.slug}
-                onChange={() => setPackageSlug(pkg.slug)}
-                value={pkg.slug}
-              />
-              <span>
-                <span className="font-medium">{pkg.name}</span>
-                <span className="mt-0.5 block text-muted-foreground">
-                  {pkg.description}
-                </span>
-                <span className="mt-1 block font-heading text-lg tracking-wide">
-                  {formatPrice(pkg.price_cents)}
-                </span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <p className="text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <Link
+          href={loginPath(returnTo)}
+          className="font-medium text-foreground underline underline-offset-2"
+        >
+          Sign in
+        </Link>
+      </p>
 
-      <fieldset className="grid gap-3 sm:grid-cols-2">
+      <fieldset className="form-fieldset grid gap-3 sm:grid-cols-2">
         <legend className="mb-1 px-1 font-heading text-lg tracking-wide sm:col-span-2">
           Parent / guardian
         </legend>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgFirst">First name</Label>
+          <Label htmlFor="regParentFirst">First name</Label>
           <Input
-            id="pkgFirst"
+            id="regParentFirst"
             required
             value={form.parentFirstName}
             onChange={(e) => update("parentFirstName", e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgLast">Last name</Label>
+          <Label htmlFor="regParentLast">Last name</Label>
           <Input
-            id="pkgLast"
+            id="regParentLast"
             required
             value={form.parentLastName}
             onChange={(e) => update("parentLastName", e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgEmail">Email</Label>
+          <Label htmlFor="regEmail">Email</Label>
           <Input
-            id="pkgEmail"
+            id="regEmail"
             type="email"
             required
             value={form.parentEmail}
@@ -161,9 +121,9 @@ export function PackagePurchaseForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgPhone">Phone</Label>
+          <Label htmlFor="regPhone">Phone</Label>
           <Input
-            id="pkgPhone"
+            id="regPhone"
             type="tel"
             required
             value={form.parentPhone}
@@ -172,32 +132,32 @@ export function PackagePurchaseForm({
         </div>
       </fieldset>
 
-      <fieldset className="grid gap-3 sm:grid-cols-2">
+      <fieldset className="form-fieldset grid gap-3 sm:grid-cols-2">
         <legend className="mb-1 px-1 font-heading text-lg tracking-wide sm:col-span-2">
           Athlete
         </legend>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgAthleteFirst">First name</Label>
+          <Label htmlFor="regAthleteFirst">First name</Label>
           <Input
-            id="pkgAthleteFirst"
+            id="regAthleteFirst"
             required
             value={form.athleteFirstName}
             onChange={(e) => update("athleteFirstName", e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgAthleteLast">Last name</Label>
+          <Label htmlFor="regAthleteLast">Last name</Label>
           <Input
-            id="pkgAthleteLast"
+            id="regAthleteLast"
             required
             value={form.athleteLastName}
             onChange={(e) => update("athleteLastName", e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgDob">Date of birth</Label>
+          <Label htmlFor="regDob">Date of birth</Label>
           <Input
-            id="pkgDob"
+            id="regDob"
             type="date"
             required
             value={form.athleteDob}
@@ -205,33 +165,33 @@ export function PackagePurchaseForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgGrade">School grade / grad year</Label>
+          <Label htmlFor="regGrade">School grade / grad year</Label>
           <Input
-            id="pkgGrade"
+            id="regGrade"
             value={form.schoolGrade}
             onChange={(e) => update("schoolGrade", e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgHw">Height &amp; weight</Label>
+          <Label htmlFor="regHw">Height &amp; weight</Label>
           <Input
-            id="pkgHw"
+            id="regHw"
             value={form.heightWeight}
             onChange={(e) => update("heightWeight", e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgPos">Position in sports</Label>
+          <Label htmlFor="regPos">Position in sports</Label>
           <Input
-            id="pkgPos"
+            id="regPos"
             value={form.sportPosition}
             onChange={(e) => update("sportPosition", e.target.value)}
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="pkgHealth">Health issues or allergies</Label>
+          <Label htmlFor="regHealth">Health issues or allergies</Label>
           <Textarea
-            id="pkgHealth"
+            id="regHealth"
             rows={3}
             value={form.healthIssues}
             onChange={(e) => update("healthIssues", e.target.value)}
@@ -239,23 +199,23 @@ export function PackagePurchaseForm({
         </div>
       </fieldset>
 
-      <fieldset className="grid gap-3 sm:grid-cols-2">
+      <fieldset className="form-fieldset grid gap-3 sm:grid-cols-2">
         <legend className="mb-1 px-1 font-heading text-lg tracking-wide sm:col-span-2">
           Emergency contacts
         </legend>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgEc1Name">Contact 1 name</Label>
+          <Label htmlFor="regEc1Name">Contact 1 name</Label>
           <Input
-            id="pkgEc1Name"
+            id="regEc1Name"
             required
             value={form.emergencyContact1Name}
             onChange={(e) => update("emergencyContact1Name", e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgEc1Phone">Contact 1 phone</Label>
+          <Label htmlFor="regEc1Phone">Contact 1 phone</Label>
           <Input
-            id="pkgEc1Phone"
+            id="regEc1Phone"
             type="tel"
             required
             value={form.emergencyContact1Phone}
@@ -263,17 +223,17 @@ export function PackagePurchaseForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgEc2Name">Contact 2 name (optional)</Label>
+          <Label htmlFor="regEc2Name">Contact 2 name (optional)</Label>
           <Input
-            id="pkgEc2Name"
+            id="regEc2Name"
             value={form.emergencyContact2Name}
             onChange={(e) => update("emergencyContact2Name", e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgEc2Phone">Contact 2 phone (optional)</Label>
+          <Label htmlFor="regEc2Phone">Contact 2 phone (optional)</Label>
           <Input
-            id="pkgEc2Phone"
+            id="regEc2Phone"
             type="tel"
             value={form.emergencyContact2Phone}
             onChange={(e) => update("emergencyContact2Phone", e.target.value)}
@@ -281,15 +241,15 @@ export function PackagePurchaseForm({
         </div>
       </fieldset>
 
-      <fieldset className="space-y-3">
+      <fieldset className="form-fieldset space-y-3">
         <legend className="font-heading text-lg tracking-wide">
           Shirt &amp; goals
         </legend>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgShirt">Shirt size</Label>
+          <Label htmlFor="regShirt">Shirt size</Label>
           <select
-            id="pkgShirt"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            id="regShirt"
+            className="form-select"
             value={form.shirtSize}
             onChange={(e) => update("shirtSize", e.target.value)}
           >
@@ -302,9 +262,9 @@ export function PackagePurchaseForm({
           </select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="pkgGoal">Goal to be a DAWG in your sport</Label>
+          <Label htmlFor="regGoal">Goal to be a DAWG in your sport</Label>
           <Textarea
-            id="pkgGoal"
+            id="regGoal"
             rows={3}
             value={form.goal}
             onChange={(e) => update("goal", e.target.value)}
@@ -312,7 +272,7 @@ export function PackagePurchaseForm({
         </div>
       </fieldset>
 
-      <fieldset className="space-y-3 rounded-xl border border-border p-4">
+      <fieldset className="form-fieldset space-y-3 rounded-xl border border-border p-4">
         <legend className="px-1 font-heading text-lg tracking-wide">
           Agreements
         </legend>
@@ -323,8 +283,7 @@ export function PackagePurchaseForm({
             required
           />
           <span>
-            I am the athlete’s parent or legal guardian (if under 18) and I
-            accept the{" "}
+            I accept the{" "}
             <PolicyLinkButton docId="waiver">
               liability waiver and release
             </PolicyLinkButton>
@@ -341,25 +300,14 @@ export function PackagePurchaseForm({
             <PolicyLinkButton docId="media">Details</PolicyLinkButton>
           </span>
         </label>
-        <label className="flex items-start gap-3 text-sm">
-          <Checkbox
-            checked={form.rememberFamily}
-            onCheckedChange={(v) => update("rememberFamily", Boolean(v))}
-          />
-          <span>Remember this family on this device for faster booking</span>
-        </label>
       </fieldset>
 
       <Button
         type="submit"
-        disabled={submitting || !selected}
+        disabled={submitting}
         className="h-12 w-full bg-brand text-brand-foreground hover:bg-brand/90 sm:w-auto sm:px-8"
       >
-        {submitting
-          ? "Starting checkout…"
-          : selected
-            ? `Continue to pay ${formatPrice(selected.price_cents)}`
-            : "Select a package"}
+        {submitting ? "Creating account…" : "Create account & continue"}
       </Button>
     </form>
   );

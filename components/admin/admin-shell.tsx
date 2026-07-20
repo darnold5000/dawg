@@ -52,26 +52,38 @@ export function AdminShell({
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="sticky top-0 z-40 border-b bg-background">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-white shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Staff Dashboard
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand">
+              Staff
             </p>
-            <h1 className="font-heading text-lg tracking-wide">DAWG Admin</h1>
+            <h1 className="font-heading text-xl tracking-wide text-foreground">
+              DAWG Admin
+            </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted-foreground sm:inline">
-              {profile.full_name ?? "Staff"} · {profile.role}
+              {profile.full_name ?? "Staff"}
+              <span className="text-border"> · </span>
+              <span className="capitalize">{profile.role}</span>
             </span>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-border bg-white shadow-sm"
+              onClick={handleLogout}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </Button>
           </div>
         </div>
-        <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-3">
+        <nav
+          className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-4 sm:px-6"
+          aria-label="Admin"
+        >
           {NAV.filter(
             (item) => !item.adminOnly || isAdminRole(profile.role),
           ).map((item) => {
@@ -84,20 +96,20 @@ export function AdminShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap",
+                  "inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-colors",
                   active
-                    ? "bg-ink text-primary-foreground"
-                    : "bg-muted hover:bg-muted/80",
+                    ? "bg-brand text-brand-foreground shadow-sm"
+                    : "border border-border bg-white text-foreground hover:border-brand/30 hover:bg-slate-50",
                 )}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className="h-4 w-4 shrink-0 opacity-90" />
                 {item.label}
               </Link>
             );
           })}
         </nav>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{children}</main>
     </div>
   );
 }

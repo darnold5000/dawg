@@ -10,6 +10,7 @@ import {
 } from "@/lib/family-device";
 import { CURRENT_AGREEMENTS_VERSION } from "@/lib/agreements";
 import { sendFamilyLoginEmail } from "@/lib/email";
+import { setAuthReturnCookie } from "@/lib/family-auth";
 
 const TOKEN_TTL_MINUTES = 30;
 
@@ -21,7 +22,10 @@ function newToken() {
   return randomBytes(32).toString("base64url");
 }
 
-export async function requestFamilyLogin(email: string): Promise<
+export async function requestFamilyLogin(
+  email: string,
+  returnTo?: string | null,
+): Promise<
   | { ok: true }
   | { ok: false; error: string; code?: string }
 > {
@@ -59,6 +63,10 @@ export async function requestFamilyLogin(email: string): Promise<
   if (error) {
     console.error("[family-login] token insert", error);
     return { ok: false, error: "Could not send login link.", code: "TOKEN_FAILED" };
+  }
+
+  if (returnTo) {
+    await setAuthReturnCookie(returnTo);
   }
 
   try {

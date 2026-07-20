@@ -562,12 +562,12 @@ export function BookingForm({
         </p>
       </div>
 
-      {intakeRequired && !contextLoading ? (
+      {creditsRemaining === 0 && !waitlistMode ? (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-          <p className="font-medium">Package purchase required</p>
+          <p className="font-medium">No package credits</p>
           <p className="mt-1">
-            Purchase a package to complete athlete intake (health, emergency
-            contacts, and waiver) before the first booking.
+            Purchase a session package to book with credits, or choose another
+            payment option below if available.
           </p>
           <Button asChild className="mt-3 bg-brand text-brand-foreground hover:bg-brand/90">
             <Link href={packagesReturn}>Buy a package</Link>
@@ -598,7 +598,7 @@ export function BookingForm({
                 <Label htmlFor="savedAthlete">Athlete</Label>
                 <select
                   id="savedAthlete"
-                  className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="form-select"
                   value={selectedAthleteId}
                   onChange={(e) => onSelectAthlete(e.target.value)}
                 >
@@ -942,7 +942,7 @@ export function BookingForm({
         </label>
       </fieldset>
 
-      <div className="sticky bottom-0 z-10 -mx-4 border-t border-border bg-background/95 px-4 py-4 backdrop-blur supports-backdrop-filter:bg-background/80 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+      <div className="sticky bottom-0 z-10 -mx-4 border-t border-border bg-white/95 px-4 py-4 backdrop-blur supports-backdrop-filter:bg-white/90 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
         <div className="mb-3 rounded-lg border border-border bg-card px-3 py-2 text-sm sm:mb-4">
           <p>
             <span className="text-muted-foreground">Payment: </span>
@@ -963,20 +963,18 @@ export function BookingForm({
         </div>
         <Button
           type="submit"
-          disabled={submitting || !paymentMethod || intakeRequired}
+          disabled={submitting || !paymentMethod}
           className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:px-8"
         >
-          {intakeRequired
-            ? "Buy a package to book"
-            : submitting
-              ? paymentMethod === "stripe"
-                ? "Starting checkout…"
-                : "Reserving…"
-              : paymentMethod === "stripe"
-                ? "Continue to payment"
-                : paymentMethod === "package_credit"
-                  ? "Confirm with package credit"
-                  : "Confirm reservation"}
+          {submitting
+            ? paymentMethod === "stripe"
+              ? "Starting checkout…"
+              : "Reserving…"
+            : paymentMethod === "stripe"
+              ? "Continue to payment"
+              : paymentMethod === "package_credit"
+                ? "Confirm with package credit"
+                : "Confirm reservation"}
         </Button>
       </div>
     </form>

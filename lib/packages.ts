@@ -85,7 +85,16 @@ export const packageCheckoutSchema = z.object({
   rememberFamily: z.boolean().optional().default(true),
 });
 
+export const loggedInPackageCheckoutSchema = z.object({
+  packageSlug: z.enum(["single", "pack-10", "pack-20"]),
+  athleteId: z.string().uuid().optional().nullable(),
+});
+
 export type PackageCheckoutInput = z.infer<typeof packageCheckoutSchema>;
+
+export type LoggedInPackageCheckoutInput = z.infer<
+  typeof loggedInPackageCheckoutSchema
+>;
 
 export async function listActivePackages(): Promise<TrainingPackage[]> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {

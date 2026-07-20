@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { getSessionById } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
+import { bookLoginPath } from "@/lib/family-auth-url";
 import {
   ageRangeLabel,
   durationMinutes,
@@ -113,11 +114,11 @@ export default async function SessionDetailPage({
       <div className="mt-8 flex flex-wrap gap-3">
         {full ? (
           <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
-            <Link href={`/book/${session.id}?waitlist=1`}>Join Waitlist</Link>
+            <Link href={bookLoginPath(session.id, true)}>Join Waitlist</Link>
           </Button>
         ) : (
           <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
-            <Link href={`/book/${session.id}`}>Book This Session</Link>
+            <Link href={bookLoginPath(session.id)}>Book This Session</Link>
           </Button>
         )}
         <Button asChild variant="outline">

@@ -1,7 +1,9 @@
 import { FamilyDashboard } from "@/components/public/family-dashboard";
-import { FamilyLoginForm } from "@/components/public/family-login-form";
-import { getAuthenticatedFamily } from "@/lib/family-portal";
+import { getFamilyPortalForSession } from "@/lib/family-portal";
+import { loginPath } from "@/lib/family-auth";
 import { createMetadata } from "@/lib/seo";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export const metadata = createMetadata({
   title: "My account",
@@ -11,7 +13,7 @@ export const metadata = createMetadata({
 });
 
 export default async function MyAccountPage() {
-  const data = await getAuthenticatedFamily();
+  const data = await getFamilyPortalForSession();
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-16">
@@ -21,7 +23,18 @@ export default async function MyAccountPage() {
       </p>
 
       <div className="mt-8">
-        {data ? <FamilyDashboard data={data} /> : <FamilyLoginForm />}
+        {data ? (
+          <FamilyDashboard data={data} />
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Sign in to view your account, or create one to get started.
+            </p>
+            <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
+              <Link href={loginPath("/my")}>Sign in</Link>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
