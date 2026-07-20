@@ -19,7 +19,7 @@ import {
   rememberFamilyOnDevice,
   setFamilyDeviceCookie,
 } from "@/lib/family-device";
-import { athleteHasIntake } from "@/lib/intake";
+import { athleteBookingReady } from "@/lib/intake";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
 const bookingFieldsSchema = z.object({
@@ -389,13 +389,16 @@ export async function createPublicBooking(
     return { ok: false, error: "Could not save athlete information." };
   }
 
-  const hasIntake = await athleteHasIntake(athlete.id);
-  if (!hasIntake) {
+  const hasIntake = await athleteBookingReady(athlete.id);
+  if (!hasIntake.ready) {
     return {
       ok: false,
-      error:
-        "Please complete client intake for this athlete before booking.",
-      code: "INTAKE_REQUIRED",
+      error: hasIntake.needsWaiverRenewal
+        ? "Please accept the updated liability waiver before booking."
+        : "Please complete client intake for this athlete before booking.",
+      code: hasIntake.needsWaiverRenewal
+        ? "WAIVER_RENEWAL_REQUIRED"
+        : "INTAKE_REQUIRED",
     };
   }
 

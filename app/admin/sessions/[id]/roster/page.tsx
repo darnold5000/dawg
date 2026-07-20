@@ -5,6 +5,7 @@ import { RosterAttendance } from "@/components/admin/roster-attendance";
 import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { getSessionRoster } from "@/lib/admin-data";
+import { getAthleteBookingReadinessMap } from "@/lib/intake";
 import { athleteAgeFromDob, formatSessionDate, formatSessionTime } from "@/lib/format";
 
 export default async function RosterPage({
@@ -19,6 +20,12 @@ export default async function RosterPage({
 
   const activeBookings = bookings.filter(
     (b) => b.status === "confirmed" || b.status === "pending",
+  );
+
+  const readinessByAthleteId = Object.fromEntries(
+    await getAthleteBookingReadinessMap(
+      activeBookings.map((b) => b.athlete_id),
+    ),
   );
 
   const csvRows = [
@@ -88,7 +95,10 @@ export default async function RosterPage({
             </p>
           </div>
         ) : (
-          <RosterAttendance bookings={activeBookings} />
+          <RosterAttendance
+            bookings={activeBookings}
+            readinessByAthleteId={readinessByAthleteId}
+          />
         )}
       </div>
     </AdminShell>

@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     const result = await createPublicBooking(parsed);
     if (!result.ok) {
-      if (result.code === "INTAKE_REQUIRED") {
+      if (result.code === "INTAKE_REQUIRED" || result.code === "WAIVER_RENEWAL_REQUIRED") {
         const bookReturn = `/book/${parsed.sessionId}`;
         return NextResponse.json(
           {

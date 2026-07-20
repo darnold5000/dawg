@@ -36,14 +36,14 @@ export default async function MyAccountPage() {
         ) : unclaimed ? (
           <div className="space-y-4 rounded-xl border border-border bg-card p-6">
             <p className="text-sm text-muted-foreground">
-              Hi {family.parentFirstName}, your family is on file. Claim your
-              account to view credits, bookings, and athletes in one place.
+            Hi {family.parentFirstName}, your family is on file. Create your
+            online account to view credits, bookings, and athletes in one place.
             </p>
             <Button
               asChild
               className="bg-brand text-brand-foreground hover:bg-brand/90"
             >
-              <Link href={claimPath("/my")}>Claim My Account</Link>
+              <Link href={claimPath("/my")}>Create My Online Account</Link>
             </Button>
           </div>
         ) : (

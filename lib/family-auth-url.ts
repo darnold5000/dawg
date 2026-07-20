@@ -9,9 +9,14 @@ export function sanitizeReturnPath(
   return isSafeReturnPath(path) ? path : fallback;
 }
 
-export function intakePath(returnTo?: string | null): string {
+export function intakePath(
+  returnTo?: string | null,
+  athleteId?: string | null,
+): string {
   const safe = sanitizeReturnPath(returnTo, "/schedule");
-  return `/my/intake?return=${encodeURIComponent(safe)}`;
+  const params = new URLSearchParams({ return: safe });
+  if (athleteId) params.set("athleteId", athleteId);
+  return `/my/intake?${params.toString()}`;
 }
 
 export function claimPath(returnTo?: string | null): string {

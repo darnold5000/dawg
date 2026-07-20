@@ -12,7 +12,7 @@ import { createMetadata } from "@/lib/seo";
 export const metadata = createMetadata({
   title: "Continue",
   description:
-    "Enter your email for a secure DAWG link to complete intake, sign in, or claim your account.",
+    "Enter your email for a secure DAWG link to complete intake, sign in, or create your online account.",
   path: "/my/login",
 });
 

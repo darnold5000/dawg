@@ -11,6 +11,8 @@ import {
 import type { AttendanceStatus, BookingWithRelations } from "@/lib/types/database";
 import { athleteAgeFromDob } from "@/lib/format";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
+import { BookingReadinessBadge } from "@/components/admin/booking-readiness-badge";
+import type { AthleteBookingReadinessStatus } from "@/lib/intake";
 import { cn } from "@/lib/utils";
 
 const toneClass = {
@@ -22,8 +24,10 @@ const toneClass = {
 
 export function RosterAttendance({
   bookings,
+  readinessByAthleteId = {},
 }: {
   bookings: BookingWithRelations[];
+  readinessByAthleteId?: Record<string, AthleteBookingReadinessStatus>;
 }) {
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -59,6 +63,11 @@ export function RosterAttendance({
           ? athleteAgeFromDob(b.athlete.date_of_birth)
           : null;
 
+        const readiness =
+          b.athlete_id && readinessByAthleteId[b.athlete_id]
+            ? readinessByAthleteId[b.athlete_id]
+            : "intake_missing";
+
         return (
           <article
             key={b.id}
@@ -82,7 +91,10 @@ export function RosterAttendance({
                   <p className="text-xs text-muted-foreground">{b.parent.email}</p>
                 ) : null}
               </div>
-              <PaymentStatusBadge status={b.payment_status} />
+              <div className="flex flex-col items-end gap-1.5">
+                <BookingReadinessBadge status={readiness} />
+                <PaymentStatusBadge status={b.payment_status} />
+              </div>
             </div>
 
             <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">

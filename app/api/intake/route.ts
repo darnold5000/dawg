@@ -6,6 +6,7 @@ import { intakeSchema, submitIntake } from "@/lib/intake";
 
 const bodySchema = intakeSchema.extend({
   returnTo: z.string().optional(),
+  mode: z.enum(["full", "add-athlete", "waiver-only"]).optional(),
 });
 
 export async function POST(request: Request) {
@@ -13,9 +14,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = bodySchema.parse(body);
     const returnTo = sanitizeReturnPath(parsed.returnTo, "/schedule");
-    const { returnTo: _rt, ...intakeInput } = parsed;
+    const { returnTo: _rt, mode, ...intakeInput } = parsed;
 
-    const result = await submitIntake(intakeInput, { claimAccount: false });
+    const result = await submitIntake(intakeInput, {
+      claimAccount: false,
+      mode,
+    });
 
     if (!result.ok) {
       return NextResponse.json(
@@ -29,6 +33,7 @@ export async function POST(request: Request) {
       parentId: result.parentId,
       athleteId: result.athleteId,
       redirectTo: returnTo,
+      alreadyComplete: result.alreadyComplete ?? false,
     });
   } catch (error) {
     if (error instanceof ZodError) {

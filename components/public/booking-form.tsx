@@ -240,6 +240,7 @@ export function BookingForm({
         );
         if (!res.ok || cancelled) return;
         const data = (await res.json()) as {
+          athleteId?: string | null;
           intakeRequired?: boolean;
         };
         if (cancelled) return;
@@ -441,7 +442,10 @@ export function BookingForm({
         if (data.code === "SESSION_FULL") {
           router.push(`/book/${session.id}?waitlist=1`);
         }
-        if (data.code === "INTAKE_REQUIRED") {
+        if (
+          data.code === "INTAKE_REQUIRED" ||
+          data.code === "WAIVER_RENEWAL_REQUIRED"
+        ) {
           router.push(data.intakeUrl ?? intakeReturn);
         }
         return;

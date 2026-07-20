@@ -43,8 +43,8 @@ export function FamilyLoginForm({
         <p className="font-medium">Check your email</p>
         <p className="mt-2 text-muted-foreground">
           If we can help with <strong>{email}</strong>, you&apos;ll receive a
-          secure link shortly. It may be for intake, signing in, or claiming
-          your account — whatever applies to your family. The link expires in 30
+          secure link shortly. It may be for intake, signing in, or creating
+          your online account — whatever applies to your family. The link expires in 30
           minutes.
         </p>
         <Button
@@ -66,7 +66,7 @@ export function FamilyLoginForm({
     >
       <p className="text-sm text-muted-foreground">
         Enter your email and we&apos;ll send the right secure link — intake,
-        sign-in, or claim your account.
+        sign-in, or create your online account.
       </p>
       <div className="space-y-1.5">
         <Label htmlFor="myEmail">Email address</Label>

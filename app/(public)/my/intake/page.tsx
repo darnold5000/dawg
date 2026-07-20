@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { FamilyIntakeForm } from "@/components/public/family-intake-form";
 import {
   getAuthenticatedFamily,
-  intakePath,
   loginPath,
   sanitizeReturnPath,
 } from "@/lib/family-auth";
-import { getParentById, isParentAccountClaimed } from "@/lib/parent-account";
-import { parentHasAnyIntake } from "@/lib/intake";
+import { getIntakeFormContext } from "@/lib/intake";
+import { IntakeAlreadyComplete } from "@/components/public/intake-complete-prompts";
 import { createMetadata } from "@/lib/seo";
 
 export const metadata = createMetadata({
@@ -21,33 +19,46 @@ export const metadata = createMetadata({
 export default async function FamilyIntakePage({
   searchParams,
 }: {
-  searchParams: Promise<{ return?: string }>;
+  searchParams: Promise<{ return?: string; athleteId?: string }>;
 }) {
   const q = await searchParams;
   const returnTo = sanitizeReturnPath(q.return, "/schedule");
+  const athleteId = q.athleteId?.trim() || null;
 
   const family = await getAuthenticatedFamily();
-  if (family) {
-    const hasIntake = await parentHasAnyIntake(family.parentId);
-    if (hasIntake) {
-      redirect(returnTo);
-    }
-  }
+  const context = await getIntakeFormContext({
+    parentId: family?.parentId,
+    email: family?.parentEmail,
+    athleteId,
+  });
 
   let heading = "Complete athlete intake";
   let description =
-    "One-time intake is required before we can confirm a training session. Portal access is optional — you can claim your account later to view credits and history.";
+    "One-time intake is required before we can confirm a training session. Creating an online account is optional — it lets you view credits and booking history later.";
 
-  if (family) {
-    const parent = await getParentById(family.parentId);
-    const existingParent = Boolean(parent);
-    const unclaimed = parent ? !(await isParentAccountClaimed(parent.id)) : false;
+  if (context.mode === "add-athlete") {
+    heading = "Add another athlete";
+    description =
+      "Your family contact and emergency info are already on file. Add this athlete to continue.";
+  } else if (context.mode === "waiver-only") {
+    heading = "Updated waiver";
+    description =
+      "Our liability waiver has been updated. Review and accept to continue — your other information stays on file.";
+  }
 
-    if (existingParent && unclaimed) {
-      heading = "Complete intake to continue";
-      description =
-        "We already have your family on file. Finish intake for this athlete, then return to your booking.";
-    }
+  if (context.alreadyComplete) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 md:py-16">
+        <IntakeAlreadyComplete
+          returnTo={returnTo}
+          athleteName={
+            context.athlete
+              ? `${context.athlete.firstName} ${context.athlete.lastName}`
+              : undefined
+          }
+        />
+      </div>
+    );
   }
 
   return (
@@ -57,6 +68,7 @@ export default async function FamilyIntakePage({
       <div className="mt-8">
         <FamilyIntakeForm
           returnTo={returnTo}
+          athleteId={athleteId}
           initialContact={
             family
               ? {
@@ -65,7 +77,14 @@ export default async function FamilyIntakePage({
                   parentEmail: family.parentEmail,
                   parentPhone: family.parentPhone,
                 }
-              : undefined
+              : context.parent
+                ? {
+                    parentFirstName: context.parent.firstName,
+                    parentLastName: context.parent.lastName,
+                    parentEmail: context.parent.email,
+                    parentPhone: context.parent.phone,
+                  }
+                : undefined
           }
         />
       </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadRememberedFamily } from "@/lib/family-device";
-import { athleteHasIntake } from "@/lib/intake";
+import { athleteBookingReady } from "@/lib/intake";
 import {
   listActiveCreditsForParent,
   totalCreditsRemaining,
@@ -41,8 +41,11 @@ export async function GET(request: Request) {
     }
 
     let intakeComplete = false;
+    let intakeRequired = true;
     if (athleteId) {
-      intakeComplete = await athleteHasIntake(athleteId);
+      const readiness = await athleteBookingReady(athleteId);
+      intakeComplete = readiness.ready;
+      intakeRequired = !readiness.ready;
     }
 
     let creditsRemaining = 0;
@@ -66,7 +69,7 @@ export async function GET(request: Request) {
       parentId,
       athleteId,
       intakeComplete,
-      intakeRequired: athleteId ? !intakeComplete : true,
+      intakeRequired,
       creditsRemaining,
       purchases,
     });
