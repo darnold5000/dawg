@@ -55,8 +55,36 @@ export function PackageCreditAdjustmentPanel({
   const [reason, setReason] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const selectedPackage = packages.find((p) => p.slug === packageSlug);
+
+  async function syncAttendedCredits() {
+    setSyncing(true);
+    try {
+      const res = await fetch(
+        `/api/admin/clients/${parentId}/package-credits/sync`,
+        { method: "POST" },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Could not sync credits");
+        return;
+      }
+      if (data.redeemed > 0) {
+        toast.success(
+          `Applied ${data.redeemed} credit${data.redeemed === 1 ? "" : "s"} for attended sessions`,
+        );
+      } else {
+        toast.message("No missing credit deductions found for attended sessions");
+      }
+      router.refresh();
+    } catch {
+      toast.error("Could not sync credits");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -120,21 +148,33 @@ export function PackageCreditAdjustmentPanel({
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-800" />
           <div className="min-w-0 flex-1">
             <h3 className="font-heading text-xl tracking-wide text-amber-950">
-              Manual credit tools
+              Session credits (owner / admin)
             </h3>
             <p className="mt-1 text-sm text-amber-900/80">
-              Grant new session credits or correct an existing balance. These
-              changes are logged and are not tied to Stripe — use only for
-              comps, corrections, or cash/check packages recorded in the office.
+              Group classes deduct one package credit when staff marks{" "}
+              <strong>Attended</strong> on the session roster. Use these tools to
+              grant credits, fix a balance, or backfill credits for sessions
+              already marked attended.
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4 border-amber-400 bg-white hover:bg-amber-50"
-              onClick={() => setOpen(true)}
-            >
-              Open credit adjustment…
-            </Button>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-amber-400 bg-white hover:bg-amber-50"
+                disabled={syncing}
+                onClick={() => void syncAttendedCredits()}
+              >
+                {syncing ? "Syncing…" : "Apply credits for attended sessions"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-amber-400 bg-white hover:bg-amber-50"
+                onClick={() => setOpen(true)}
+              >
+                Add or remove credits…
+              </Button>
+            </div>
           </div>
         </div>
 

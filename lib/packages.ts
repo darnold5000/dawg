@@ -271,7 +271,6 @@ export type PackageCreditRedemptionResult =
       redeemed: false;
       reason:
         | "already_redeemed"
-        | "roster_session"
         | "paid_online"
         | "paid_at_facility"
         | "no_credits"
@@ -318,10 +317,7 @@ export async function redeemPackageCreditOnAttendance(
     return { ok: true, redeemed: false, reason: "already_redeemed" };
   }
 
-  if (booking.payment_status === "not_required") {
-    return { ok: true, redeemed: false, reason: "roster_session" };
-  }
-
+  // Roster / package sessions use not_required at booking — credit is taken at attendance.
   if (
     booking.payment_method === "stripe" &&
     (booking.payment_status === "paid" || booking.payment_status === "pending")
@@ -389,4 +385,41 @@ export async function redeemPackageCreditOnAttendance(
     sessionsRemaining: Number(remaining),
     packageName: purchase.package?.name ?? null,
   };
+}
+
+/** Backfill credits for attended bookings that never had a redemption recorded. */
+export async function syncAttendedBookingCredits(parentId: string): Promise<{
+  ok: true;
+  redeemed: number;
+  skipped: number;
+  failed: number;
+}> {
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { ok: true, redeemed: 0, skipped: 0, failed: 0 };
+  }
+
+  const supabase = createServiceClient();
+  const { data: bookings } = await supabase
+    .from(DAWG_TABLES.bookings)
+    .select("id")
+    .eq("parent_id", parentId)
+    .eq("attendance_status", "attended")
+    .order("booked_at", { ascending: true });
+
+  let redeemed = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (const booking of bookings ?? []) {
+    const result = await redeemPackageCreditOnAttendance(booking.id);
+    if (!result.ok) {
+      failed += 1;
+    } else if (result.redeemed) {
+      redeemed += 1;
+    } else {
+      skipped += 1;
+    }
+  }
+
+  return { ok: true, redeemed, skipped, failed };
 }

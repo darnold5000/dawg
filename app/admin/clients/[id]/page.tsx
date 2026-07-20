@@ -249,8 +249,19 @@ export default async function AdminClientDetailPage({
           )}
         </section>
 
-        <section className="space-y-3">
+        <section className="space-y-4">
           <h3 className="font-heading text-xl tracking-wide">Packages</h3>
+
+          {isAdminRole(profile.role) ? (
+            <PackageCreditAdjustmentPanel
+              parentId={parent.id}
+              purchases={purchases}
+              athletes={athletes}
+              packages={packages}
+              adjustments={adjustments}
+            />
+          ) : null}
+
           {purchases.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
               No package purchases yet.
@@ -291,16 +302,6 @@ export default async function AdminClientDetailPage({
             </div>
           )}
         </section>
-
-        {isAdminRole(profile.role) ? (
-          <PackageCreditAdjustmentPanel
-            parentId={parent.id}
-            purchases={purchases}
-            athletes={athletes}
-            packages={packages}
-            adjustments={adjustments}
-          />
-        ) : null}
 
         <section className="rounded-xl border border-border bg-card p-5">
           <h3 className="font-heading text-xl tracking-wide">Email parent</h3>
