@@ -380,7 +380,7 @@ export async function sendPackagePurchaseConfirmation(payload: {
             View your credits
           </a>
         </p>
-        <p style="color: #666; font-size: 13px;">This link expires in 30 minutes. ${escapeHtml(SITE.name)} · ${SITE.phone}</p>
+        <p style="color: #666; font-size: 13px;">This link expires in 24 hours. ${escapeHtml(SITE.name)} · ${SITE.phone}</p>
       </div>
     `,
       text: `Your ${payload.packageName} is ready (${payload.sessionsTotal} sessions). View your credits: ${link}`,
@@ -428,7 +428,7 @@ export async function sendAccountClaimEmail(payload: {
             Claim your account
           </a>
         </p>
-        <p style="color: #666; font-size: 13px;">This secure link expires in 30 minutes. If you did not make this purchase, contact us at ${SITE.phone}.</p>
+        <p style="color: #666; font-size: 13px;">This secure link expires in 24 hours. If you did not make this purchase, contact us at ${SITE.phone}.</p>
       </div>
     `,
       text: `Your ${payload.packageName} is ready. Claim your DAWG account: ${link}`,
@@ -457,7 +457,7 @@ export async function sendFamilyLoginEmail(payload: {
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
         <h1 style="font-size: 22px; margin: 0 0 12px;">Sign in to your account</h1>
         <p>Hi ${escapeHtml(payload.parentFirstName)},</p>
-        <p>Use this secure link to view your athletes, packages, and session credits. It expires in 30 minutes.</p>
+        <p>Use this secure link to view your athletes, packages, and session credits. It expires in 24 hours.</p>
         <p style="margin: 24px 0;">
           <a href="${link}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
             Open my account
@@ -466,7 +466,7 @@ export async function sendFamilyLoginEmail(payload: {
         <p style="color: #666; font-size: 13px;">If you did not request this, you can ignore this email.</p>
       </div>
     `,
-      text: `Sign in to your DAWG account: ${link}\n\nThis link expires in 30 minutes.`,
+      text: `Sign in to your DAWG account: ${link}\n\nThis link expires in 24 hours.`,
     },
     "family-login",
   );
@@ -492,7 +492,7 @@ export async function sendIntakeAccessEmail(payload: {
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
         <h1 style="font-size: 22px; margin: 0 0 12px;">Complete athlete intake</h1>
         <p>Hi ${escapeHtml(firstName(payload.parentFirstName))},</p>
-        <p>Before we can confirm a training session, we need a one-time intake form for your athlete. This secure link expires in 30 minutes.</p>
+        <p>Before we can confirm a training session, we need a one-time intake form for your athlete. This secure link expires in 24 hours.</p>
         <p style="margin: 24px 0;">
           <a href="${link}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
             Complete intake

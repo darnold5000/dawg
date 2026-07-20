@@ -16,6 +16,7 @@ import {
 } from "@/lib/email";
 import { setAuthReturnCookie } from "@/lib/family-auth";
 import { evaluateLoginToken } from "@/lib/family-token-verify";
+import { intakePath, sanitizeReturnPath } from "@/lib/family-auth-url";
 import { parentHasAnyIntake } from "@/lib/intake";
 import {
   findOrCreateParentByEmail,
@@ -23,11 +24,29 @@ import {
   isParentAccountClaimed,
   markParentAccountClaimed,
 } from "@/lib/parent-account";
-import { sanitizeReturnPath } from "@/lib/family-auth-url";
 
-const TOKEN_TTL_MINUTES = 30;
+const TOKEN_TTL_MINUTES = 24 * 60;
 
 export type FamilyTokenPurpose = "login" | "claim" | "intake";
+
+/** Repair tokens mangled by email clients (whitespace, partial decoding). */
+export function normalizeMagicLinkToken(raw: string): string {
+  let token = raw.trim();
+  if (!token) return token;
+
+  for (let i = 0; i < 2; i += 1) {
+    if (!token.includes("%")) break;
+    try {
+      const decoded = decodeURIComponent(token);
+      if (decoded === token) break;
+      token = decoded.trim();
+    } catch {
+      break;
+    }
+  }
+
+  return token.replace(/\s+/g, "");
+}
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -35,6 +54,15 @@ function hashToken(token: string) {
 
 function newToken() {
   return randomBytes(32).toString("base64url");
+}
+
+function tokenErrorMessage(code: "USED" | "EXPIRED" | "INVALID"): string {
+  const messages: Record<typeof code, string> = {
+    USED: "This link has already been used. Request a new one below.",
+    EXPIRED: "This link has expired. Request a new one below.",
+    INVALID: "This link is invalid or incomplete. Request a new one below.",
+  };
+  return messages[code];
 }
 
 export async function createFamilyAccessToken(input: {
@@ -196,11 +224,12 @@ export async function requestFamilyLogin(
   return requestFamilyAccessLink(email, returnTo);
 }
 
-export async function verifyFamilyLoginToken(token: string): Promise<
-  | { ok: true; parentId: string; purpose: FamilyTokenPurpose }
+export async function peekFamilyLoginToken(token: string): Promise<
+  | { ok: true; purpose: FamilyTokenPurpose }
   | { ok: false; error: string; code?: string }
 > {
-  if (!token.trim()) {
+  const normalized = normalizeMagicLinkToken(token);
+  if (!normalized) {
     return { ok: false, error: "Invalid link.", code: "INVALID_TOKEN" };
   }
 
@@ -209,7 +238,58 @@ export async function verifyFamilyLoginToken(token: string): Promise<
   }
 
   const supabase = createServiceClient();
-  const tokenHash = hashToken(token);
+  const { data: row } = await supabase
+    .from(DAWG_TABLES.familyLoginTokens)
+    .select("expires_at, used_at, purpose")
+    .eq("token_hash", hashToken(normalized))
+    .maybeSingle();
+
+  const evaluation = evaluateLoginToken(row, new Date().toISOString());
+  if (!evaluation.ok) {
+    return {
+      ok: false,
+      error: tokenErrorMessage(evaluation.code),
+      code: evaluation.code,
+    };
+  }
+
+  return {
+    ok: true,
+    purpose: (row!.purpose as FamilyTokenPurpose) ?? "login",
+  };
+}
+
+export async function resolvePostVerifyRedirect(input: {
+  parentId: string;
+  purpose: FamilyTokenPurpose;
+  returnTo: string;
+}): Promise<string> {
+  const safeReturn = sanitizeReturnPath(input.returnTo, "/schedule");
+  if (input.purpose === "intake") {
+    return intakePath(safeReturn);
+  }
+  const hasIntake = await parentHasAnyIntake(input.parentId);
+  if (!hasIntake) {
+    return intakePath(safeReturn);
+  }
+  return safeReturn;
+}
+
+export async function verifyFamilyLoginToken(token: string): Promise<
+  | { ok: true; parentId: string; purpose: FamilyTokenPurpose }
+  | { ok: false; error: string; code?: string }
+> {
+  const normalized = normalizeMagicLinkToken(token);
+  if (!normalized) {
+    return { ok: false, error: "Invalid link.", code: "INVALID_TOKEN" };
+  }
+
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { ok: false, error: "Service unavailable.", code: "NO_DB" };
+  }
+
+  const supabase = createServiceClient();
+  const tokenHash = hashToken(normalized);
   const now = new Date().toISOString();
 
   const { data: row } = await supabase
@@ -220,14 +300,9 @@ export async function verifyFamilyLoginToken(token: string): Promise<
 
   const evaluation = evaluateLoginToken(row, now);
   if (!evaluation.ok) {
-    const messages: Record<string, string> = {
-      USED: "This link is invalid or already used.",
-      EXPIRED: "This link has expired.",
-      INVALID: "Invalid link.",
-    };
     return {
       ok: false,
-      error: messages[evaluation.code],
+      error: tokenErrorMessage(evaluation.code),
       code: evaluation.code,
     };
   }
@@ -246,7 +321,7 @@ export async function verifyFamilyLoginToken(token: string): Promise<
   if (claimError || !claimed) {
     return {
       ok: false,
-      error: "This link is invalid or already used.",
+      error: tokenErrorMessage("USED"),
       code: "USED",
     };
   }

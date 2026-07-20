@@ -44,8 +44,8 @@ export function FamilyLoginForm({
         <p className="mt-2 text-muted-foreground">
           If we can help with <strong>{email}</strong>, you&apos;ll receive a
           secure link shortly. It may be for intake, signing in, or creating
-          your online account — whatever applies to your family. The link expires in 30
-          minutes.
+          your online account — whatever applies to your family. The link expires in 24
+          hours.
         </p>
         <Button
           type="button"

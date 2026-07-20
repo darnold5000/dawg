@@ -77,7 +77,7 @@ export function PackagePurchaseCards({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {!isSignedIn ? (
         <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
@@ -136,19 +136,21 @@ export function PackagePurchaseCards({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-3">
         {packages.map((pkg) => (
           <div
             key={pkg.id}
-            className="flex flex-col rounded-xl border border-border bg-card p-5"
+            className="flex min-h-[220px] flex-col rounded-xl border border-border bg-card p-6 sm:p-7"
           >
-            <p className="font-heading text-xl tracking-wide">{pkg.name}</p>
-            <p className="mt-2 font-heading text-3xl tracking-wide text-gold">
-              {formatPrice(pkg.price_cents)}
-            </p>
+            <div className="space-y-3">
+              <p className="font-heading text-xl tracking-wide">{pkg.name}</p>
+              <p className="font-heading text-3xl tracking-wide text-gold sm:text-4xl">
+                {formatPrice(pkg.price_cents)}
+              </p>
+            </div>
             <Button
               type="button"
-              className="mt-auto w-full justify-center bg-brand text-brand-foreground hover:bg-brand/90"
+              className="mt-auto w-full justify-center bg-brand py-6 text-brand-foreground hover:bg-brand/90"
               disabled={purchasingSlug !== null}
               onClick={() => void purchase(pkg)}
             >
