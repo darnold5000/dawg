@@ -111,7 +111,10 @@ export async function listIntakesForParent(
   return (data as IntakeSubmission[]) ?? [];
 }
 
-export async function submitIntake(raw: IntakeInput): Promise<
+export async function submitIntake(
+  raw: IntakeInput,
+  options?: { claimAccount?: boolean },
+): Promise<
   | {
       ok: true;
       parentId: string;
@@ -263,7 +266,9 @@ export async function submitIntake(raw: IntakeInput): Promise<
     }),
   ]);
 
-  await markParentAccountClaimed(parentId);
+  if (options?.claimAccount) {
+    await markParentAccountClaimed(parentId);
+  }
 
   return {
     ok: true,

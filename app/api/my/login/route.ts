@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requestFamilyLogin } from "@/lib/family-login";
+import { requestFamilyAccessLink } from "@/lib/family-login";
 import { sanitizeReturnPath } from "@/lib/family-auth";
 
 const bodySchema = z.object({
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { email, returnTo } = bodySchema.parse(body);
-    const result = await requestFamilyLogin(
+    const result = await requestFamilyAccessLink(
       email,
       sanitizeReturnPath(returnTo, "/schedule"),
     );

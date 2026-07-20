@@ -1,22 +1,34 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { submitIntake } from "@/lib/intake";
+import { z } from "zod";
+import { sanitizeReturnPath } from "@/lib/family-auth";
+import { intakeSchema, submitIntake } from "@/lib/intake";
+
+const bodySchema = intakeSchema.extend({
+  returnTo: z.string().optional(),
+});
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const result = await submitIntake(body);
+    const parsed = bodySchema.parse(body);
+    const returnTo = sanitizeReturnPath(parsed.returnTo, "/schedule");
+    const { returnTo: _rt, ...intakeInput } = parsed;
+
+    const result = await submitIntake(intakeInput, { claimAccount: false });
+
     if (!result.ok) {
       return NextResponse.json(
         { error: result.error, code: result.code },
         { status: 400 },
       );
     }
+
     return NextResponse.json({
       ok: true,
       parentId: result.parentId,
       athleteId: result.athleteId,
-      intakeId: result.intakeId,
+      redirectTo: returnTo,
     });
   } catch (error) {
     if (error instanceof ZodError) {

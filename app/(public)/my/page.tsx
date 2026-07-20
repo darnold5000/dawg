@@ -1,6 +1,11 @@
 import { FamilyDashboard } from "@/components/public/family-dashboard";
+import {
+  claimPath,
+  getAuthenticatedFamily,
+  loginPath,
+} from "@/lib/family-auth";
 import { getFamilyPortalForSession } from "@/lib/family-portal";
-import { loginPath } from "@/lib/family-auth";
+import { isParentAccountClaimed } from "@/lib/parent-account";
 import { createMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -14,6 +19,9 @@ export const metadata = createMetadata({
 
 export default async function MyAccountPage() {
   const data = await getFamilyPortalForSession();
+  const family = data ? null : await getAuthenticatedFamily();
+  const unclaimed =
+    family && !(await isParentAccountClaimed(family.parentId));
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-16">
@@ -25,13 +33,27 @@ export default async function MyAccountPage() {
       <div className="mt-8">
         {data ? (
           <FamilyDashboard data={data} />
+        ) : unclaimed ? (
+          <div className="space-y-4 rounded-xl border border-border bg-card p-6">
+            <p className="text-sm text-muted-foreground">
+              Hi {family.parentFirstName}, your family is on file. Claim your
+              account to view credits, bookings, and athletes in one place.
+            </p>
+            <Button
+              asChild
+              className="bg-brand text-brand-foreground hover:bg-brand/90"
+            >
+              <Link href={claimPath("/my")}>Claim My Account</Link>
+            </Button>
+          </div>
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Sign in to view your account, or create one to get started.
+              Enter your email and we&apos;ll send a secure link to sign in or
+              claim your account.
             </p>
             <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
-              <Link href={loginPath("/my")}>Sign in</Link>
+              <Link href={loginPath("/my")}>Continue with email</Link>
             </Button>
           </div>
         )}

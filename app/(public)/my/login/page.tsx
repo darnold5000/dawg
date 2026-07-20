@@ -3,15 +3,16 @@ import { redirect } from "next/navigation";
 import { FamilyLoginForm } from "@/components/public/family-login-form";
 import {
   getAuthenticatedFamily,
-  registerPath,
+  intakePath,
   sanitizeReturnPath,
 } from "@/lib/family-auth";
 import { parentHasAnyIntake } from "@/lib/intake";
 import { createMetadata } from "@/lib/seo";
 
 export const metadata = createMetadata({
-  title: "Sign in",
-  description: "Sign in to book DAWG Youth Training sessions and manage packages.",
+  title: "Continue",
+  description:
+    "Enter your email for a secure DAWG link to complete intake, sign in, or claim your account.",
   path: "/my/login",
 });
 
@@ -27,16 +28,16 @@ export default async function FamilyLoginPage({
   if (family) {
     const hasIntake = await parentHasAnyIntake(family.parentId);
     if (!hasIntake) {
-      redirect(registerPath(returnTo));
+      redirect(intakePath(returnTo));
     }
     redirect(returnTo);
   }
 
   return (
     <div className="mx-auto max-w-md px-4 py-12 sm:px-6 md:py-16">
-      <h1 className="font-heading text-4xl tracking-wide">Sign in</h1>
+      <h1 className="font-heading text-4xl tracking-wide">Continue</h1>
       <p className="mt-3 text-muted-foreground">
-        Sign in to book sessions, buy packages, and track your credits.
+        Enter your email and we&apos;ll send a secure link. No password needed.
       </p>
       <div className="mt-8">
         <FamilyLoginForm returnTo={returnTo} />

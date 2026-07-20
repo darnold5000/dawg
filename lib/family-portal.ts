@@ -4,6 +4,7 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { getAuthenticatedParentId } from "@/lib/family-auth";
+import { isParentAccountClaimed } from "@/lib/parent-account";
 import type {
   Athlete,
   PackagePurchaseWithPackage,
@@ -37,6 +38,7 @@ export type FamilyPortalData = {
 export async function getFamilyPortalForSession(): Promise<FamilyPortalData | null> {
   const parentId = await getAuthenticatedParentId();
   if (!parentId) return null;
+  if (!(await isParentAccountClaimed(parentId))) return null;
   return getFamilyPortalData(parentId);
 }
 

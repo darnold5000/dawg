@@ -8,11 +8,10 @@ import {
 } from "@/lib/billing/site-url";
 import { expirePendingBooking } from "@/lib/billing/adapter";
 import {
-  loginPath,
+  getAuthenticatedFamily,
+  intakePath,
   parentEmailMatches,
-  requireFamilySessionApi,
 } from "@/lib/family-auth";
-import { parentHasAnyIntake } from "@/lib/intake";
 
 const recent = new Map<string, number>();
 
@@ -29,34 +28,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = bookingSchema.parse(body);
 
-    const family = await requireFamilySessionApi();
-    if (family instanceof NextResponse) {
+    const family = await getAuthenticatedFamily();
+    if (family && !parentEmailMatches(family, parsed.parentEmail)) {
       return NextResponse.json(
         {
-          error: "Sign in to book a session.",
-          code: "AUTH_REQUIRED",
-          loginUrl: loginPath(`/book/${parsed.sessionId}`),
-        },
-        { status: 401 },
-      );
-    }
-
-    if (!parentEmailMatches(family, parsed.parentEmail)) {
-      return NextResponse.json(
-        {
-          error: "Use the email for your signed-in account.",
+          error: "Use the email for your signed-in family on this device.",
           code: "EMAIL_MISMATCH",
-        },
-        { status: 403 },
-      );
-    }
-
-    const hasIntake = await parentHasAnyIntake(family.parentId);
-    if (!hasIntake) {
-      return NextResponse.json(
-        {
-          error: "Complete athlete intake before booking.",
-          code: "INTAKE_REQUIRED",
         },
         { status: 403 },
       );
@@ -74,6 +51,17 @@ export async function POST(request: Request) {
 
     const result = await createPublicBooking(parsed);
     if (!result.ok) {
+      if (result.code === "INTAKE_REQUIRED") {
+        const bookReturn = `/book/${parsed.sessionId}`;
+        return NextResponse.json(
+          {
+            error: result.error,
+            code: result.code,
+            intakeUrl: intakePath(bookReturn),
+          },
+          { status: 403 },
+        );
+      }
       const status = result.code === "SESSION_FULL" ? 409 : 400;
       return NextResponse.json(
         { error: result.error, code: result.code },

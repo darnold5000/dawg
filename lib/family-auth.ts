@@ -8,11 +8,17 @@ import {
 import { parentHasAnyIntake } from "@/lib/intake";
 import {
   loginPath,
-  registerPath,
+  intakePath,
   sanitizeReturnPath,
 } from "@/lib/family-auth-url";
 
-export { loginPath, registerPath, sanitizeReturnPath } from "@/lib/family-auth-url";
+export {
+  loginPath,
+  registerPath,
+  intakePath,
+  claimPath,
+  sanitizeReturnPath,
+} from "@/lib/family-auth-url";
 
 export const AUTH_RETURN_COOKIE = "dawg_auth_return";
 const RETURN_MAX_AGE_SEC = 60 * 60; // 1 hour
@@ -55,12 +61,12 @@ export async function requireFamilyPageAuth(returnTo: string): Promise<Remembere
   return family;
 }
 
-/** Redirect to register if signed in but intake not completed. */
+/** Redirect to intake if signed in but intake not completed. */
 export async function requireFamilyWithIntake(returnTo: string): Promise<RememberedFamily> {
   const family = await requireFamilyPageAuth(returnTo);
   const hasIntake = await parentHasAnyIntake(family.parentId);
   if (!hasIntake) {
-    redirect(registerPath(returnTo));
+    redirect(intakePath(returnTo));
   }
   return family;
 }

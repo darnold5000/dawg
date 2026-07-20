@@ -17,11 +17,14 @@ export async function POST(request: Request) {
     const parsed = registerSchema.parse(body);
     const returnTo = sanitizeReturnPath(parsed.returnTo, "/schedule");
 
-    const result = await submitIntake({
-      ...parsed,
-      packageInterest: parsed.packageInterest ?? "single",
-      rememberFamily: true,
-    });
+    const result = await submitIntake(
+      {
+        ...parsed,
+        packageInterest: parsed.packageInterest ?? "single",
+        rememberFamily: true,
+      },
+      { claimAccount: false },
+    );
 
     if (!result.ok) {
       return NextResponse.json(

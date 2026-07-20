@@ -9,13 +9,25 @@ import {
   setFamilyDeviceCookie,
 } from "@/lib/family-device";
 import { CURRENT_AGREEMENTS_VERSION } from "@/lib/agreements";
-import { sendFamilyLoginEmail } from "@/lib/email";
+import {
+  sendAccountClaimEmail,
+  sendFamilyLoginEmail,
+  sendIntakeAccessEmail,
+} from "@/lib/email";
 import { setAuthReturnCookie } from "@/lib/family-auth";
 import { evaluateLoginToken } from "@/lib/family-token-verify";
+import { parentHasAnyIntake } from "@/lib/intake";
+import {
+  findOrCreateParentByEmail,
+  getParentByEmail,
+  isParentAccountClaimed,
+  markParentAccountClaimed,
+} from "@/lib/parent-account";
+import { sanitizeReturnPath } from "@/lib/family-auth-url";
 
 const TOKEN_TTL_MINUTES = 30;
 
-export type FamilyTokenPurpose = "login" | "claim";
+export type FamilyTokenPurpose = "login" | "claim" | "intake";
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -35,7 +47,9 @@ export async function createFamilyAccessToken(input: {
   }
 
   const token = newToken();
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_MINUTES * 60_000).toISOString();
+  const expiresAt = new Date(
+    Date.now() + TOKEN_TTL_MINUTES * 60_000,
+  ).toISOString();
   const supabase = createServiceClient();
 
   const { error } = await supabase.from(DAWG_TABLES.familyLoginTokens).insert({
@@ -54,13 +68,55 @@ export async function createFamilyAccessToken(input: {
   return token;
 }
 
-export async function requestFamilyLogin(
+async function sendTokenEmail(input: {
+  purpose: FamilyTokenPurpose;
+  parentEmail: string;
+  parentFirstName: string;
+  token: string;
+  returnTo: string;
+  packageName?: string;
+  sessionsTotal?: number;
+}) {
+  const safeReturn = sanitizeReturnPath(input.returnTo, "/schedule");
+
+  if (input.purpose === "intake") {
+    await sendIntakeAccessEmail({
+      parentEmail: input.parentEmail,
+      parentFirstName: input.parentFirstName,
+      token: input.token,
+      returnTo: safeReturn,
+    });
+    return;
+  }
+
+  if (input.purpose === "claim") {
+    await sendAccountClaimEmail({
+      parentEmail: input.parentEmail,
+      parentFirstName: input.parentFirstName,
+      token: input.token,
+      returnTo: safeReturn,
+      packageName: input.packageName ?? "DAWG training",
+      sessionsTotal: input.sessionsTotal ?? 1,
+    });
+    return;
+  }
+
+  await sendFamilyLoginEmail({
+    parentEmail: input.parentEmail,
+    parentFirstName: input.parentFirstName,
+    token: input.token,
+    returnTo: safeReturn,
+  });
+}
+
+/**
+ * Single email entry point: sends intake, claim, or login link based on parent state.
+ * Always returns success to avoid email enumeration.
+ */
+export async function requestFamilyAccessLink(
   email: string,
   returnTo?: string | null,
-): Promise<
-  | { ok: true }
-  | { ok: false; error: string; code?: string }
-> {
+): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) {
     return { ok: false, error: "Enter your email address.", code: "INVALID_EMAIL" };
@@ -70,43 +126,61 @@ export async function requestFamilyLogin(
     return { ok: false, error: "Service unavailable.", code: "NO_DB" };
   }
 
-  const supabase = createServiceClient();
-  const { data: parent } = await supabase
-    .from(DAWG_TABLES.parents)
-    .select("id, first_name, email")
-    .ilike("email", normalized)
-    .maybeSingle();
+  const safeReturn = sanitizeReturnPath(returnTo, "/schedule");
+  let parent = await getParentByEmail(normalized);
 
-  // Always return success to avoid email enumeration.
+  if (!parent) {
+    parent = await findOrCreateParentByEmail({
+      email: normalized,
+      firstName: "DAWG",
+      lastName: "Family",
+      phone: "",
+    });
+  }
+
   if (!parent) {
     return { ok: true };
+  }
+
+  const hasIntake = await parentHasAnyIntake(parent.id);
+  const claimed = await isParentAccountClaimed(parent.id);
+
+  let purpose: FamilyTokenPurpose;
+  if (!hasIntake) {
+    purpose = "intake";
+  } else if (!claimed) {
+    purpose = "claim";
+  } else {
+    purpose = "login";
   }
 
   const token = await createFamilyAccessToken({
     parentId: parent.id,
     email: parent.email,
-    purpose: "login",
+    purpose,
   });
 
   if (!token) {
-    return { ok: false, error: "Could not send login link.", code: "TOKEN_FAILED" };
+    return { ok: false, error: "Could not send link.", code: "TOKEN_FAILED" };
   }
 
   if (returnTo) {
-    await setAuthReturnCookie(returnTo);
+    await setAuthReturnCookie(safeReturn);
   }
 
   try {
-    await sendFamilyLoginEmail({
+    await sendTokenEmail({
+      purpose,
       parentEmail: parent.email,
       parentFirstName: parent.first_name ?? "there",
       token,
+      returnTo: safeReturn,
     });
   } catch (err) {
     console.error("[family-login] email", err);
     return {
       ok: false,
-      error: "Could not send login email. Try again later.",
+      error: "Could not send email. Try again later.",
       code: "EMAIL_FAILED",
     };
   }
@@ -114,8 +188,16 @@ export async function requestFamilyLogin(
   return { ok: true };
 }
 
+/** @deprecated Use requestFamilyAccessLink */
+export async function requestFamilyLogin(
+  email: string,
+  returnTo?: string | null,
+) {
+  return requestFamilyAccessLink(email, returnTo);
+}
+
 export async function verifyFamilyLoginToken(token: string): Promise<
-  | { ok: true; parentId: string }
+  | { ok: true; parentId: string; purpose: FamilyTokenPurpose }
   | { ok: false; error: string; code?: string }
 > {
   if (!token.trim()) {
@@ -132,7 +214,7 @@ export async function verifyFamilyLoginToken(token: string): Promise<
 
   const { data: row } = await supabase
     .from(DAWG_TABLES.familyLoginTokens)
-    .select("id, parent_id, expires_at, used_at")
+    .select("id, parent_id, expires_at, used_at, purpose")
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
@@ -149,6 +231,8 @@ export async function verifyFamilyLoginToken(token: string): Promise<
       code: evaluation.code,
     };
   }
+
+  const purpose = (row!.purpose as FamilyTokenPurpose) ?? "login";
 
   const { data: claimed, error: claimError } = await supabase
     .from(DAWG_TABLES.familyLoginTokens)
@@ -167,6 +251,10 @@ export async function verifyFamilyLoginToken(token: string): Promise<
     };
   }
 
+  if (purpose === "claim") {
+    await markParentAccountClaimed(claimed.parent_id);
+  }
+
   const remembered = await rememberFamilyOnDevice({
     parentId: claimed.parent_id,
     agreementsVersion: CURRENT_AGREEMENTS_VERSION,
@@ -177,5 +265,5 @@ export async function verifyFamilyLoginToken(token: string): Promise<
     await setFamilyDeviceCookie(remembered.token);
   }
 
-  return { ok: true, parentId: claimed.parent_id };
+  return { ok: true, parentId: claimed.parent_id, purpose };
 }

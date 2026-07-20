@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { BookingForm } from "@/components/public/booking-form";
 import { getSessionById } from "@/lib/data";
-import { requireFamilyWithIntake } from "@/lib/family-auth";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { createMetadata } from "@/lib/seo";
 import { paymentMethodLabel } from "@/lib/billing/payment-options";
@@ -46,8 +45,6 @@ export default async function BookPage({
 }) {
   const { sessionId } = await params;
   const { waitlist } = await searchParams;
-  const returnTo = `/book/${sessionId}${waitlist === "1" ? "?waitlist=1" : ""}`;
-  await requireFamilyWithIntake(returnTo);
 
   const session = await getSessionById(sessionId);
   if (!session) notFound();

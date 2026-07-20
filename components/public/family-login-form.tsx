@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginPath, registerPath } from "@/lib/family-auth-url";
 
 export function FamilyLoginForm({
   returnTo = "/schedule",
@@ -28,7 +26,7 @@ export function FamilyLoginForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Could not send sign-in link");
+        toast.error(data.error ?? "Could not send link");
         return;
       }
       setSent(true);
@@ -44,18 +42,10 @@ export function FamilyLoginForm({
       <div className="rounded-xl border border-border bg-card p-6 text-sm">
         <p className="font-medium">Check your email</p>
         <p className="mt-2 text-muted-foreground">
-          If we have an account for <strong>{email}</strong>, you will receive a
-          sign-in link shortly. It expires in 30 minutes.
-        </p>
-        <p className="mt-3 text-muted-foreground">
-          New family?{" "}
-          <Link
-            href={registerPath(returnTo)}
-            className="font-medium text-foreground underline underline-offset-2"
-          >
-            Create an account
-          </Link>
-          .
+          If we can help with <strong>{email}</strong>, you&apos;ll receive a
+          secure link shortly. It may be for intake, signing in, or claiming
+          your account — whatever applies to your family. The link expires in 30
+          minutes.
         </p>
         <Button
           type="button"
@@ -70,40 +60,33 @@ export function FamilyLoginForm({
   }
 
   return (
-    <div className="space-y-4">
-      <form
-        onSubmit={onSubmit}
-        className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm"
-      >
-        <div className="space-y-1.5">
-          <Label htmlFor="myEmail">Email address</Label>
-          <Input
-            id="myEmail"
-            type="email"
-            required
-            autoComplete="email"
-            placeholder="parent@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <Button
-          type="submit"
-          disabled={submitting}
-          className="w-full bg-brand text-brand-foreground hover:bg-brand/90"
-        >
-          {submitting ? "Sending…" : "Email me a sign-in link"}
-        </Button>
-      </form>
-      <p className="text-center text-sm text-muted-foreground">
-        New to DAWG?{" "}
-        <Link
-          href={registerPath(returnTo)}
-          className="font-medium text-foreground underline underline-offset-2"
-        >
-          Create an account
-        </Link>
+    <form
+      onSubmit={onSubmit}
+      className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm"
+    >
+      <p className="text-sm text-muted-foreground">
+        Enter your email and we&apos;ll send the right secure link — intake,
+        sign-in, or claim your account.
       </p>
-    </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="myEmail">Email address</Label>
+        <Input
+          id="myEmail"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="parent@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+      <Button
+        type="submit"
+        disabled={submitting}
+        className="w-full bg-brand text-brand-foreground hover:bg-brand/90"
+      >
+        {submitting ? "Sending…" : "Email me a secure link"}
+      </Button>
+    </form>
   );
 }

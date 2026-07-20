@@ -3,7 +3,6 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
-import { parentHasAnyIntake } from "@/lib/intake";
 import { normalizeEmail } from "@/lib/billing/verified-checkout-email";
 
 export { normalizeEmail };
@@ -60,8 +59,7 @@ export async function getParentByEmail(
 export async function isParentAccountClaimed(parentId: string): Promise<boolean> {
   const parent = await getParentById(parentId);
   if (!parent) return false;
-  if (parent.account_claimed_at) return true;
-  return parentHasAnyIntake(parentId);
+  return Boolean(parent.account_claimed_at);
 }
 
 export async function getParentAccountStatus(

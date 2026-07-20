@@ -395,10 +395,12 @@ export async function sendAccountClaimEmail(payload: {
   packageName: string;
   sessionsTotal: number;
   token: string;
+  returnTo?: string;
   reminder?: boolean;
 }): Promise<void> {
   const site = getSiteUrl();
-  const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}&return=${encodeURIComponent("/my")}`;
+  const returnTo = payload.returnTo ?? "/my";
+  const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}&return=${encodeURIComponent(returnTo)}`;
   const sessionLabel = `${payload.sessionsTotal} session${payload.sessionsTotal === 1 ? "" : "s"}`;
   const heading = payload.reminder
     ? "Reminder: claim your DAWG account"
@@ -439,9 +441,11 @@ export async function sendFamilyLoginEmail(payload: {
   parentEmail: string;
   parentFirstName: string;
   token: string;
+  returnTo?: string;
 }): Promise<void> {
   const site = getSiteUrl();
-  const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}&return=${encodeURIComponent("/my")}`;
+  const returnTo = payload.returnTo ?? "/my";
+  const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}&return=${encodeURIComponent(returnTo)}`;
 
   await sendEmail(
     {
@@ -465,6 +469,41 @@ export async function sendFamilyLoginEmail(payload: {
       text: `Sign in to your DAWG account: ${link}\n\nThis link expires in 30 minutes.`,
     },
     "family-login",
+  );
+}
+
+export async function sendIntakeAccessEmail(payload: {
+  parentEmail: string;
+  parentFirstName: string;
+  token: string;
+  returnTo?: string;
+}): Promise<void> {
+  const site = getSiteUrl();
+  const returnTo = payload.returnTo ?? "/schedule";
+  const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}&return=${encodeURIComponent(returnTo)}`;
+
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: payload.parentEmail,
+      replyTo: SITE.email,
+      subject: "Complete your DAWG athlete intake",
+      html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
+        <h1 style="font-size: 22px; margin: 0 0 12px;">Complete athlete intake</h1>
+        <p>Hi ${escapeHtml(firstName(payload.parentFirstName))},</p>
+        <p>Before we can confirm a training session, we need a one-time intake form for your athlete. This secure link expires in 30 minutes.</p>
+        <p style="margin: 24px 0;">
+          <a href="${link}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            Complete intake
+          </a>
+        </p>
+        <p style="color: #666; font-size: 13px;">You do not need to create a portal account to complete intake. Claiming your account is optional and lets you view credits and booking history later.</p>
+      </div>
+    `,
+      text: `Complete your DAWG athlete intake: ${link}`,
+    },
+    "intake-access",
   );
 }
 

@@ -73,7 +73,7 @@ export function BookingForm({
   const [editingDetails, setEditingDetails] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [intakeRequired, setIntakeRequired] = useState(true);
+  const [intakeRequired, setIntakeRequired] = useState(false);
   const [contextLoading, setContextLoading] = useState(false);
 
   const rosterCredit = useMemo(
@@ -90,7 +90,8 @@ export function BookingForm({
   );
 
   const agreementsNeeded = !savedFamily?.agreementsCurrent;
-  const intakeReturn = `/my/register?return=${encodeURIComponent(`/book/${session.id}`)}`;
+  const bookReturn = `/book/${session.id}${waitlistMode ? "?waitlist=1" : ""}`;
+  const intakeReturn = `/my/intake?return=${encodeURIComponent(bookReturn)}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -242,7 +243,9 @@ export function BookingForm({
           intakeRequired?: boolean;
         };
         if (cancelled) return;
-        setIntakeRequired(Boolean(data.intakeRequired));
+        setIntakeRequired(
+          Boolean(data.athleteId && data.intakeRequired),
+        );
         setPaymentMethod((prev) => {
           const next = allowedPaymentMethods(session.payment_requirement);
           if (prev && next.includes(prev)) return prev;
@@ -439,7 +442,7 @@ export function BookingForm({
           router.push(`/book/${session.id}?waitlist=1`);
         }
         if (data.code === "INTAKE_REQUIRED") {
-          router.push(intakeReturn);
+          router.push(data.intakeUrl ?? intakeReturn);
         }
         return;
       }

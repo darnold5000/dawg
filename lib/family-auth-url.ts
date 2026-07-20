@@ -9,6 +9,16 @@ export function sanitizeReturnPath(
   return isSafeReturnPath(path) ? path : fallback;
 }
 
+export function intakePath(returnTo?: string | null): string {
+  const safe = sanitizeReturnPath(returnTo, "/schedule");
+  return `/my/intake?return=${encodeURIComponent(safe)}`;
+}
+
+export function claimPath(returnTo?: string | null): string {
+  const safe = sanitizeReturnPath(returnTo, "/my");
+  return `/my/login?return=${encodeURIComponent(safe)}`;
+}
+
 export function loginPath(returnTo?: string | null): string {
   const safe = sanitizeReturnPath(returnTo, "/schedule");
   return `/my/login?return=${encodeURIComponent(safe)}`;
@@ -20,6 +30,5 @@ export function registerPath(returnTo?: string | null): string {
 }
 
 export function bookLoginPath(sessionId: string, waitlist = false): string {
-  const target = `/book/${sessionId}${waitlist ? "?waitlist=1" : ""}`;
-  return loginPath(target);
+  return `/book/${sessionId}${waitlist ? "?waitlist=1" : ""}`;
 }

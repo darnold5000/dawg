@@ -146,9 +146,6 @@ export function PackagePurchaseCards({
             <p className="mt-2 font-heading text-3xl tracking-wide text-gold">
               {formatPrice(pkg.price_cents)}
             </p>
-            {pkg.description ? (
-              <p className="mt-2 text-sm text-muted-foreground">{pkg.description}</p>
-            ) : null}
             <Button
               type="button"
               className="mt-auto w-full justify-center bg-brand text-brand-foreground hover:bg-brand/90"
