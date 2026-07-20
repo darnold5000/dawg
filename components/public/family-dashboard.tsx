@@ -10,7 +10,50 @@ import {
   formatSessionTime,
 } from "@/lib/format";
 import { formatDate } from "@/lib/billing/format";
-import type { FamilyPortalData } from "@/lib/family-portal";
+import type { FamilyBooking, FamilyPortalData } from "@/lib/family-portal";
+import { attendanceLabel } from "@/lib/attendance";
+import type { PaymentStatus } from "@/lib/types/database";
+
+function familyPaymentLabel(status: PaymentStatus): string {
+  switch (status) {
+    case "not_required":
+      return "Included";
+    case "unpaid":
+      return "Pay at facility";
+    case "pending":
+      return "Payment pending";
+    case "paid":
+      return "Paid";
+    default:
+      return status.replaceAll("_", " ");
+  }
+}
+
+function FamilyBookingCard({ booking }: { booking: FamilyBooking }) {
+  return (
+    <li className="rounded-lg border border-border bg-card px-4 py-3 text-sm">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <p className="font-medium">{booking.sessionTitle}</p>
+        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          {familyPaymentLabel(booking.paymentStatus)}
+        </span>
+      </div>
+      <p className="mt-1 text-muted-foreground">
+        {formatSessionDateShort(booking.sessionDate)} ·{" "}
+        {formatSessionTime(booking.startTime)} · {booking.athleteName}
+      </p>
+      {booking.locationName ? (
+        <p className="mt-1 text-muted-foreground">{booking.locationName}</p>
+      ) : null}
+      <p className="mt-2 text-xs text-muted-foreground">
+        Confirmation {booking.confirmationNumber}
+        {booking.isUpcoming
+          ? ""
+          : ` · ${attendanceLabel(booking.attendanceStatus)}`}
+      </p>
+    </li>
+  );
+}
 
 export function FamilyDashboard({ data }: { data: FamilyPortalData }) {
   const router = useRouter();
@@ -53,6 +96,25 @@ export function FamilyDashboard({ data }: { data: FamilyPortalData }) {
           </Button>
         </div>
       </div>
+
+      <section className="space-y-3">
+        <h3 className="font-heading text-xl tracking-wide">Upcoming sessions</h3>
+        {data.upcomingBookings.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No upcoming sessions booked.{" "}
+            <Link href="/schedule" className="underline underline-offset-2">
+              Browse the schedule
+            </Link>
+            .
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {data.upcomingBookings.map((booking) => (
+              <FamilyBookingCard key={booking.id} booking={booking} />
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="space-y-3">
         <h3 className="font-heading text-xl tracking-wide">Athletes</h3>
@@ -130,6 +192,17 @@ export function FamilyDashboard({ data }: { data: FamilyPortalData }) {
           </div>
         )}
       </section>
+
+      {data.pastBookings.length > 0 ? (
+        <section className="space-y-3">
+          <h3 className="font-heading text-xl tracking-wide">Past sessions</h3>
+          <ul className="space-y-2">
+            {data.pastBookings.map((booking) => (
+              <FamilyBookingCard key={booking.id} booking={booking} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <h3 className="font-heading text-xl tracking-wide">Sessions used</h3>

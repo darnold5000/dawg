@@ -7,8 +7,27 @@ import { getAuthenticatedParentId } from "@/lib/family-auth";
 import { isParentAccountClaimed } from "@/lib/parent-account";
 import type {
   Athlete,
+  AttendanceStatus,
+  BookingStatus,
   PackagePurchaseWithPackage,
+  PaymentStatus,
 } from "@/lib/types/database";
+
+export type FamilyBooking = {
+  id: string;
+  confirmationNumber: string;
+  status: BookingStatus;
+  attendanceStatus: AttendanceStatus;
+  paymentStatus: PaymentStatus;
+  athleteName: string;
+  sessionTitle: string;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+  locationName: string | null;
+  bookedAt: string;
+  isUpcoming: boolean;
+};
 
 export type FamilyRedemption = {
   id: string;
@@ -31,6 +50,8 @@ export type FamilyPortalData = {
   };
   athletes: Athlete[];
   purchases: PackagePurchaseWithPackage[];
+  upcomingBookings: FamilyBooking[];
+  pastBookings: FamilyBooking[];
   redemptions: FamilyRedemption[];
   totalCreditsRemaining: number;
 };
@@ -40,6 +61,57 @@ export async function getFamilyPortalForSession(): Promise<FamilyPortalData | nu
   if (!parentId) return null;
   if (!(await isParentAccountClaimed(parentId))) return null;
   return getFamilyPortalData(parentId);
+}
+
+function sessionStartTimestamp(sessionDate: string, startTime: string): number {
+  const time = startTime.slice(0, 5);
+  return new Date(`${sessionDate}T${time}:00`).getTime();
+}
+
+function mapFamilyBooking(row: {
+  id: string;
+  confirmation_number: string;
+  status: BookingStatus;
+  attendance_status: AttendanceStatus;
+  payment_status: PaymentStatus;
+  booked_at: string;
+  athlete?: { first_name?: string; last_name?: string } | null;
+  session?: {
+    title?: string;
+    session_date?: string;
+    start_time?: string;
+    end_time?: string;
+    location_name?: string | null;
+  } | null;
+}): FamilyBooking | null {
+  const session = row.session;
+  if (!session?.session_date || !session.start_time) return null;
+
+  const athlete = row.athlete;
+  const sessionDate = session.session_date;
+  const startTime = session.start_time;
+  const isUpcoming =
+    sessionStartTimestamp(sessionDate, startTime) >= Date.now() &&
+    row.attendance_status !== "cancelled" &&
+    row.status !== "cancelled";
+
+  return {
+    id: row.id,
+    confirmationNumber: row.confirmation_number,
+    status: row.status,
+    attendanceStatus: row.attendance_status,
+    paymentStatus: row.payment_status,
+    athleteName: athlete
+      ? `${athlete.first_name ?? ""} ${athlete.last_name ?? ""}`.trim()
+      : "—",
+    sessionTitle: session.title ?? "Session",
+    sessionDate,
+    startTime,
+    endTime: session.end_time ?? startTime,
+    locationName: session.location_name ?? null,
+    bookedAt: row.booked_at,
+    isUpcoming,
+  };
 }
 
 export async function getFamilyPortalData(
@@ -59,7 +131,8 @@ export async function getFamilyPortalData(
 
   if (!parent) return null;
 
-  const [{ data: athletes }, { data: purchases }] = await Promise.all([
+  const [{ data: athletes }, { data: purchases }, { data: bookingData }] =
+    await Promise.all([
       supabase
         .from(DAWG_TABLES.athletes)
         .select("*")
@@ -70,12 +143,61 @@ export async function getFamilyPortalData(
         .select(`*, package:dawg_packages (*)`)
         .eq("parent_id", parentId)
         .order("created_at", { ascending: false }),
+      supabase
+        .from(DAWG_TABLES.bookings)
+        .select(
+          `
+          id,
+          confirmation_number,
+          status,
+          attendance_status,
+          payment_status,
+          booked_at,
+          athlete:dawg_athletes ( first_name, last_name ),
+          session:dawg_sessions (
+            title,
+            session_date,
+            start_time,
+            end_time,
+            location_name
+          )
+        `,
+        )
+        .eq("parent_id", parentId)
+        .neq("status", "cancelled")
+        .neq("status", "expired")
+        .order("booked_at", { ascending: false }),
     ]);
 
   const purchaseRows = (purchases as PackagePurchaseWithPackage[]) ?? [];
   const totalCreditsRemaining = purchaseRows
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + p.sessions_remaining, 0);
+
+  const familyBookings = (bookingData ?? [])
+    .map((row) =>
+      mapFamilyBooking(
+        row as Parameters<typeof mapFamilyBooking>[0],
+      ),
+    )
+    .filter((booking): booking is FamilyBooking => booking !== null);
+
+  const upcomingBookings = familyBookings
+    .filter((booking) => booking.isUpcoming)
+    .sort(
+      (a, b) =>
+        sessionStartTimestamp(a.sessionDate, a.startTime) -
+        sessionStartTimestamp(b.sessionDate, b.startTime),
+    );
+
+  const pastBookings = familyBookings
+    .filter((booking) => !booking.isUpcoming)
+    .sort(
+      (a, b) =>
+        sessionStartTimestamp(b.sessionDate, b.startTime) -
+        sessionStartTimestamp(a.sessionDate, a.startTime),
+    )
+    .slice(0, 12);
 
   const paidPurchaseIds = purchaseRows.map((p) => p.id);
   let redemptionRows: FamilyRedemption[] = [];
@@ -143,6 +265,8 @@ export async function getFamilyPortalData(
     },
     athletes: (athletes as Athlete[]) ?? [],
     purchases: purchaseRows,
+    upcomingBookings,
+    pastBookings,
     redemptions: redemptionRows,
     totalCreditsRemaining,
   };

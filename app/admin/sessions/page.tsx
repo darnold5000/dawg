@@ -10,6 +10,7 @@ import {
   formatSessionDateShort,
   formatSessionTime,
 } from "@/lib/format";
+import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
 export default async function AdminSessionsPage() {
   const profile = await requireStaff();
@@ -31,7 +32,9 @@ export default async function AdminSessionsPage() {
         </div>
 
         <div className="grid gap-3">
-          {sessions.map((session) => (
+          {sessions.map((session) => {
+            const rosterOffering = isRosterCreditSession(session);
+            return (
             <div
               key={session.id}
               className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
@@ -50,9 +53,9 @@ export default async function AdminSessionsPage() {
                   {formatSessionDateShort(session.session_date)} ·{" "}
                   {formatSessionTime(session.start_time)} ·{" "}
                   {session.booked_count ?? 0}/{session.capacity}
-                  {Number(session.price_cents) > 0
+                  {!rosterOffering && Number(session.price_cents) > 0
                     ? ` · ${formatPrice(session.price_cents)}`
-                    : " · Package credit"}
+                    : ""}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -71,7 +74,8 @@ export default async function AdminSessionsPage() {
                 />
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </AdminShell>
