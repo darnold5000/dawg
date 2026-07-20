@@ -61,7 +61,7 @@ export default async function PackageSuccessPage({
           <Link href="/schedule">Book a session</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/intake">Complete intake</Link>
+          <Link href="/my">View my account</Link>
         </Button>
       </div>
     </div>

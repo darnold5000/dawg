@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { PackagePurchaseForm } from "@/components/public/package-purchase-form";
 import { listActivePackages } from "@/lib/packages";
 import { createMetadata } from "@/lib/seo";
@@ -23,12 +22,9 @@ export default async function PackagesPage({
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-16">
       <h1 className="font-heading text-4xl tracking-wide">Training packages</h1>
       <p className="mt-3 text-muted-foreground">
-        Purchase sessions online, then book from the schedule and redeem a
-        package credit. New athletes should{" "}
-        <Link href="/intake" className="underline underline-offset-2">
-          complete intake
-        </Link>{" "}
-        before their first booking.
+        One-time purchase — use your credits until they run out, then buy again
+        anytime. No monthly subscription. Complete athlete intake and waiver
+        below, then pay securely with Stripe.
       </p>
 
       {q.cancelled === "1" ? (

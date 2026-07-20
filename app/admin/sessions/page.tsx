@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { DeleteSessionButton } from "@/components/admin/delete-session-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
@@ -61,6 +62,11 @@ export default async function AdminSessionsPage() {
                 <Button asChild variant="outline" size="sm">
                   <Link href={`/admin/sessions/${session.id}/edit`}>Edit</Link>
                 </Button>
+                <DeleteSessionButton
+                  sessionId={session.id}
+                  title={session.title}
+                  bookedCount={session.booked_count ?? 0}
+                />
               </div>
             </div>
           ))}

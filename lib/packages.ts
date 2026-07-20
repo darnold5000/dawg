@@ -58,12 +58,31 @@ export const packageCheckoutSchema = z.object({
   parentLastName: z.string().trim().min(1).max(80),
   parentEmail: z.string().trim().email().max(160),
   parentPhone: z.string().trim().min(7).max(40),
-  athleteFirstName: z.string().trim().max(80).optional(),
-  athleteLastName: z.string().trim().max(80).optional(),
+  athleteFirstName: z.string().trim().min(1).max(80),
+  athleteLastName: z.string().trim().min(1).max(80),
   athleteDob: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+    .trim()
+    .transform((v) => v.slice(0, 10))
+    .pipe(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date of birth")),
+  schoolGrade: z.string().trim().max(80).optional().default(""),
+  heightWeight: z.string().trim().max(80).optional().default(""),
+  sportPosition: z.string().trim().max(120).optional().default(""),
+  healthIssues: z.string().trim().max(2000).optional().default(""),
+  emergencyContact1Name: z.string().trim().min(1).max(120),
+  emergencyContact1Phone: z.string().trim().min(7).max(40),
+  emergencyContact2Name: z.string().trim().max(120).optional().default(""),
+  emergencyContact2Phone: z.string().trim().max(40).optional().default(""),
+  shirtSize: z
+    .enum(["Small", "Medium", "Large", "XL", "XXL", "3XL"])
+    .optional()
+    .nullable(),
+  goal: z.string().trim().max(2000).optional().default(""),
+  acceptWaiver: z.literal(true, {
+    error: "Please accept the liability waiver.",
+  }),
+  mediaConsent: z.boolean().default(false),
+  rememberFamily: z.boolean().optional().default(true),
 });
 
 export type PackageCheckoutInput = z.infer<typeof packageCheckoutSchema>;

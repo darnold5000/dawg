@@ -7,7 +7,7 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { dollarsToCents } from "@/lib/billing/format";
-import { sessionFormSchema } from "@/lib/sessions";
+import { deleteSession, sessionFormSchema } from "@/lib/sessions";
 
 export async function PATCH(
   request: Request,
@@ -76,4 +76,26 @@ export async function PATCH(
     }
     return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
   }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdminApi();
+  if (auth instanceof NextResponse) return auth;
+
+  const { id } = await params;
+  const result = await deleteSession(id);
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: result.error, code: result.code },
+      { status: 400 },
+    );
+  }
+
+  return NextResponse.json({
+    ok: true,
+    bookingCount: result.bookingCount ?? 0,
+  });
 }

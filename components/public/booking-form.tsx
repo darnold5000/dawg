@@ -89,7 +89,7 @@ export function BookingForm({
 
   const agreementsNeeded = !savedFamily?.agreementsCurrent;
 
-  const intakeReturn = `/intake?return=${encodeURIComponent(`/book/${session.id}`)}`;
+  const packagesReturn = `/packages?return=${encodeURIComponent(`/book/${session.id}`)}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -381,8 +381,8 @@ export function BookingForm({
       }
 
       if (intakeRequired) {
-        toast.error("Complete client intake for this athlete before booking");
-        router.push(intakeReturn);
+        toast.error("Purchase a package to complete intake for this athlete");
+        router.push(packagesReturn);
         return;
       }
 
@@ -447,7 +447,7 @@ export function BookingForm({
           router.push(`/book/${session.id}?waitlist=1`);
         }
         if (data.code === "INTAKE_REQUIRED") {
-          router.push(intakeReturn);
+          router.push(packagesReturn);
         }
         return;
       }
@@ -564,13 +564,13 @@ export function BookingForm({
 
       {intakeRequired && !contextLoading ? (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-          <p className="font-medium">Client intake required</p>
+          <p className="font-medium">Package purchase required</p>
           <p className="mt-1">
-            Each athlete must complete intake (health, emergency contacts, and
-            waiver) before the first booking.
+            Purchase a package to complete athlete intake (health, emergency
+            contacts, and waiver) before the first booking.
           </p>
           <Button asChild className="mt-3 bg-brand text-brand-foreground hover:bg-brand/90">
-            <Link href={intakeReturn}>Complete intake</Link>
+            <Link href={packagesReturn}>Buy a package</Link>
           </Button>
         </div>
       ) : null}
@@ -967,7 +967,7 @@ export function BookingForm({
           className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:px-8"
         >
           {intakeRequired
-            ? "Complete intake to book"
+            ? "Buy a package to book"
             : submitting
               ? paymentMethod === "stripe"
                 ? "Starting checkout…"

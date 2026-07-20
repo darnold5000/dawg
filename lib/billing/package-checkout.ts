@@ -12,8 +12,13 @@ import {
 import type { AdapterResult } from "@/lib/billing/types";
 import { getSiteUrl } from "@/lib/billing/site-url";
 
+export type PackageCheckoutParams = PackageCheckoutInput & {
+  parentId?: string;
+  athleteId?: string | null;
+};
+
 export async function createPackageCheckout(
-  input: PackageCheckoutInput,
+  input: PackageCheckoutParams,
 ): Promise<
   AdapterResult<{ url: string; purchaseId: string; sessionId: string }>
 > {
@@ -36,46 +41,48 @@ export async function createPackageCheckout(
 
   const supabase = createServiceClient();
 
-  let parentId: string;
-  const { data: existingParent } = await supabase
-    .from(DAWG_TABLES.parents)
-    .select("id")
-    .ilike("email", input.parentEmail)
-    .maybeSingle();
-
-  if (existingParent) {
-    parentId = existingParent.id;
-    await supabase
+  let parentId = input.parentId;
+  if (!parentId) {
+    const { data: existingParent } = await supabase
       .from(DAWG_TABLES.parents)
-      .update({
-        first_name: input.parentFirstName,
-        last_name: input.parentLastName,
-        phone: input.parentPhone,
-      })
-      .eq("id", parentId);
-  } else {
-    const { data: parent, error } = await supabase
-      .from(DAWG_TABLES.parents)
-      .insert({
-        first_name: input.parentFirstName,
-        last_name: input.parentLastName,
-        email: input.parentEmail,
-        phone: input.parentPhone,
-      })
       .select("id")
-      .single();
-    if (error || !parent) {
-      return { ok: false, error: "Could not save parent", code: "PARENT_FAILED" };
+      .ilike("email", input.parentEmail)
+      .maybeSingle();
+
+    if (existingParent) {
+      parentId = existingParent.id;
+      await supabase
+        .from(DAWG_TABLES.parents)
+        .update({
+          first_name: input.parentFirstName,
+          last_name: input.parentLastName,
+          phone: input.parentPhone,
+        })
+        .eq("id", parentId);
+    } else {
+      const { data: parent, error } = await supabase
+        .from(DAWG_TABLES.parents)
+        .insert({
+          first_name: input.parentFirstName,
+          last_name: input.parentLastName,
+          email: input.parentEmail,
+          phone: input.parentPhone,
+        })
+        .select("id")
+        .single();
+      if (error || !parent) {
+        return { ok: false, error: "Could not save parent", code: "PARENT_FAILED" };
+      }
+      parentId = parent.id;
     }
-    parentId = parent.id;
   }
 
-  let athleteId: string | null = null;
-  if (
-    input.athleteFirstName?.trim() &&
-    input.athleteLastName?.trim() &&
-    input.athleteDob
-  ) {
+  if (!parentId) {
+    return { ok: false, error: "Could not resolve parent", code: "PARENT_FAILED" };
+  }
+
+  let athleteId: string | null = input.athleteId ?? null;
+  if (!athleteId) {
     const { data: siblings } = await supabase
       .from(DAWG_TABLES.athletes)
       .select("id, first_name, last_name, date_of_birth")
@@ -83,9 +90,9 @@ export async function createPackageCheckout(
     const match = (siblings ?? []).find(
       (a) =>
         a.first_name.trim().toLowerCase() ===
-          input.athleteFirstName!.trim().toLowerCase() &&
+          input.athleteFirstName.trim().toLowerCase() &&
         a.last_name.trim().toLowerCase() ===
-          input.athleteLastName!.trim().toLowerCase() &&
+          input.athleteLastName.trim().toLowerCase() &&
         a.date_of_birth === input.athleteDob,
     );
     if (match) {

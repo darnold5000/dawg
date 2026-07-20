@@ -22,4 +22,5 @@ export const DAWG_TABLES = {
   packagePurchases: "dawg_package_purchases",
   packageRedemptions: "dawg_package_redemptions",
   intakeSubmissions: "dawg_intake_submissions",
+  familyLoginTokens: "dawg_family_login_tokens",
 } as const;

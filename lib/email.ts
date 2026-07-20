@@ -372,6 +372,39 @@ export async function sendPackagePurchaseConfirmation(payload: {
   );
 }
 
+export async function sendFamilyLoginEmail(payload: {
+  parentEmail: string;
+  parentFirstName: string;
+  token: string;
+}): Promise<void> {
+  const site = getSiteUrl();
+  const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}`;
+
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: payload.parentEmail,
+      replyTo: SITE.email,
+      subject: "Your DAWG account sign-in link",
+      html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
+        <h1 style="font-size: 22px; margin: 0 0 12px;">Sign in to your account</h1>
+        <p>Hi ${escapeHtml(payload.parentFirstName)},</p>
+        <p>Use this secure link to view your athletes, packages, and session credits. It expires in 30 minutes.</p>
+        <p style="margin: 24px 0;">
+          <a href="${link}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            Open my account
+          </a>
+        </p>
+        <p style="color: #666; font-size: 13px;">If you did not request this, you can ignore this email.</p>
+      </div>
+    `,
+      text: `Sign in to your DAWG account: ${link}\n\nThis link expires in 30 minutes.`,
+    },
+    "family-login",
+  );
+}
+
 export async function sendIntakeStaffNotification(payload: {
   parentName: string;
   parentEmail: string;

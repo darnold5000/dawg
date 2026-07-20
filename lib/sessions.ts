@@ -164,6 +164,31 @@ export async function createSessionsFromForm(
   return { ok: true, ids: data.map((r) => r.id) };
 }
 
+export async function deleteSession(
+  id: string,
+): Promise<
+  | { ok: true; bookingCount: number }
+  | { ok: false; error: string; code?: string }
+> {
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { ok: true, bookingCount: 0 };
+  }
+
+  const supabase = createServiceClient();
+  const { count } = await supabase
+    .from(DAWG_TABLES.bookings)
+    .select("id", { count: "exact", head: true })
+    .eq("session_id", id)
+    .neq("status", "expired");
+
+  const { error } = await supabase.from(DAWG_TABLES.sessions).delete().eq("id", id);
+  if (error) {
+    return { ok: false, error: error.message, code: "DELETE_FAILED" };
+  }
+
+  return { ok: true, bookingCount: count ?? 0 };
+}
+
 export async function updateSessionStatus(
   id: string,
   status: SessionStatus,
