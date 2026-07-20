@@ -2,17 +2,21 @@ import { notFound } from "next/navigation";
 import { BookingForm } from "@/components/public/booking-form";
 import { getSessionById } from "@/lib/data";
 import { requireFamilyWithIntake } from "@/lib/family-auth";
+import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { createMetadata } from "@/lib/seo";
 import { paymentMethodLabel } from "@/lib/billing/payment-options";
 
-function bookingPaymentBlurb(
-  requirement: string | null | undefined,
+function bookingIntro(
+  session: NonNullable<Awaited<ReturnType<typeof getSessionById>>>,
 ): string {
-  switch (requirement) {
+  if (isRosterCreditSession(session)) {
+    return "Reserve your athlete's spot on the roster. We'll see you at training.";
+  }
+  switch (session.payment_requirement) {
     case "pay_online":
       return "Pay securely online with Stripe to hold your spot.";
     case "online_or_facility":
-      return "Join the roster — pay online or at the facility. Package credits are applied when your athlete attends.";
+      return "Choose how you'd like to pay for this session.";
     case "pay_at_facility":
     default:
       return `Join the roster and ${paymentMethodLabel("pay_at_facility").toLowerCase()}.`;
@@ -57,7 +61,9 @@ export default async function BookPage({
         {waitlistMode ? "Join Waitlist" : "Complete Booking"}
       </h1>
       <p className="mt-3 text-muted-foreground">
-        {bookingPaymentBlurb(session.payment_requirement)}
+        {waitlistMode
+          ? "We'll contact you if a spot opens."
+          : bookingIntro(session)}
       </p>
       <div className="mt-8">
         <BookingForm session={session} waitlistMode={waitlistMode} />

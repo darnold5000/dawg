@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginPath } from "@/lib/family-auth-url";
+import { formatPrice } from "@/lib/format";
 import type { TrainingPackage } from "@/lib/types/database";
 
 type ContactFields = {
@@ -142,9 +143,15 @@ export function PackagePurchaseCards({
             className="flex flex-col rounded-xl border border-border bg-card p-5"
           >
             <p className="font-heading text-xl tracking-wide">{pkg.name}</p>
+            <p className="mt-2 font-heading text-3xl tracking-wide text-gold">
+              {formatPrice(pkg.price_cents)}
+            </p>
+            {pkg.description ? (
+              <p className="mt-2 text-sm text-muted-foreground">{pkg.description}</p>
+            ) : null}
             <Button
               type="button"
-              className="mt-6 w-full justify-center bg-brand text-brand-foreground hover:bg-brand/90"
+              className="mt-auto w-full justify-center bg-brand text-brand-foreground hover:bg-brand/90"
               disabled={purchasingSlug !== null}
               onClick={() => void purchase(pkg)}
             >

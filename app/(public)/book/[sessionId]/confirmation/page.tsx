@@ -9,6 +9,7 @@ import {
 import { getSessionById } from "@/lib/data";
 import { SITE } from "@/lib/constants";
 import { createMetadata } from "@/lib/seo";
+import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
 export const metadata = createMetadata({
   title: "Booking Confirmation",
@@ -27,6 +28,7 @@ export default async function BookingConfirmationPage({
     waitlist?: string;
     demo?: string;
     payment?: string;
+    roster?: string;
   }>;
 }) {
   const { sessionId } = await params;
@@ -57,6 +59,8 @@ export default async function BookingConfirmationPage({
     );
   }
 
+  const rosterBooking =
+    q.roster === "1" || isRosterCreditSession(session);
   const paymentMethod =
     q.payment === "stripe" ? "stripe" : "pay_at_facility";
   const location =
@@ -74,7 +78,10 @@ export default async function BookingConfirmationPage({
       coachName={session.trainer?.name}
       location={location}
       paymentLabel={paymentDisplayLabel(paymentMethod)}
-      amountLabel={amountDisplay(session.price_cents, paymentMethod)}
+      amountLabel={
+        rosterBooking ? undefined : amountDisplay(session.price_cents, paymentMethod)
+      }
+      hidePayment={rosterBooking}
       confirmationNumber={q.confirmation ?? "—"}
       demo={q.demo === "1"}
       confidenceMessage={

@@ -34,6 +34,7 @@ import {
   formatSessionDate,
   formatSessionTime,
 } from "@/lib/format";
+import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
 const emptyForm = {
   parentFirstName: "",
@@ -74,6 +75,11 @@ export function BookingForm({
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [intakeRequired, setIntakeRequired] = useState(true);
   const [contextLoading, setContextLoading] = useState(false);
+
+  const rosterCredit = useMemo(
+    () => isRosterCreditSession(session),
+    [session],
+  );
 
   const paymentOptions = useMemo(
     () => allowedPaymentMethods(session.payment_requirement),
@@ -361,7 +367,7 @@ export function BookingForm({
         return;
       }
 
-      if (!paymentMethod) {
+      if (!rosterCredit && !paymentMethod) {
         toast.error("Please select a payment method");
         return;
       }
@@ -418,7 +424,7 @@ export function BookingForm({
           experienceLevel: form.experienceLevel || undefined,
           medicalNotes: form.medicalNotes || undefined,
           customerNotes: form.customerNotes || undefined,
-          paymentMethod,
+          ...(rosterCredit ? {} : { paymentMethod }),
           acceptRequiredAgreements: agreementsNeeded
             ? form.acceptRequiredAgreements
             : true,
@@ -463,8 +469,12 @@ export function BookingForm({
         confirmation: data.confirmationNumber,
         athlete: `${form.athleteFirstName} ${form.athleteLastName}`,
         token: data.confirmationToken ?? "",
-        payment: paymentMethod,
       });
+      if (rosterCredit) {
+        q.set("roster", "1");
+      } else if (paymentMethod) {
+        q.set("payment", paymentMethod);
+      }
       if (data.demo) q.set("demo", "1");
       router.push(`/book/${session.id}/confirmation?${q.toString()}`);
     } catch {
@@ -543,8 +553,7 @@ export function BookingForm({
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {formatSessionDate(session.session_date)} ·{" "}
-          {formatSessionTime(session.start_time)} ·{" "}
-          {formatPrice(session.price_cents)}
+          {formatSessionTime(session.start_time)}
         </p>
       </div>
 
@@ -798,51 +807,53 @@ export function BookingForm({
         </>
       )}
 
-      <fieldset className="space-y-3 rounded-xl border border-border p-4">
-        <legend className="px-1 font-heading text-lg tracking-wide">
-          Payment
-        </legend>
-        <p className="text-sm text-muted-foreground">
-          {formatPrice(session.price_cents)} due for this session
-        </p>
-        <div className="grid gap-3">
-          {paymentOptions.map((method) => (
-            <label
-              key={method}
-              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
-                paymentMethod === method
-                  ? "border-brand bg-brand/10"
-                  : "border-border"
-              }`}
-            >
-              <input
-                type="radio"
-                name="paymentMethod"
-                className="mt-1"
-                required
-                checked={paymentMethod === method}
-                onChange={() => setPaymentMethod(method)}
-                value={method}
-              />
-              <span>
-                <span className="font-medium">{paymentMethodLabel(method)}</span>
-                <span className="mt-0.5 block text-muted-foreground">
-                  {method === "stripe"
-                    ? "Secure card payment via Stripe. Spot is held for 15 minutes while you pay."
-                    : "Join the roster now — payment is collected at the facility."}
-                </span>
-              </span>
-            </label>
-          ))}
-        </div>
-        {        session.payment_requirement === "online_or_facility" &&
-        !paymentMethod ? (
-          <p className="text-sm text-amber-200">
-            Choose pay online or pay at facility — neither is selected by
-            default.
+      {!rosterCredit ? (
+        <fieldset className="space-y-3 rounded-xl border border-border p-4">
+          <legend className="px-1 font-heading text-lg tracking-wide">
+            Payment
+          </legend>
+          <p className="text-sm text-muted-foreground">
+            {formatPrice(session.price_cents)} due for this session
           </p>
-        ) : null}
-      </fieldset>
+          <div className="grid gap-3">
+            {paymentOptions.map((method) => (
+              <label
+                key={method}
+                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
+                  paymentMethod === method
+                    ? "border-brand bg-brand/10"
+                    : "border-border"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  className="mt-1"
+                  required
+                  checked={paymentMethod === method}
+                  onChange={() => setPaymentMethod(method)}
+                  value={method}
+                />
+                <span>
+                  <span className="font-medium">{paymentMethodLabel(method)}</span>
+                  <span className="mt-0.5 block text-muted-foreground">
+                    {method === "stripe"
+                      ? "Secure card payment via Stripe. Spot is held for 15 minutes while you pay."
+                      : "Join the roster now — payment is collected at the facility."}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {session.payment_requirement === "online_or_facility" &&
+          !paymentMethod ? (
+            <p className="text-sm text-amber-200">
+              Choose pay online or pay at facility — neither is selected by
+              default.
+            </p>
+          ) : null}
+        </fieldset>
+      ) : null}
 
       <fieldset className="space-y-3 rounded-xl border border-border p-4">
         <legend className="px-1 font-heading text-lg tracking-wide">
@@ -906,36 +917,49 @@ export function BookingForm({
       </fieldset>
 
       <div className="sticky bottom-0 z-10 -mx-4 border-t border-border bg-card/95 px-4 py-4 backdrop-blur supports-backdrop-filter:bg-card/90 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-        <div className="mb-3 rounded-lg border border-border bg-card px-3 py-2 text-sm sm:mb-4">
-          <p>
-            <span className="text-muted-foreground">Payment: </span>
-            <span className="font-medium">{paymentSummary}</span>
-            {paymentMethod ? (
-              <span className="text-muted-foreground">
-                {" "}
-                · {formatPrice(session.price_cents)}
-              </span>
+        {!rosterCredit ? (
+          <div className="mb-3 rounded-lg border border-border bg-card px-3 py-2 text-sm sm:mb-4">
+            <p>
+              <span className="text-muted-foreground">Payment: </span>
+              <span className="font-medium">{paymentSummary}</span>
+              {paymentMethod ? (
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {formatPrice(session.price_cents)}
+                </span>
+              ) : null}
+            </p>
+            {form.parentFirstName && form.athleteFirstName ? (
+              <p className="mt-1 text-muted-foreground">
+                {form.athleteFirstName} {form.athleteLastName} ·{" "}
+                {form.parentFirstName} {form.parentLastName}
+              </p>
             ) : null}
-          </p>
-          {form.parentFirstName && form.athleteFirstName ? (
-            <p className="mt-1 text-muted-foreground">
+          </div>
+        ) : form.parentFirstName && form.athleteFirstName ? (
+          <div className="mb-3 rounded-lg border border-border bg-card px-3 py-2 text-sm sm:mb-4">
+            <p className="text-muted-foreground">
               {form.athleteFirstName} {form.athleteLastName} ·{" "}
               {form.parentFirstName} {form.parentLastName}
             </p>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
         <Button
           type="submit"
-          disabled={submitting || !paymentMethod}
+          disabled={submitting || (!rosterCredit && !paymentMethod)}
           className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:px-8"
         >
           {submitting
-            ? paymentMethod === "stripe"
-              ? "Starting checkout…"
-              : "Reserving…"
-            : paymentMethod === "stripe"
-              ? "Continue to payment"
-              : "Join roster"}
+            ? rosterCredit
+              ? "Booking…"
+              : paymentMethod === "stripe"
+                ? "Starting checkout…"
+                : "Reserving…"
+            : rosterCredit
+              ? "Book session"
+              : paymentMethod === "stripe"
+                ? "Continue to payment"
+                : "Join roster"}
         </Button>
       </div>
     </form>

@@ -140,13 +140,19 @@ export function AvailabilityTool({ trainers }: { trainers: Trainer[] }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="price">Price</Label>
+            <Label htmlFor="price">Price (Stripe, $)</Label>
             <Input
               id="price"
               type="number"
+              min={0}
+              step="0.01"
+              required
               value={form.price}
               onChange={(e) => setForm({ ...form, price: e.target.value })}
             />
+            <p className="text-xs text-muted-foreground">
+              Charged when a parent books this private lesson online.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="capacity">Athletes per slot</Label>

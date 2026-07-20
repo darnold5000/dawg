@@ -54,6 +54,12 @@ export function MergeParentForm({
           Move athletes, bookings, package purchases, intake, and history from a
           duplicate parent record into this account, then delete the duplicate.
         </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          For now, paste the duplicate parent&apos;s UUID from the other client
+          detail page. A future version will let you search by name, email, or
+          phone, compare both records side by side, and confirm which account to
+          keep.
+        </p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="duplicateParentId">Duplicate parent ID</Label>

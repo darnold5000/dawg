@@ -12,7 +12,6 @@ import {
   Users,
   Dumbbell,
   Star,
-  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,7 +24,6 @@ const NAV = [
   { href: "/admin/sessions", label: "Sessions", icon: CalendarDays },
   { href: "/admin/bookings", label: "Bookings", icon: ClipboardList },
   { href: "/admin/clients", label: "Clients", icon: ContactRound },
-  { href: "/admin/availability", label: "Availability", icon: Clock },
   { href: "/admin/programs", label: "Programs", icon: Dumbbell, adminOnly: true },
   { href: "/admin/trainers", label: "Trainers", icon: Users, adminOnly: true },
   { href: "/admin/reviews", label: "Reviews", icon: Star, adminOnly: true },

@@ -15,10 +15,13 @@ export default async function NewSessionPage() {
     <AdminShell profile={profile}>
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
-          <h2 className="font-heading text-3xl tracking-wide">New session</h2>
+          <h2 className="font-heading text-3xl tracking-wide">
+            New group session
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Create a one-time or recurring session. Each occurrence is stored
-            separately.
+            Create recurring or one-time group classes booked with package
+            credits. For Stripe-priced private lessons or one-off classes, use
+            Programs.
           </p>
         </div>
         <SessionForm

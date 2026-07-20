@@ -14,11 +14,13 @@ import {
   formatSessionTitle,
 } from "@/lib/format";
 import { bookLoginPath } from "@/lib/family-auth-url";
+import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
 export function SessionCard({ session }: { session: SessionWithRelations }) {
   const [open, setOpen] = useState(false);
   const spots = session.spots_remaining ?? 0;
   const full = spots <= 0;
+  const rosterCredit = isRosterCreditSession(session);
 
   const hasExtraDetails = Boolean(
     session.description ||
@@ -55,8 +57,7 @@ export function SessionCard({ session }: { session: SessionWithRelations }) {
           <p className="text-sm text-muted-foreground">
             {ageRangeLabel(session.minimum_age, session.maximum_age)}
             {session.trainer?.name ? ` · ${session.trainer.name}` : ""}
-            {" · "}
-            {formatPrice(session.price_cents)}
+            {!rosterCredit ? ` · ${formatPrice(session.price_cents)}` : ""}
           </p>
         </div>
         <div className="flex shrink-0 gap-2">

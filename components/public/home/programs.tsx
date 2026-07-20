@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Program } from "@/lib/types/database";
-import { ageRangeLabel, formatPrice } from "@/lib/format";
+import { ageRangeLabel } from "@/lib/format";
 
 export function HomePrograms({ programs }: { programs: Program[] }) {
   return (
@@ -67,14 +67,6 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
                       {program.default_capacity
                         ? `Up to ${program.default_capacity}`
                         : "Varies"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">From</dt>
-                    <dd className="font-semibold text-gold">
-                      {program.default_price_cents != null
-                        ? formatPrice(program.default_price_cents)
-                        : "See schedule"}
                     </dd>
                   </div>
                 </dl>

@@ -26,6 +26,7 @@ export type BookingConfirmedViewProps = {
   demo?: boolean;
   confirming?: boolean;
   confirmingSlot?: React.ReactNode;
+  hidePayment?: boolean;
 };
 
 export function BookingConfirmedView({
@@ -43,6 +44,7 @@ export function BookingConfirmedView({
   confirmationNumber,
   demo,
   confirmingSlot,
+  hidePayment = false,
 }: BookingConfirmedViewProps) {
   const event: CalendarEventInput = {
     title: `${sessionTitle} — ${athleteName}`,
@@ -102,17 +104,19 @@ export function BookingConfirmedView({
           <dt className="text-muted-foreground">Location</dt>
           <dd className="text-right font-medium">{location}</dd>
         </div>
-        <div className="flex justify-between gap-4 text-sm">
-          <dt className="text-muted-foreground">Payment</dt>
-          <dd className="text-right font-medium">
-            {paymentLabel}
-            {amountLabel ? (
-              <span className="mt-0.5 block text-muted-foreground">
-                {amountLabel}
-              </span>
-            ) : null}
-          </dd>
-        </div>
+        {!hidePayment ? (
+          <div className="flex justify-between gap-4 text-sm">
+            <dt className="text-muted-foreground">Payment</dt>
+            <dd className="text-right font-medium">
+              {paymentLabel}
+              {amountLabel ? (
+                <span className="mt-0.5 block text-muted-foreground">
+                  {amountLabel}
+                </span>
+              ) : null}
+            </dd>
+          </div>
+        ) : null}
         <div className="flex justify-between gap-4 text-sm">
           <dt className="text-muted-foreground">Confirmation #</dt>
           <dd className="font-semibold tracking-wide">{confirmationNumber}</dd>

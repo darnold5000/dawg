@@ -38,8 +38,8 @@ export default async function AdminDashboardPage() {
     {
       label: "Upcoming private lessons",
       value: metrics.privateUpcoming,
-      href: "/admin/availability",
-      hint: "Manage availability",
+      href: "/admin/programs#private-lessons",
+      hint: "Create slots in Programs",
     },
     {
       label: "Waitlisted athletes",
@@ -58,16 +58,11 @@ export default async function AdminDashboardPage() {
   return (
     <AdminShell profile={profile}>
       <div className="space-y-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="font-heading text-3xl tracking-wide">Overview</h2>
-            <p className="text-sm text-muted-foreground">
-              Today&apos;s training and booking snapshot
-            </p>
-          </div>
-          <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
-            <Link href="/admin/sessions/new">Create session</Link>
-          </Button>
+        <div>
+          <h2 className="font-heading text-3xl tracking-wide">Overview</h2>
+          <p className="text-sm text-muted-foreground">
+            Today&apos;s training and booking snapshot
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -123,10 +118,10 @@ export default async function AdminDashboardPage() {
               <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
                 No sessions scheduled for today.{" "}
                 <Link
-                  href="/admin/sessions/new"
+                  href="/admin/sessions"
                   className="font-medium text-foreground underline-offset-2 hover:underline"
                 >
-                  Create one
+                  View sessions
                 </Link>
               </p>
             ) : (

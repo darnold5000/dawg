@@ -26,7 +26,7 @@ export default async function AdminSessionsPage() {
             </p>
           </div>
           <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
-            <Link href="/admin/sessions/new">New session</Link>
+            <Link href="/admin/sessions/new">New group session</Link>
           </Button>
         </div>
 
@@ -49,8 +49,10 @@ export default async function AdminSessionsPage() {
                 <p className="text-sm text-muted-foreground">
                   {formatSessionDateShort(session.session_date)} ·{" "}
                   {formatSessionTime(session.start_time)} ·{" "}
-                  {session.booked_count ?? 0}/{session.capacity} ·{" "}
-                  {formatPrice(session.price_cents)}
+                  {session.booked_count ?? 0}/{session.capacity}
+                  {Number(session.price_cents) > 0
+                    ? ` · ${formatPrice(session.price_cents)}`
+                    : " · Package credit"}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">

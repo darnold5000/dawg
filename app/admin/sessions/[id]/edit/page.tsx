@@ -34,6 +34,7 @@ export default async function EditSessionPage({
           programs={programs}
           sessionTypes={sessionTypes}
           trainers={trainers}
+          variant={Number(session.price_cents) > 0 ? "paid-one-off" : "credit"}
           initial={{
             title: session.title,
             program_id: session.program_id ?? undefined,

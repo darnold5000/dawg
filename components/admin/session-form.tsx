@@ -16,6 +16,7 @@ export function SessionForm({
   trainers,
   mode = "create",
   sessionId,
+  variant = "credit",
   initial,
 }: {
   programs: Program[];
@@ -23,6 +24,8 @@ export function SessionForm({
   trainers: Trainer[];
   mode?: "create" | "edit";
   sessionId?: string;
+  /** credit = package roster sessions; paid-one-off = Stripe-priced special class */
+  variant?: "credit" | "paid-one-off";
   initial?: Partial<{
     title: string;
     program_id: string;
@@ -44,6 +47,9 @@ export function SessionForm({
   }>;
 }) {
   const router = useRouter();
+  const showPricing =
+    variant === "paid-one-off" ||
+    (mode === "edit" && (initial?.price ?? 0) > 0);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     title: initial?.title ?? "",
@@ -58,9 +64,10 @@ export function SessionForm({
     maximum_age: initial?.maximum_age?.toString() ?? "",
     skill_level: initial?.skill_level ?? "",
     capacity: initial?.capacity?.toString() ?? "10",
-    // Form stores dollars; API converts to cents
-    price: initial?.price != null ? String(initial.price) : "25", // $25 single-session default
-    payment_requirement: initial?.payment_requirement ?? "online_or_facility",
+    price: initial?.price != null ? String(initial.price) : "60",
+    payment_requirement:
+      initial?.payment_requirement ??
+      (variant === "paid-one-off" ? "pay_online" : "pay_at_facility"),
     status: initial?.status ?? "published",
     what_to_bring:
       initial?.what_to_bring ??
@@ -110,8 +117,15 @@ export function SessionForm({
           minimum_age: form.minimum_age ? Number(form.minimum_age) : null,
           maximum_age: form.maximum_age ? Number(form.maximum_age) : null,
           capacity: Number(form.capacity),
-          price: Number(form.price),
-          recurrence_weeks: Number(form.recurrence_weeks),
+          price: showPricing ? Number(form.price) : 0,
+          payment_requirement: showPricing
+            ? form.payment_requirement
+            : "pay_at_facility",
+          recurrence: variant === "paid-one-off" ? "none" : form.recurrence,
+          recurrence_weeks:
+            variant === "paid-one-off" ? 1 : Number(form.recurrence_weeks),
+          recurrence_days:
+            variant === "paid-one-off" ? [] : form.recurrence_days,
           program_id: form.program_id || null,
           session_type_id: form.session_type_id || null,
           trainer_id: form.trainer_id || null,
@@ -123,7 +137,7 @@ export function SessionForm({
         return;
       }
       toast.success(mode === "edit" ? "Session updated" : "Session created");
-      router.push("/admin/sessions");
+      router.push(variant === "paid-one-off" ? "/admin/programs" : "/admin/sessions");
       router.refresh();
     } catch {
       toast.error("Save failed");
@@ -134,6 +148,11 @@ export function SessionForm({
 
   return (
     <form onSubmit={onSubmit} className="form-panel max-w-3xl space-y-6">
+      {!showPricing && mode === "create" ? (
+        <p className="text-sm text-muted-foreground">
+          Group sessions are booked with package credits — no per-session price.
+        </p>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="title">Title</Label>
@@ -247,18 +266,37 @@ export function SessionForm({
             onChange={(e) => update("capacity", e.target.value)}
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="price">Price</Label>
-          <Input
-            id="price"
-            type="number"
-            min={0}
-            step="0.01"
-            required
-            value={form.price}
-            onChange={(e) => update("price", e.target.value)}
-          />
-        </div>
+        {showPricing ? (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="price">Price (Stripe, $)</Label>
+              <Input
+                id="price"
+                type="number"
+                min={0}
+                step="0.01"
+                required
+                value={form.price}
+                onChange={(e) => update("price", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="payment_requirement">Payment</Label>
+              <select
+                id="payment_requirement"
+                className="form-select"
+                value={form.payment_requirement}
+                onChange={(e) => update("payment_requirement", e.target.value)}
+              >
+                <option value="pay_online">Pay online (Stripe) only</option>
+                <option value="online_or_facility">
+                  Online or pay at facility
+                </option>
+                <option value="pay_at_facility">Pay at facility only</option>
+              </select>
+            </div>
+          </>
+        ) : null}
         <div className="space-y-1.5">
           <Label htmlFor="minimum_age">Min age</Label>
           <Input
@@ -277,20 +315,7 @@ export function SessionForm({
             onChange={(e) => update("maximum_age", e.target.value)}
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="payment_requirement">Payment</Label>
-          <select
-            id="payment_requirement"
-            className="form-select"
-            value={form.payment_requirement}
-            onChange={(e) => update("payment_requirement", e.target.value)}
-          >
-            <option value="online_or_facility">Online or pay at facility</option>
-            <option value="pay_online">Pay online (Stripe) only</option>
-            <option value="pay_at_facility">Pay at facility only</option>
-          </select>
-        </div>
-        {mode === "create" ? (
+        {mode === "create" && variant !== "paid-one-off" ? (
           <>
             <div className="space-y-1.5">
               <Label htmlFor="recurrence">Recurrence</Label>

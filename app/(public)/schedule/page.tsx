@@ -22,8 +22,8 @@ export default async function SchedulePage() {
           Book Training
         </h1>
         <p className="mt-4 text-muted-foreground">
-          Reserve a spot on the roster — payment is handled at the facility or
-          with a session package.
+          Browse upcoming sessions and reserve your athlete&apos;s spot on the
+          roster.
         </p>
       </div>
       <div className="mt-8">

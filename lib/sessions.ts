@@ -21,14 +21,13 @@ export const sessionFormSchema = z.object({
   maximum_age: z.coerce.number().int().optional().nullable(),
   skill_level: z.string().max(80).optional().nullable(),
   capacity: z.coerce.number().int().positive(),
-  /** Admin form dollars — converted to price_cents before insert. */
-  price: z.coerce.number().nonnegative(),
+  /** Dollars for paid one-off / private sessions; credit sessions use 0. */
+  price: z.coerce.number().nonnegative().optional().default(0),
   deposit_amount: z.coerce.number().nonnegative().optional().nullable(),
-  payment_requirement: z.enum([
-    "pay_online",
-    "pay_at_facility",
-    "online_or_facility",
-  ]),
+  payment_requirement: z
+    .enum(["pay_online", "pay_at_facility", "online_or_facility"])
+    .optional()
+    .default("pay_at_facility"),
   location_name: z.string().optional().nullable(),
   location_address: z.string().optional().nullable(),
   what_to_bring: z.string().optional().nullable(),

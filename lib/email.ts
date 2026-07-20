@@ -71,6 +71,7 @@ export type ConfirmPayload = {
   amountDueCents: number;
   amountPaidCents?: number;
   paymentMethod: PaymentMethod;
+  rosterOnly?: boolean;
 };
 
 export type StaffPayload = {
@@ -85,6 +86,7 @@ export type StaffPayload = {
   paymentStatus: PaymentStatus;
   paymentMethod?: PaymentMethod | null;
   amountDueCents: number;
+  rosterOnly?: boolean;
 };
 
 function firstName(fullName: string) {
@@ -95,7 +97,9 @@ export async function sendBookingConfirmation(
   payload: ConfirmPayload,
 ): Promise<void> {
   const paidOnline = payload.paymentMethod === "stripe";
-  const paymentText = paymentLabel(payload.paymentMethod, { paid: paidOnline });
+  const paymentText = payload.rosterOnly
+    ? null
+    : paymentLabel(payload.paymentMethod, { paid: paidOnline });
   const location = escapeHtml(payload.location ?? SITE.address.full);
   const coach = payload.coachName?.trim() || null;
   // Launch: cancellations disabled — do not surface cancel policy in confirmations.
@@ -144,7 +148,7 @@ export async function sendBookingConfirmation(
           ${row("Time", escapeHtml(formatSessionTime(payload.startTime)))}
           ${coach ? row("Coach", escapeHtml(coach)) : ""}
           ${row("Location", location)}
-          ${row("Payment", escapeHtml(paymentText))}
+          ${paymentText ? row("Payment", escapeHtml(paymentText)) : ""}
           ${row("Confirmation #", escapeHtml(payload.booking.confirmation_number))}
         </table>
         <p style="margin: 0 0 8px;"><strong>Questions?</strong></p>
@@ -174,16 +178,19 @@ export async function sendStaffBookingNotification(
 
   const site = getSiteUrl();
   const viewUrl = `${site}/admin/bookings/${payload.booking.id}`;
-  const method =
-    payload.paymentMethod === "stripe"
-      ? "Paid Online"
-      : payload.paymentMethod === "package_credit"
-        ? "Package credit"
-        : payload.paymentMethod === "pay_at_facility"
-          ? "Pay at Facility"
-          : payload.paymentStatus === "paid"
-            ? "Paid Online"
-            : "Pay at Facility";
+  const paymentLine = payload.rosterOnly
+    ? ""
+    : `<p style="margin: 0 0 8px;"><strong>${escapeHtml(
+        payload.paymentMethod === "stripe"
+          ? "Paid Online"
+          : payload.paymentMethod === "package_credit"
+            ? "Package credit"
+            : payload.paymentMethod === "pay_at_facility"
+              ? "Pay at Facility"
+              : payload.paymentStatus === "paid"
+                ? "Paid Online"
+                : "Pay at Facility",
+      )}</strong> · ${escapeHtml(formatPrice(payload.amountDueCents))}</p>`;
 
   await sendEmail(
     {
@@ -196,7 +203,7 @@ export async function sendStaffBookingNotification(
         <p style="margin: 0 0 8px; font-size: 18px; font-weight: 700;">${escapeHtml(payload.athleteName)}</p>
         <p style="margin: 0 0 8px;">${escapeHtml(formatSessionDate(payload.sessionDate))} · ${escapeHtml(formatSessionTime(payload.startTime))}</p>
         <p style="margin: 0 0 8px;">${escapeHtml(payload.sessionTitle)}</p>
-        <p style="margin: 0 0 8px;"><strong>${escapeHtml(method)}</strong> · ${escapeHtml(formatPrice(payload.amountDueCents))}</p>
+        ${paymentLine}
         <p style="margin: 0 0 24px; color: #555;">
           ${escapeHtml(payload.parentName)} · ${escapeHtml(payload.parentPhone)} · ${escapeHtml(payload.parentEmail)}<br/>
           Confirmation ${escapeHtml(payload.booking.confirmation_number)}
