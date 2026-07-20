@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatPrice } from "@/lib/format";
 import type { TrainingPackage } from "@/lib/types/database";
 
 type ContactFields = {
@@ -129,15 +128,9 @@ export function PackagePurchaseCards({
             <p className="mt-1 text-sm text-muted-foreground">
               {pkg.session_count} session{pkg.session_count === 1 ? "" : "s"}
             </p>
-            {pkg.description ? (
-              <p className="mt-2 text-sm text-muted-foreground">{pkg.description}</p>
-            ) : null}
-            <p className="mt-4 font-heading text-2xl tracking-wide">
-              {formatPrice(pkg.price_cents)}
-            </p>
             <Button
               type="button"
-              className="mt-auto pt-6 bg-brand text-brand-foreground hover:bg-brand/90"
+              className="mt-auto w-full justify-center bg-brand text-brand-foreground hover:bg-brand/90"
               disabled={purchasingSlug !== null}
               onClick={() => void purchase(pkg)}
             >

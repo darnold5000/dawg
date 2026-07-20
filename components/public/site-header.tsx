@@ -2,14 +2,58 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NAV_LINKS, SITE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
+function isNavLinkActive(
+  pathname: string,
+  hash: string,
+  href: string,
+): boolean {
+  if (href === "/") {
+    return pathname === "/" && hash !== "#training";
+  }
+  if (href === "/#training") {
+    return pathname === "/" && hash === "#training";
+  }
+  if (href === "/my") {
+    return pathname === "/my" || pathname.startsWith("/my/");
+  }
+  const pathOnly = href.split("#")[0];
+  return (
+    pathname === pathOnly || pathname.startsWith(`${pathOnly}/`)
+  );
+}
+
+const navLinkClass = (active: boolean) =>
+  cn(
+    "rounded-md px-3 py-2 text-sm font-semibold transition",
+    active
+      ? "bg-brand/35 text-white ring-1 ring-brand/50"
+      : "text-white/75 hover:bg-brand/20 hover:text-white",
+  );
+
+const mobileNavLinkClass = (active: boolean) =>
+  cn(
+    "rounded-md px-3 py-3 text-base font-semibold",
+    active ? "bg-brand/35 text-white" : "text-white",
+  );
+
 export function SiteHeader() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [hash, setHash] = useState("");
+
+  useEffect(() => {
+    const syncHash = () => setHash(window.location.hash);
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, [pathname]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-ink/95 backdrop-blur-md">
@@ -33,15 +77,19 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-md px-3 py-2 text-sm font-semibold text-white/75 transition hover:bg-brand/20 hover:text-white"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const active = isNavLinkActive(pathname, hash, link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={navLinkClass(active)}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           <Button asChild className="ml-2 bg-gold font-bold text-gold-foreground hover:bg-gold/90">
             <Link href="/schedule">Book Training</Link>
           </Button>
@@ -67,16 +115,20 @@ export function SiteHeader() {
         )}
       >
         <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3" aria-label="Mobile">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-md px-3 py-3 text-base font-semibold text-white"
-              onClick={() => setOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const active = isNavLinkActive(pathname, hash, link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={mobileNavLinkClass(active)}
+                onClick={() => setOpen(false)}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           <Button asChild className="mt-2 bg-gold font-bold text-gold-foreground hover:bg-gold/90">
             <Link href="/schedule" onClick={() => setOpen(false)}>
               Book Training

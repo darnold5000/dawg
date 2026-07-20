@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/format";
 import type { TrainingPackage } from "@/lib/types/database";
 
 export function LoggedInPackageCheckoutForm({
@@ -81,10 +80,7 @@ export function LoggedInPackageCheckoutForm({
             <span>
               <span className="font-medium">{pkg.name}</span>
               <span className="mt-0.5 block text-muted-foreground">
-                {pkg.description}
-              </span>
-              <span className="mt-1 block font-heading text-lg tracking-wide">
-                {formatPrice(pkg.price_cents)}
+                {pkg.session_count} session{pkg.session_count === 1 ? "" : "s"}
               </span>
             </span>
           </label>
@@ -99,7 +95,7 @@ export function LoggedInPackageCheckoutForm({
         {submitting
           ? "Starting checkout…"
           : selected
-            ? `Continue to pay ${formatPrice(selected.price_cents)}`
+            ? "Continue to checkout"
             : "Select a package"}
       </Button>
     </form>

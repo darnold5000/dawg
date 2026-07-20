@@ -252,9 +252,9 @@ export function IntakeForm({ returnTo }: { returnTo?: string }) {
         </legend>
         {(
           [
-            ["single", "Single session $25"],
-            ["pack-10", "10 sessions $200 ($20/class)"],
-            ["pack-20", "20 sessions $300 ($15/class)"],
+            ["single", "Single session"],
+            ["pack-10", "10 sessions"],
+            ["pack-20", "20 sessions"],
           ] as const
         ).map(([value, label]) => (
           <label key={value} className="flex items-start gap-3 text-sm">

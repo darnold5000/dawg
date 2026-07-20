@@ -10,6 +10,7 @@ import {
   formatPrice,
   formatSessionDate,
   formatSessionTime,
+  formatSessionTitle,
 } from "@/lib/format";
 
 export async function generateMetadata({
@@ -48,7 +49,9 @@ export default async function SessionDetailPage({
       <p className="text-sm font-semibold uppercase tracking-widest text-brand">
         {session.session_type?.name ?? "Session"}
       </p>
-      <h1 className="mt-2 font-heading text-4xl tracking-wide">{session.title}</h1>
+      <h1 className="mt-2 font-heading text-4xl tracking-wide">
+        {formatSessionTitle(session.title)}
+      </h1>
       {session.description ? (
         <p className="mt-4 text-muted-foreground">{session.description}</p>
       ) : null}

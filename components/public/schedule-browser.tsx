@@ -3,8 +3,14 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { SessionCard } from "@/components/public/session-card";
+import { Button } from "@/components/ui/button";
 import type { SessionWithRelations } from "@/lib/types/database";
-import { formatSessionDateShort, formatSessionTime } from "@/lib/format";
+import { bookLoginPath } from "@/lib/family-auth-url";
+import {
+  formatSessionDateShort,
+  formatSessionTime,
+  formatSessionTitle,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export function ScheduleBrowser({
@@ -12,7 +18,7 @@ export function ScheduleBrowser({
 }: {
   sessions: SessionWithRelations[];
 }) {
-  const [view, setView] = useState<"list" | "calendar">("list");
+  const [view, setView] = useState<"list" | "calendar">("calendar");
 
   const byDate = useMemo(() => {
     const map = new Map<string, SessionWithRelations[]>();
@@ -74,25 +80,45 @@ export function ScheduleBrowser({
                 {formatSessionDateShort(day)}
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {daySessions.map((session) => (
-                  <Link
-                    key={session.id}
-                    href={`/schedule/${session.id}`}
-                    className="rounded-xl border border-border bg-card p-4 shadow-sm transition hover:border-brand"
-                  >
-                    <p className="text-sm text-brand">
-                      {formatSessionTime(session.start_time)}
-                    </p>
-                    <h3 className="mt-1 font-heading text-lg tracking-wide">
-                      {session.title}
-                    </h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {(session.spots_remaining ?? 0) > 0
-                        ? `${session.spots_remaining} spots left`
-                        : "Full"}
-                    </p>
-                  </Link>
-                ))}
+                {daySessions.map((session) => {
+                  const full = (session.spots_remaining ?? 0) <= 0;
+                  return (
+                    <div
+                      key={session.id}
+                      className="flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm"
+                    >
+                      <p className="text-sm text-brand">
+                        {formatSessionTime(session.start_time)}
+                      </p>
+                      <h3 className="mt-1 font-heading text-lg tracking-wide">
+                        {formatSessionTitle(session.title)}
+                      </h3>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {full
+                          ? "Full"
+                          : `${session.spots_remaining} spots left`}
+                      </p>
+                      <div className="mt-3">
+                        <Button
+                          asChild
+                          size="sm"
+                          className={
+                            full
+                              ? undefined
+                              : "bg-gold font-bold text-gold-foreground hover:bg-gold/90"
+                          }
+                          variant={full ? "secondary" : "default"}
+                        >
+                          <Link
+                            href={bookLoginPath(session.id, full)}
+                          >
+                            {full ? "Waitlist" : "Book"}
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           ))}

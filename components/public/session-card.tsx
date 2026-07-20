@@ -11,6 +11,7 @@ import {
   formatPrice,
   formatSessionDateShort,
   formatSessionTime,
+  formatSessionTitle,
 } from "@/lib/format";
 import { bookLoginPath } from "@/lib/family-auth-url";
 
@@ -43,7 +44,9 @@ export function SessionCard({ session }: { session: SessionWithRelations }) {
               </Badge>
             ) : null}
           </div>
-          <h3 className="font-heading text-xl tracking-wide">{session.title}</h3>
+          <h3 className="font-heading text-xl tracking-wide">
+            {formatSessionTitle(session.title)}
+          </h3>
           <p className="text-sm text-muted-foreground">
             {formatSessionDateShort(session.session_date)} ·{" "}
             {formatSessionTime(session.start_time)} ·{" "}

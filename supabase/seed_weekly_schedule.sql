@@ -53,9 +53,9 @@ with dates as (
 slots as (
   select *
   from (values
-    ('little-dawgs', 'Little Dawgs — Afternoon', '16:00'::time, '17:00'::time, 5, 10, 2500, 10, 45),
-    ('big-dawgs',     'Big Dawgs — Evening',      '17:00'::time, '18:00'::time, 11, 18, 3000, 12, 60),
-    ('little-dawgs', 'Little Dawgs — Late',      '18:00'::time, '19:00'::time, 5, 10, 2500, 10, 60)
+    ('little-dawgs', 'Little Dawgs', '16:00'::time, '17:00'::time, 5, 10, 2500, 10, 45),
+    ('big-dawgs',     'Big Dawgs',  '17:00'::time, '18:00'::time, 11, 18, 3000, 12, 60),
+    ('little-dawgs', 'Little Dawgs', '18:00'::time, '19:00'::time, 5, 10, 2500, 10, 60)
   ) as t(program_slug, title, start_time, end_time, min_age, max_age, price_cents, capacity, duration_hint)
 )
 insert into public.dawg_sessions (
@@ -116,6 +116,13 @@ where not exists (
     and existing.start_time = s.start_time
     and existing.status in ('published', 'full')
 );
+
+-- Clean up time-of-day suffixes on existing session titles
+update public.dawg_sessions
+set
+  title = regexp_replace(title, '\s*[—–-]\s*(Afternoon|Evening|Late)\s*$', '', 'i'),
+  updated_at = now()
+where title ~* '\s*[—–-]\s*(Afternoon|Evening|Late)\s*$';
 
 -- Verify counts
 select

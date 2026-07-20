@@ -39,6 +39,13 @@ export function durationMinutes(start: string, end: string): number {
   return Math.max(0, Math.round((e.getTime() - s.getTime()) / 60000));
 }
 
+/** Strip time-of-day suffixes from seeded session titles (e.g. "— Afternoon"). */
+export function formatSessionTitle(title: string): string {
+  return title
+    .replace(/\s*[—–-]\s*(Afternoon|Evening|Late)\s*$/i, "")
+    .trim();
+}
+
 export function generateConfirmationNumber(): string {
   const part = Math.random().toString(36).slice(2, 8).toUpperCase();
   const stamp = Date.now().toString(36).toUpperCase().slice(-4);
