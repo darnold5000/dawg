@@ -3,11 +3,8 @@ import { redirect } from "next/navigation";
 import { FamilyLoginForm } from "@/components/public/family-login-form";
 import {
   getAuthenticatedFamily,
-  loginPath,
   registerPath,
-  requireFamilyWithIntake,
   sanitizeReturnPath,
-  setAuthReturnCookie,
 } from "@/lib/family-auth";
 import { parentHasAnyIntake } from "@/lib/intake";
 import { createMetadata } from "@/lib/seo";
@@ -25,7 +22,6 @@ export default async function FamilyLoginPage({
 }) {
   const q = await searchParams;
   const returnTo = sanitizeReturnPath(q.return, "/schedule");
-  await setAuthReturnCookie(returnTo);
 
   const family = await getAuthenticatedFamily();
   if (family) {

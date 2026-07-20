@@ -5,7 +5,7 @@ import {
   getPurchaseByCheckoutSession,
   getPurchaseById,
 } from "@/lib/packages";
-import { sendPackagePurchaseConfirmation } from "@/lib/email";
+import { handlePostPackagePurchase } from "@/lib/billing/post-package-purchase";
 
 function purchaseIdFromSession(session: Stripe.Checkout.Session): string | null {
   const fromMeta = session.metadata?.purchaseId ?? session.metadata?.purchase_id;
@@ -56,29 +56,12 @@ export async function applyPaidPackageCheckoutSession(
   if (!result.ok) throw new Error(result.error);
 
   try {
-    const purchase = await getPurchaseById(purchaseId);
-    if (purchase?.package && purchase.paid_at) {
-      // Email best-effort after confirm
-      const { createServiceClient } = await import("@/lib/supabase/server");
-      const { DAWG_TABLES } = await import("@/lib/supabase/tables");
-      const supabase = createServiceClient();
-      const { data: parent } = await supabase
-        .from(DAWG_TABLES.parents)
-        .select("first_name, last_name, email")
-        .eq("id", purchase.parent_id)
-        .maybeSingle();
-      if (parent?.email) {
-        await sendPackagePurchaseConfirmation({
-          parentEmail: parent.email,
-          parentName: `${parent.first_name} ${parent.last_name}`,
-          packageName: purchase.package.name,
-          sessionsTotal: purchase.sessions_total,
-          amountPaidCents: purchase.amount_paid_cents,
-        });
-      }
-    }
+    await handlePostPackagePurchase({
+      purchaseId,
+      stripeSession: session,
+    });
   } catch (err) {
-    console.error("[reconcile-package] email failed", err);
+    console.error("[reconcile-package] post-purchase email failed", err);
   }
 
   return { purchaseId, confirmed: true };
@@ -109,7 +92,6 @@ export async function reconcilePackageCheckout(input: {
   try {
     const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
     if (session.metadata?.kind !== "package" && !session.metadata?.purchaseId) {
-      // Maybe purchase was attached only by checkout id
       const byCheckout = await getPurchaseByCheckoutSession(checkoutSessionId);
       if (!byCheckout) {
         return { ok: false, error: "Not a package checkout" };

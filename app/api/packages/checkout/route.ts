@@ -67,9 +67,6 @@ export async function POST(request: Request) {
         athleteId = athletes?.[0]?.id ?? null;
       }
 
-      const athlete =
-        family.athletes.find((a) => a.id === athleteId) ?? family.athletes[0];
-
       const result = await createPackageCheckout({
         packageSlug: parsed.packageSlug,
         parentId: family.parentId,
@@ -78,22 +75,7 @@ export async function POST(request: Request) {
         parentLastName: parent.last_name ?? family.parentLastName,
         parentEmail: parent.email,
         parentPhone: parent.phone ?? family.parentPhone,
-        athleteFirstName: athlete?.firstName ?? "Athlete",
-        athleteLastName: athlete?.lastName ?? "",
-        athleteDob: athlete?.dob ?? "2000-01-01",
-        schoolGrade: "",
-        heightWeight: "",
-        sportPosition: "",
-        healthIssues: "",
-        emergencyContact1Name: "On file",
-        emergencyContact1Phone: parent.phone ?? family.parentPhone,
-        emergencyContact2Name: "",
-        emergencyContact2Phone: "",
-        shirtSize: null,
-        goal: "",
-        acceptWaiver: true,
-        mediaConsent: family.mediaConsentPreference,
-        rememberFamily: false,
+        authenticatedCheckout: true,
       });
 
       if (!result.ok) {
@@ -117,22 +99,7 @@ export async function POST(request: Request) {
       parentLastName: parsed.parentLastName,
       parentEmail: parsed.parentEmail,
       parentPhone: parsed.parentPhone,
-      athleteFirstName: "Package",
-      athleteLastName: "Purchase",
-      athleteDob: "2000-01-01",
-      schoolGrade: "",
-      heightWeight: "",
-      sportPosition: "",
-      healthIssues: "",
-      emergencyContact1Name: parsed.parentFirstName,
-      emergencyContact1Phone: parsed.parentPhone,
-      emergencyContact2Name: "",
-      emergencyContact2Phone: "",
-      shirtSize: null,
-      goal: "",
-      acceptWaiver: true,
-      mediaConsent: false,
-      rememberFamily: false,
+      guestCheckout: true,
     });
 
     if (!result.ok) {

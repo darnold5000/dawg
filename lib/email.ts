@@ -350,7 +350,11 @@ export async function sendPackagePurchaseConfirmation(payload: {
   packageName: string;
   sessionsTotal: number;
   amountPaidCents: number;
+  viewCreditsToken: string;
 }): Promise<void> {
+  const site = getSiteUrl();
+  const link = `${site}/my/verify?token=${encodeURIComponent(payload.viewCreditsToken)}&return=${encodeURIComponent("/my")}`;
+
   await sendEmail(
     {
       from: fromAddress(),
@@ -363,12 +367,64 @@ export async function sendPackagePurchaseConfirmation(payload: {
         <p>Hi ${escapeHtml(firstName(payload.parentName))},</p>
         <p>Your <strong>${escapeHtml(payload.packageName)}</strong> is ready.</p>
         <p><strong>${payload.sessionsTotal}</strong> session${payload.sessionsTotal === 1 ? "" : "s"} · ${escapeHtml(formatPrice(payload.amountPaidCents))} paid</p>
-        <p>Book from the schedule and choose <strong>Use package credit</strong> at checkout.</p>
-        <p style="color: #666; font-size: 13px;">${escapeHtml(SITE.name)} · ${SITE.phone}</p>
+        <p>Credits are applied when your athlete attends. Use the secure link below to view your balance and booking history.</p>
+        <p style="margin: 24px 0;">
+          <a href="${link}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            View your credits
+          </a>
+        </p>
+        <p style="color: #666; font-size: 13px;">This link expires in 30 minutes. ${escapeHtml(SITE.name)} · ${SITE.phone}</p>
       </div>
     `,
+      text: `Your ${payload.packageName} is ready (${payload.sessionsTotal} sessions). View your credits: ${link}`,
     },
     "package-purchase",
+  );
+}
+
+export async function sendAccountClaimEmail(payload: {
+  parentEmail: string;
+  parentFirstName: string;
+  packageName: string;
+  sessionsTotal: number;
+  token: string;
+  reminder?: boolean;
+}): Promise<void> {
+  const site = getSiteUrl();
+  const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}&return=${encodeURIComponent("/my")}`;
+  const sessionLabel = `${payload.sessionsTotal} session${payload.sessionsTotal === 1 ? "" : "s"}`;
+  const heading = payload.reminder
+    ? "Reminder: claim your DAWG account"
+    : "Claim your DAWG account";
+  const intro = payload.reminder
+    ? `Your <strong>${escapeHtml(payload.packageName)}</strong> (${sessionLabel}) is ready. This is a reminder to claim your free DAWG account so you can view your balance and booking history.`
+    : `Your <strong>${escapeHtml(payload.packageName)}</strong> (${sessionLabel}) is ready. Claim your free DAWG account to view your balance and booking history.`;
+
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: payload.parentEmail,
+      replyTo: SITE.email,
+      subject: payload.reminder
+        ? `Your ${payload.packageName} is ready — claim your account`
+        : `Claim your DAWG account — ${payload.packageName} ready`,
+      html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
+        <h1 style="font-size: 22px; margin: 0 0 12px;">${heading}</h1>
+        <p>Hi ${escapeHtml(firstName(payload.parentFirstName))},</p>
+        <p>${intro}</p>
+        <p>Your credits are already on file — claiming your account is optional, but it lets you see your balance and history anytime.</p>
+        <p style="margin: 24px 0;">
+          <a href="${link}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            Claim your account
+          </a>
+        </p>
+        <p style="color: #666; font-size: 13px;">This secure link expires in 30 minutes. If you did not make this purchase, contact us at ${SITE.phone}.</p>
+      </div>
+    `,
+      text: `Your ${payload.packageName} is ready. Claim your DAWG account: ${link}`,
+    },
+    payload.reminder ? "account-claim-reminder" : "account-claim",
   );
 }
 
@@ -378,7 +434,7 @@ export async function sendFamilyLoginEmail(payload: {
   token: string;
 }): Promise<void> {
   const site = getSiteUrl();
-  const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}`;
+  const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}&return=${encodeURIComponent("/my")}`;
 
   await sendEmail(
     {

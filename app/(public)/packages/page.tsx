@@ -35,13 +35,15 @@ export default async function PackagesPage({
 
       {family ? (
         <p className="mt-4 text-sm text-muted-foreground">
-          Signed in as {family.parentFirstName} {family.parentLastName}.
+          Signed in as {family.parentFirstName} {family.parentLastName}. This
+          purchase will connect to your account automatically.
         </p>
       ) : null}
 
       <div className="mt-8">
         <PackagePurchaseCards
           packages={packages}
+          isSignedIn={Boolean(family)}
           initialContact={
             family
               ? {

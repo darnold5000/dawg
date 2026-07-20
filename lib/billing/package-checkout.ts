@@ -5,20 +5,29 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
-import {
-  getPackageBySlug,
-  type PackageCheckoutInput,
-} from "@/lib/packages";
+import { getPackageBySlug } from "@/lib/packages";
 import type { AdapterResult } from "@/lib/billing/types";
 import { getSiteUrl } from "@/lib/billing/site-url";
+import {
+  findOrCreateParentByEmail,
+  normalizeEmail,
+} from "@/lib/parent-account";
 
-export type PackageCheckoutParams = PackageCheckoutInput & {
+export type CreatePackageCheckoutInput = {
+  packageSlug: "single" | "pack-10" | "pack-20";
+  parentFirstName: string;
+  parentLastName: string;
+  parentEmail: string;
+  parentPhone: string;
+  /** When set, purchase is pre-attached to this family (logged-in checkout). */
   parentId?: string;
   athleteId?: string | null;
+  guestCheckout?: boolean;
+  authenticatedCheckout?: boolean;
 };
 
 export async function createPackageCheckout(
-  input: PackageCheckoutParams,
+  input: CreatePackageCheckoutInput,
 ): Promise<
   AdapterResult<{ url: string; purchaseId: string; sessionId: string }>
 > {
@@ -40,77 +49,33 @@ export async function createPackageCheckout(
   }
 
   const supabase = createServiceClient();
+  const checkoutEmail = normalizeEmail(input.parentEmail);
 
   let parentId = input.parentId;
   if (!parentId) {
-    const { data: existingParent } = await supabase
+    const parent = await findOrCreateParentByEmail({
+      email: checkoutEmail,
+      firstName: input.parentFirstName,
+      lastName: input.parentLastName,
+      phone: input.parentPhone,
+    });
+    if (!parent) {
+      return { ok: false, error: "Could not save parent", code: "PARENT_FAILED" };
+    }
+    parentId = parent.id;
+  } else {
+    await supabase
       .from(DAWG_TABLES.parents)
-      .select("id")
-      .ilike("email", input.parentEmail)
-      .maybeSingle();
-
-    if (existingParent) {
-      parentId = existingParent.id;
-      await supabase
-        .from(DAWG_TABLES.parents)
-        .update({
-          first_name: input.parentFirstName,
-          last_name: input.parentLastName,
-          phone: input.parentPhone,
-        })
-        .eq("id", parentId);
-    } else {
-      const { data: parent, error } = await supabase
-        .from(DAWG_TABLES.parents)
-        .insert({
-          first_name: input.parentFirstName,
-          last_name: input.parentLastName,
-          email: input.parentEmail,
-          phone: input.parentPhone,
-        })
-        .select("id")
-        .single();
-      if (error || !parent) {
-        return { ok: false, error: "Could not save parent", code: "PARENT_FAILED" };
-      }
-      parentId = parent.id;
-    }
+      .update({
+        first_name: input.parentFirstName,
+        last_name: input.parentLastName,
+        phone: input.parentPhone,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parentId);
   }
 
-  if (!parentId) {
-    return { ok: false, error: "Could not resolve parent", code: "PARENT_FAILED" };
-  }
-
-  let athleteId: string | null = input.athleteId ?? null;
-  if (!athleteId) {
-    const { data: siblings } = await supabase
-      .from(DAWG_TABLES.athletes)
-      .select("id, first_name, last_name, date_of_birth")
-      .eq("parent_id", parentId);
-    const match = (siblings ?? []).find(
-      (a) =>
-        a.first_name.trim().toLowerCase() ===
-          input.athleteFirstName.trim().toLowerCase() &&
-        a.last_name.trim().toLowerCase() ===
-          input.athleteLastName.trim().toLowerCase() &&
-        a.date_of_birth === input.athleteDob,
-    );
-    if (match) {
-      athleteId = match.id;
-    } else {
-      const { data: created } = await supabase
-        .from(DAWG_TABLES.athletes)
-        .insert({
-          parent_id: parentId,
-          first_name: input.athleteFirstName.trim(),
-          last_name: input.athleteLastName.trim(),
-          date_of_birth: input.athleteDob,
-        })
-        .select("id")
-        .single();
-      athleteId = created?.id ?? null;
-    }
-  }
+  const athleteId = input.guestCheckout ? null : (input.athleteId ?? null);
 
   const { data: purchase, error: purchaseError } = await supabase
     .from(DAWG_TABLES.packagePurchases)
@@ -158,7 +123,7 @@ export async function createPackageCheckout(
   try {
     const checkout = await stripe.checkout.sessions.create({
       mode: "payment",
-      customer_email: input.parentEmail,
+      customer_email: checkoutEmail,
       line_items: lineItems,
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -170,6 +135,11 @@ export async function createPackageCheckout(
         packageId: pkg.id,
         packageSlug: pkg.slug,
         parentId,
+        parentFirstName: input.parentFirstName.trim(),
+        parentLastName: input.parentLastName.trim(),
+        parentPhone: input.parentPhone.trim(),
+        guestCheckout: input.guestCheckout ? "true" : "false",
+        authenticatedCheckout: input.authenticatedCheckout ? "true" : "false",
       },
       payment_intent_data: {
         metadata: {

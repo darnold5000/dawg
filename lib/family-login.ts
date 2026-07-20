@@ -14,12 +14,43 @@ import { setAuthReturnCookie } from "@/lib/family-auth";
 
 const TOKEN_TTL_MINUTES = 30;
 
+export type FamilyTokenPurpose = "login" | "claim";
+
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
 function newToken() {
   return randomBytes(32).toString("base64url");
+}
+
+export async function createFamilyAccessToken(input: {
+  parentId: string;
+  email: string;
+  purpose?: FamilyTokenPurpose;
+}): Promise<string | null> {
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return null;
+  }
+
+  const token = newToken();
+  const expiresAt = new Date(Date.now() + TOKEN_TTL_MINUTES * 60_000).toISOString();
+  const supabase = createServiceClient();
+
+  const { error } = await supabase.from(DAWG_TABLES.familyLoginTokens).insert({
+    parent_id: input.parentId,
+    token_hash: hashToken(token),
+    email: input.email,
+    expires_at: expiresAt,
+    purpose: input.purpose ?? "login",
+  });
+
+  if (error) {
+    console.error("[family-login] token insert", error);
+    return null;
+  }
+
+  return token;
 }
 
 export async function requestFamilyLogin(
@@ -50,18 +81,13 @@ export async function requestFamilyLogin(
     return { ok: true };
   }
 
-  const token = newToken();
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_MINUTES * 60_000).toISOString();
-
-  const { error } = await supabase.from(DAWG_TABLES.familyLoginTokens).insert({
-    parent_id: parent.id,
-    token_hash: hashToken(token),
+  const token = await createFamilyAccessToken({
+    parentId: parent.id,
     email: parent.email,
-    expires_at: expiresAt,
+    purpose: "login",
   });
 
-  if (error) {
-    console.error("[family-login] token insert", error);
+  if (!token) {
     return { ok: false, error: "Could not send login link.", code: "TOKEN_FAILED" };
   }
 

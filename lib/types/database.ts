@@ -324,6 +324,7 @@ export interface PackagePurchase {
   stripe_customer_id: string | null;
   paid_at: string | null;
   refunded_at: string | null;
+  post_purchase_email_sent_at?: string | null;
   created_at: string;
   updated_at: string;
 }

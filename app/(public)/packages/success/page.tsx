@@ -39,8 +39,8 @@ export default async function PackageSuccessPage({
       </h1>
       <p className="mt-3 text-muted-foreground">
         {confirmed
-          ? "Your session credits are ready to use when you book."
-          : "We’re confirming your purchase — this usually takes a few seconds. Refresh if needed."}
+          ? "Your session credits are on file. Check your email for a secure link to view your balance — no login required to have purchased."
+          : "We're confirming your purchase — this usually takes a few seconds. Refresh if needed."}
       </p>
       {purchase?.package ? (
         <div className="mx-auto mt-8 max-w-md rounded-xl border border-border bg-card p-5 text-left text-sm">
@@ -61,7 +61,7 @@ export default async function PackageSuccessPage({
           <Link href="/schedule">Book a session</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/my">View my account</Link>
+          <Link href="/my/login">Sign in to my account</Link>
         </Button>
       </div>
     </div>

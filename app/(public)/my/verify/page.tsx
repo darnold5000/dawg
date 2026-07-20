@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { verifyFamilyLoginToken } from "@/lib/family-login";
-import { consumeAuthReturnCookie } from "@/lib/family-auth";
+import { consumeAuthReturnCookie, sanitizeReturnPath } from "@/lib/family-auth";
 import { parentHasAnyIntake } from "@/lib/intake";
 import { registerPath } from "@/lib/family-auth-url";
 import { createMetadata } from "@/lib/seo";
@@ -16,9 +16,9 @@ export const metadata = createMetadata({
 export default async function MyVerifyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; return?: string }>;
 }) {
-  const { token } = await searchParams;
+  const { token, return: returnParam } = await searchParams;
 
   if (!token) {
     return (
@@ -47,7 +47,10 @@ export default async function MyVerifyPage({
     );
   }
 
-  const returnTo = await consumeAuthReturnCookie("/schedule");
+  const returnTo = sanitizeReturnPath(
+    returnParam ?? (await consumeAuthReturnCookie("/my")),
+    "/my",
+  );
   const hasIntake = await parentHasAnyIntake(result.parentId);
   if (!hasIntake) {
     redirect(registerPath(returnTo));

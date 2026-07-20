@@ -11,6 +11,7 @@ import {
   setFamilyDeviceCookie,
 } from "@/lib/family-device";
 import { sendIntakeStaffNotification } from "@/lib/email";
+import { markParentAccountClaimed } from "@/lib/parent-account";
 
 export const intakeSchema = z.object({
   parentFirstName: z.string().trim().min(1).max(80),
@@ -261,6 +262,8 @@ export async function submitIntake(raw: IntakeInput): Promise<
       packageInterest: input.packageInterest,
     }),
   ]);
+
+  await markParentAccountClaimed(parentId);
 
   return {
     ok: true,

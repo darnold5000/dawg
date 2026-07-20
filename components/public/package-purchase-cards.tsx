@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { loginPath } from "@/lib/family-auth-url";
 import type { TrainingPackage } from "@/lib/types/database";
 
 type ContactFields = {
@@ -17,9 +19,11 @@ type ContactFields = {
 export function PackagePurchaseCards({
   packages,
   initialContact,
+  isSignedIn = false,
 }: {
   packages: TrainingPackage[];
   initialContact?: Partial<ContactFields>;
+  isSignedIn?: boolean;
 }) {
   const [contact, setContact] = useState<ContactFields>({
     parentFirstName: initialContact?.parentFirstName ?? "",
@@ -73,6 +77,19 @@ export function PackagePurchaseCards({
 
   return (
     <div className="space-y-8">
+      {!isSignedIn ? (
+        <p className="text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link
+            href={loginPath("/packages")}
+            className="font-medium text-brand underline underline-offset-2"
+          >
+            Sign in
+          </Link>{" "}
+          to automatically connect this purchase — checkout works either way.
+        </p>
+      ) : null}
+
       <div className="form-panel grid gap-4 sm:grid-cols-2">
         <p className="sm:col-span-2 text-sm text-muted-foreground">
           Enter your contact info once, then choose a package to pay securely with
@@ -125,12 +142,9 @@ export function PackagePurchaseCards({
             className="flex flex-col rounded-xl border border-border bg-card p-5"
           >
             <p className="font-heading text-xl tracking-wide">{pkg.name}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {pkg.session_count} session{pkg.session_count === 1 ? "" : "s"}
-            </p>
             <Button
               type="button"
-              className="mt-auto w-full justify-center bg-brand text-brand-foreground hover:bg-brand/90"
+              className="mt-6 w-full justify-center bg-brand text-brand-foreground hover:bg-brand/90"
               disabled={purchasingSlug !== null}
               onClick={() => void purchase(pkg)}
             >
