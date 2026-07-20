@@ -4,6 +4,7 @@ import {
   parseSpecialties,
   updateTrainer,
   uploadTrainerPhoto,
+  deleteTrainer,
 } from "@/lib/admin-trainers";
 import { requireAdminApi } from "@/lib/auth";
 
@@ -98,4 +99,19 @@ export async function PATCH(
       { status: 400 },
     );
   }
+}
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdminApi();
+  if (auth instanceof NextResponse) return auth;
+
+  const { id } = await context.params;
+  const result = await deleteTrainer(id);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+  return NextResponse.json({ ok: true });
 }

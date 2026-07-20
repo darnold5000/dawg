@@ -3,7 +3,9 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -40,7 +42,13 @@ function appendTrainerFormData(
   }
 }
 
-export function TrainerCreateForm() {
+export function TrainerCreateForm({
+  embedded = false,
+  onSuccess,
+}: {
+  embedded?: boolean;
+  onSuccess?: () => void;
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -89,7 +97,11 @@ export function TrainerCreateForm() {
       });
       onPhotoChange(null);
       if (fileRef.current) fileRef.current.value = "";
-      router.refresh();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.refresh();
+      }
     } catch {
       toast.error("Could not add trainer");
     } finally {
@@ -100,12 +112,18 @@ export function TrainerCreateForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-4 rounded-xl border border-border bg-card p-5"
+      className={
+        embedded ? "space-y-4" : "space-y-4 rounded-xl border border-border bg-card p-5"
+      }
     >
-      <h3 className="font-heading text-xl tracking-wide">Add trainer</h3>
-      <p className="text-xs text-muted-foreground">
-        New trainers appear on the home page and About page when marked active.
-      </p>
+      {!embedded ? (
+        <>
+          <h3 className="font-heading text-xl tracking-wide">Add trainer</h3>
+          <p className="text-xs text-muted-foreground">
+            New trainers appear on the home page and About page when marked active.
+          </p>
+        </>
+      ) : null}
       <TrainerFields
         form={form}
         setForm={setForm}
@@ -127,7 +145,9 @@ export function TrainerCreateForm() {
 export function TrainerEditCard({ trainer }: { trainer: Trainer }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [form, setForm] = useState(trainerToForm(trainer));
@@ -136,6 +156,13 @@ export function TrainerEditCard({ trainer }: { trainer: Trainer }) {
     setPhotoFile(file);
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setPhotoPreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  function cancelEdit() {
+    setForm(trainerToForm(trainer));
+    onPhotoChange(null);
+    if (fileRef.current) fileRef.current.value = "";
+    setEditing(false);
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -156,6 +183,7 @@ export function TrainerEditCard({ trainer }: { trainer: Trainer }) {
       toast.success("Trainer updated");
       onPhotoChange(null);
       if (fileRef.current) fileRef.current.value = "";
+      setEditing(false);
       router.refresh();
     } catch {
       toast.error("Could not save trainer");
@@ -164,31 +192,124 @@ export function TrainerEditCard({ trainer }: { trainer: Trainer }) {
     }
   }
 
+  async function onDelete() {
+    const confirmed = window.confirm(
+      `Delete ${trainer.name}? They will be removed from the public site.`,
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/trainers/${trainer.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Could not delete trainer");
+        return;
+      }
+      toast.success("Trainer deleted");
+      router.refresh();
+    } catch {
+      toast.error("Could not delete trainer");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const photoSrc =
+    trainer.photo_url || "/images/dawg/trainers/placeholder.svg";
+
+  if (!editing) {
+    return (
+      <article className="rounded-xl border border-border bg-card p-5">
+        <div className="flex gap-4">
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-secondary">
+            <Image
+              src={photoSrc}
+              alt={`Photo of ${trainer.name}`}
+              fill
+              className="object-cover"
+              sizes="80px"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-heading text-xl tracking-wide">
+                  {trainer.name}
+                </h3>
+                <Badge variant={trainer.active ? "default" : "secondary"}>
+                  {trainer.active ? "Active" : "Hidden"}
+                </Badge>
+                <Badge variant="outline">Order {trainer.display_order}</Badge>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Edit trainer"
+                  disabled={deleting}
+                  onClick={() => setEditing(true)}
+                >
+                  <Pencil className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Delete trainer"
+                  className="text-destructive hover:text-destructive"
+                  disabled={deleting}
+                  onClick={onDelete}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            </div>
+            {trainer.title ? (
+              <p className="mt-1 text-sm text-muted-foreground">{trainer.title}</p>
+            ) : null}
+            {trainer.specialties?.length ? (
+              <p className="mt-2 text-sm">
+                {trainer.specialties.join(" · ")}
+              </p>
+            ) : null}
+            {trainer.bio ? (
+              <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+                {trainer.bio}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   const previewSrc =
     photoPreview ?? (form.photo_url || "/images/dawg/trainers/placeholder.svg");
 
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-4 rounded-xl border border-border bg-card p-5"
+      className="space-y-4 rounded-xl border border-brand/40 bg-card p-5"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="font-heading text-xl tracking-wide">{trainer.name}</h3>
-          <p className="text-xs text-muted-foreground">
-            Shown publicly when active
-          </p>
-        </div>
-        <div className="relative h-24 w-24 overflow-hidden rounded-lg bg-secondary">
-          <Image
-            src={previewSrc}
-            alt={`Photo of ${form.name}`}
-            fill
-            className="object-cover"
-            sizes="96px"
-            unoptimized={previewSrc.startsWith("blob:")}
-          />
-        </div>
+        <h3 className="font-heading text-lg tracking-wide">Edit trainer</h3>
+        <Button type="button" variant="ghost" size="sm" onClick={cancelEdit}>
+          Cancel
+        </Button>
+      </div>
+      <div className="relative mx-auto h-24 w-24 overflow-hidden rounded-lg bg-secondary sm:mx-0">
+        <Image
+          src={previewSrc}
+          alt={`Photo of ${form.name}`}
+          fill
+          className="object-cover"
+          sizes="96px"
+          unoptimized={previewSrc.startsWith("blob:")}
+        />
       </div>
       <TrainerFields
         form={form}
@@ -199,7 +320,7 @@ export function TrainerEditCard({ trainer }: { trainer: Trainer }) {
       />
       <Button
         type="submit"
-        disabled={loading}
+        disabled={loading || deleting}
         className="bg-brand text-brand-foreground hover:bg-brand/90"
       >
         {loading ? "Saving…" : "Save changes"}

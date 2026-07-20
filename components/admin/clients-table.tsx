@@ -2,12 +2,25 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
+import { CreateClientForm } from "@/components/admin/create-client-form";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import type { ClientFamily } from "@/lib/admin-clients";
 import { billingTableClassNames, formatDate } from "@/lib/billing/format";
 
 export function ClientsTable({ families }: { families: ClientFamily[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -37,6 +50,11 @@ export function ClientsTable({ families }: { families: ClientFamily[] }) {
     });
   }, [families, query]);
 
+  function onClientAdded() {
+    setAddOpen(false);
+    router.refresh();
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -46,9 +64,20 @@ export function ClientsTable({ families }: { families: ClientFamily[] }) {
           placeholder="Search parents, athletes, sport, phone…"
           className="max-w-md"
         />
-        <p className="text-sm text-muted-foreground">
-          {filtered.length} of {families.length} families
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            {filtered.length} of {families.length} families
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="bg-brand text-brand-foreground hover:bg-brand/90"
+            onClick={() => setAddOpen(true)}
+          >
+            <Plus className="size-4" />
+            Add client
+          </Button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -58,9 +87,19 @@ export function ClientsTable({ families }: { families: ClientFamily[] }) {
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {families.length === 0
-              ? "Add a client above, or they will appear after a booking or package purchase."
+              ? "Add a client or they will appear after a booking or package purchase."
               : "Try a different search."}
           </p>
+          {families.length === 0 ? (
+            <Button
+              type="button"
+              className="mt-4 bg-brand text-brand-foreground hover:bg-brand/90"
+              onClick={() => setAddOpen(true)}
+            >
+              <Plus className="size-4" />
+              Add client
+            </Button>
+          ) : null}
         </div>
       ) : (
         <div className={`${billingTableClassNames.tableWrap} -mx-1`}>
@@ -140,6 +179,20 @@ export function ClientsTable({ families }: { families: ClientFamily[] }) {
           </table>
         </div>
       )}
+
+      <Sheet open={addOpen} onOpenChange={setAddOpen}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Add client</SheetTitle>
+            <SheetDescription>
+              Create a parent profile manually. Athlete details are optional.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            <CreateClientForm embedded onSuccess={onClientAdded} />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

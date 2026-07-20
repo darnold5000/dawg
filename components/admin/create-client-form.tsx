@@ -7,18 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function CreateClientForm() {
+const emptyForm = {
+  parentFirstName: "",
+  parentLastName: "",
+  parentEmail: "",
+  parentPhone: "",
+  athleteFirstName: "",
+  athleteLastName: "",
+  athleteDob: "",
+};
+
+export function CreateClientForm({
+  embedded = false,
+  onSuccess,
+}: {
+  embedded?: boolean;
+  onSuccess?: () => void;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    parentFirstName: "",
-    parentLastName: "",
-    parentEmail: "",
-    parentPhone: "",
-    athleteFirstName: "",
-    athleteLastName: "",
-    athleteDob: "",
-  });
+  const [form, setForm] = useState(emptyForm);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,18 +43,14 @@ export function CreateClientForm() {
         return;
       }
       toast.success("Client added");
-      setForm({
-        parentFirstName: "",
-        parentLastName: "",
-        parentEmail: "",
-        parentPhone: "",
-        athleteFirstName: "",
-        athleteLastName: "",
-        athleteDob: "",
-      });
-      router.refresh();
-      if (data.parentId) {
-        router.push(`/admin/clients/${data.parentId}`);
+      setForm(emptyForm);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.refresh();
+        if (data.parentId) {
+          router.push(`/admin/clients/${data.parentId}`);
+        }
       }
     } catch {
       toast.error("Could not add client");
@@ -58,12 +62,18 @@ export function CreateClientForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-4 rounded-xl border border-border bg-card p-5"
+      className={
+        embedded ? "space-y-4" : "space-y-4 rounded-xl border border-border bg-card p-5"
+      }
     >
-      <h3 className="font-heading text-xl tracking-wide">Add client</h3>
-      <p className="text-xs text-muted-foreground">
-        Create a parent profile manually. Athlete details are optional.
-      </p>
+      {!embedded ? (
+        <>
+          <h3 className="font-heading text-xl tracking-wide">Add client</h3>
+          <p className="text-xs text-muted-foreground">
+            Create a parent profile manually. Athlete details are optional.
+          </p>
+        </>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="parentFirstName">Parent first name</Label>
@@ -87,7 +97,7 @@ export function CreateClientForm() {
             }
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="parentEmail">Email</Label>
           <Input
             id="parentEmail"
@@ -97,7 +107,7 @@ export function CreateClientForm() {
             onChange={(e) => setForm({ ...form, parentEmail: e.target.value })}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="parentPhone">Phone</Label>
           <Input
             id="parentPhone"
@@ -110,7 +120,7 @@ export function CreateClientForm() {
       </div>
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium">Athlete (optional)</p>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="athleteFirstName">First name</Label>
             <Input
@@ -131,7 +141,7 @@ export function CreateClientForm() {
               }
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="athleteDob">Date of birth</Label>
             <Input
               id="athleteDob"
@@ -145,9 +155,9 @@ export function CreateClientForm() {
       <Button
         type="submit"
         disabled={loading}
-        className="bg-brand text-brand-foreground hover:bg-brand/90"
+        className="w-full bg-brand text-brand-foreground hover:bg-brand/90"
       >
-        {loading ? "Saving…" : "Add client"}
+        {loading ? "Saving…" : "Save client"}
       </Button>
     </form>
   );

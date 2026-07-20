@@ -9,7 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
-export function ReviewCreateForm() {
+export function ReviewCreateForm({
+  embedded = false,
+  onSuccess,
+}: {
+  embedded?: boolean;
+  onSuccess?: () => void;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -49,7 +55,11 @@ export function ReviewCreateForm() {
         published: false,
         featured: false,
       });
-      router.refresh();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.refresh();
+      }
     } catch {
       toast.error("Could not save review");
     } finally {
@@ -58,12 +68,19 @@ export function ReviewCreateForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-card p-5">
-      <h3 className="font-heading text-xl tracking-wide">Add review</h3>
-      <p className="text-xs text-muted-foreground">
-        Only publish authentic reviews approved by DAWG. Check &quot;Publish
-        publicly&quot; to show the review on the home page.
-      </p>
+    <form
+      onSubmit={onSubmit}
+      className={embedded ? "space-y-4" : "space-y-4 rounded-xl border border-border bg-card p-5"}
+    >
+      {!embedded ? (
+        <>
+          <h3 className="font-heading text-xl tracking-wide">Add review</h3>
+          <p className="text-xs text-muted-foreground">
+            Only publish authentic reviews approved by DAWG. Check &quot;Publish
+            publicly&quot; to show the review on the home page.
+          </p>
+        </>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="reviewer_name">Reviewer name</Label>

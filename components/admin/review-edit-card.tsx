@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,15 @@ function reviewToForm(review: Review) {
 
 export function ReviewEditCard({ review }: { review: Review }) {
   const router = useRouter();
+  const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState(reviewToForm(review));
+
+  function cancelEdit() {
+    setForm(reviewToForm(review));
+    setEditing(false);
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -51,6 +58,7 @@ export function ReviewEditCard({ review }: { review: Review }) {
       toast.success(
         form.published ? "Review updated and live on site" : "Review updated (hidden)",
       );
+      setEditing(false);
       router.refresh();
     } catch {
       toast.error("Could not save review");
@@ -84,28 +92,75 @@ export function ReviewEditCard({ review }: { review: Review }) {
     }
   }
 
+  if (!editing) {
+    return (
+      <article className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={review.published ? "default" : "secondary"}>
+              {review.published ? "Published" : "Hidden"}
+            </Badge>
+            {review.featured ? <Badge>Featured</Badge> : null}
+            <Badge variant="outline">Order {review.display_order}</Badge>
+          </div>
+          <div className="flex shrink-0 gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Edit review"
+              disabled={deleting}
+              onClick={() => setEditing(true)}
+            >
+              <Pencil className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Delete review"
+              className="text-destructive hover:text-destructive"
+              disabled={deleting}
+              onClick={onDelete}
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <h3 className="font-heading text-xl tracking-wide">
+              {review.reviewer_name}
+            </h3>
+            {review.reviewer_description ? (
+              <span className="text-sm text-muted-foreground">
+                {review.reviewer_description}
+              </span>
+            ) : null}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {review.rating}/5 stars
+            {review.athlete_sport ? ` · ${review.athlete_sport}` : ""}
+          </p>
+          <p className="text-sm leading-relaxed">{review.review_text}</p>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-4 rounded-xl border border-border bg-card p-5"
+      className="space-y-4 rounded-xl border border-brand/40 bg-card p-5"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          <Badge variant={form.published ? "default" : "secondary"}>
-            {form.published ? "Published" : "Hidden"}
-          </Badge>
-          {form.featured ? <Badge>Featured</Badge> : null}
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-heading text-lg tracking-wide">Edit review</h3>
+        <div className="flex gap-1">
+          <Button type="button" variant="ghost" size="sm" onClick={cancelEdit}>
+            Cancel
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-          disabled={deleting || loading}
-          onClick={onDelete}
-        >
-          {deleting ? "Deleting…" : "Delete"}
-        </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

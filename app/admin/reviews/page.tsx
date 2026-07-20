@@ -1,6 +1,5 @@
 import { AdminShell } from "@/components/admin/admin-shell";
-import { ReviewCreateForm } from "@/components/admin/review-create-form";
-import { ReviewEditCard } from "@/components/admin/review-edit-card";
+import { ReviewsAdminPanel } from "@/components/admin/reviews-admin-panel";
 import { requireAdmin } from "@/lib/auth";
 import {
   createServiceClient,
@@ -36,17 +35,7 @@ export default async function AdminReviewsPage() {
             page. Deleting a review removes it permanently.
           </p>
         </div>
-        <ReviewCreateForm />
-        <div className="grid gap-4">
-          <h3 className="font-heading text-xl tracking-wide">Current reviews</h3>
-          {reviews.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No reviews stored yet.</p>
-          ) : (
-            reviews.map((review) => (
-              <ReviewEditCard key={review.id} review={review} />
-            ))
-          )}
-        </div>
+        <ReviewsAdminPanel reviews={reviews} />
       </div>
     </AdminShell>
   );

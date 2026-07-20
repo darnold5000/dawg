@@ -307,9 +307,9 @@ export async function createPublicBooking(
     };
   }
 
-  const paymentMethod = (
-    rosterCredit ? "pay_at_facility" : input.paymentMethod
-  ) as PaymentMethod;
+  const paymentMethod = rosterCredit
+    ? null
+    : (input.paymentMethod as PaymentMethod);
 
   if (session.status !== "published" && session.status !== "full") {
     return {

@@ -1,6 +1,5 @@
 import { AdminShell } from "@/components/admin/admin-shell";
 import { ClientsTable } from "@/components/admin/clients-table";
-import { CreateClientForm } from "@/components/admin/create-client-form";
 import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { clientsToCsv, getClientFamilies } from "@/lib/admin-clients";
@@ -31,7 +30,6 @@ export default async function AdminClientsPage() {
           ) : null}
         </div>
 
-        <CreateClientForm />
         <ClientsTable families={families} />
       </div>
     </AdminShell>

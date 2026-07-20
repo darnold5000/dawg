@@ -106,6 +106,8 @@ export function paymentStatusTone(
     case "refunded":
     case "partially_refunded":
       return "neutral";
+    case "not_required":
+      return "neutral";
     default:
       return "neutral";
   }

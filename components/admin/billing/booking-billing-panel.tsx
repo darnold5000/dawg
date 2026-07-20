@@ -11,13 +11,16 @@ import {
   formatMoney,
 } from "@/lib/billing/format";
 import type { Booking, PaymentTransaction } from "@/lib/types/database";
+import { adminBookingPaymentTypeLabel } from "@/lib/admin-booking-display";
 
 export function BookingBillingPanel({
   booking,
   transactions,
+  paymentTypeLabel,
 }: {
   booking: Booking;
   transactions: PaymentTransaction[];
+  paymentTypeLabel?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -129,10 +132,14 @@ export function BookingBillingPanel({
         <dl className="mt-5 grid gap-4 sm:grid-cols-2">
           <div className="rounded-lg bg-muted/40 px-3 py-2.5">
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-              Method
+              Payment type
             </dt>
-            <dd className="mt-0.5 font-medium capitalize">
-              {booking.payment_method?.replaceAll("_", " ") ?? "—"}
+            <dd className="mt-0.5 font-medium">
+              {paymentTypeLabel ??
+                adminBookingPaymentTypeLabel({
+                  paymentStatus: booking.payment_status,
+                  paymentMethod: booking.payment_method,
+                })}
             </dd>
           </div>
           <div className="rounded-lg bg-muted/40 px-3 py-2.5">
@@ -191,7 +198,8 @@ export function BookingBillingPanel({
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          {booking.payment_method === "pay_at_facility" ? (
+          {booking.payment_status !== "not_required" &&
+          booking.payment_method === "pay_at_facility" ? (
             <>
               <Button
                 type="button"

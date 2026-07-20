@@ -2,6 +2,10 @@ import Link from "next/link";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { requireStaff } from "@/lib/auth";
+import {
+  adminBookingPaymentTypeLabel,
+  getPackageRedemptionsForBookings,
+} from "@/lib/admin-booking-display";
 import { getAdminSessions } from "@/lib/admin-data";
 import { billingTableClassNames, formatMoney } from "@/lib/billing/format";
 import {
@@ -43,13 +47,17 @@ export default async function AdminBookingsPage() {
     }
   }
 
+  const packageByBooking = await getPackageRedemptionsForBookings(
+    bookings.map((b) => b.id),
+  );
+
   return (
     <AdminShell profile={profile}>
       <div className="space-y-6">
         <div>
           <h2 className="font-heading text-3xl tracking-wide">Bookings</h2>
           <p className="text-sm text-muted-foreground">
-            Recent reservations · payment status and amounts
+            Recent reservations · how each session is paid
           </p>
         </div>
 
@@ -72,9 +80,13 @@ export default async function AdminBookingsPage() {
                   <th className="hidden px-4 py-3 sm:table-cell">Parent</th>
                   <th className="px-3 py-3 sm:px-4">Session</th>
                   <th className="hidden px-4 py-3 md:table-cell">Booking</th>
-                  <th className="hidden px-4 py-3 lg:table-cell">Method</th>
-                  <th className="px-3 py-3 sm:px-4">Payment</th>
-                  <th className="px-3 py-3 sm:px-4">Due</th>
+                  <th className="hidden px-4 py-3 lg:table-cell">
+                    Payment type
+                  </th>
+                  <th className="px-3 py-3 sm:px-4">Status</th>
+                  <th className="hidden px-3 py-3 sm:table-cell md:table-cell">
+                    Due
+                  </th>
                   <th className="hidden px-4 py-3 sm:table-cell">Paid</th>
                 </tr>
               </thead>
@@ -87,6 +99,13 @@ export default async function AdminBookingsPage() {
                   const parentName = booking.parent
                     ? `${booking.parent.first_name} ${booking.parent.last_name}`
                     : "—";
+                  const paymentType = adminBookingPaymentTypeLabel({
+                    paymentStatus: booking.payment_status,
+                    paymentMethod: booking.payment_method,
+                    packageName: packageByBooking.get(booking.id),
+                  });
+                  const showAmounts = booking.payment_status !== "not_required";
+
                   return (
                     <tr
                       key={booking.id}
@@ -114,23 +133,27 @@ export default async function AdminBookingsPage() {
                       <td className="hidden px-4 py-3 capitalize md:table-cell">
                         {booking.status}
                       </td>
-                      <td className="hidden px-4 py-3 text-sm lg:table-cell">
-                        {booking.payment_method?.replaceAll("_", " ") ?? "—"}
+                      <td className="hidden max-w-[10rem] px-4 py-3 text-sm lg:table-cell">
+                        {paymentType}
                       </td>
                       <td className="px-3 py-3 sm:px-4">
                         <PaymentStatusBadge status={booking.payment_status} />
                       </td>
-                      <td className="px-3 py-3 sm:px-4">
-                        {formatMoney(
-                          booking.amount_due_cents,
-                          booking.currency?.toUpperCase() || "USD",
-                        )}
+                      <td className="hidden px-3 py-3 sm:table-cell md:table-cell">
+                        {showAmounts
+                          ? formatMoney(
+                              booking.amount_due_cents,
+                              booking.currency?.toUpperCase() || "USD",
+                            )
+                          : "—"}
                       </td>
                       <td className="hidden px-4 py-3 sm:table-cell">
-                        {formatMoney(
-                          booking.amount_paid_cents,
-                          booking.currency?.toUpperCase() || "USD",
-                        )}
+                        {showAmounts
+                          ? formatMoney(
+                              booking.amount_paid_cents,
+                              booking.currency?.toUpperCase() || "USD",
+                            )
+                          : "—"}
                       </td>
                     </tr>
                   );

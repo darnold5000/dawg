@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireStaffApi } from "@/lib/auth";
 import { ATTENDANCE_STATUSES } from "@/lib/attendance";
+import { redeemPackageCreditOnAttendance } from "@/lib/packages";
 import {
   createServiceClient,
   isSupabaseConfigured,
@@ -49,9 +50,28 @@ export async function PATCH(
       );
     }
 
+    let creditRedemption: Awaited<
+      ReturnType<typeof redeemPackageCreditOnAttendance>
+    > | null = null;
+
+    if (body.attendanceStatus === "attended") {
+      creditRedemption = await redeemPackageCreditOnAttendance(id);
+      if (creditRedemption.ok === false) {
+        return NextResponse.json(
+          {
+            error: creditRedemption.error,
+            code: creditRedemption.code,
+            attendanceStatus: data.attendance_status,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       attendanceStatus: data.attendance_status,
+      creditRedemption,
     });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });

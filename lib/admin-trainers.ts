@@ -164,3 +164,23 @@ export async function updateTrainer(
 
   return { ok: true, trainer: data as Trainer };
 }
+
+export async function deleteTrainer(
+  trainerId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { ok: false, error: "Database unavailable" };
+  }
+
+  const supabase = createServiceClient();
+  const { error } = await supabase
+    .from(DAWG_TABLES.trainers)
+    .delete()
+    .eq("id", trainerId);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true };
+}

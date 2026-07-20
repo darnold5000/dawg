@@ -1,5 +1,6 @@
 import { cn } from "@/lib/billing/format";
 import { paymentStatusTone } from "@/lib/billing/types";
+import { adminPaymentStatusLabel } from "@/lib/admin-booking-display";
 import type { PaymentStatus } from "@/lib/types/database";
 
 const toneClass: Record<string, string> = {
@@ -11,7 +12,7 @@ const toneClass: Record<string, string> = {
 };
 
 function label(status: PaymentStatus): string {
-  return status.replaceAll("_", " ");
+  return adminPaymentStatusLabel(status);
 }
 
 export function PaymentStatusBadge({

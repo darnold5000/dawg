@@ -6,6 +6,10 @@ import { BookingBillingPanel } from "@/components/admin/billing/booking-billing-
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { requireStaff } from "@/lib/auth";
 import { listPaymentTransactions } from "@/lib/billing/adapter";
+import {
+  adminBookingPaymentTypeLabel,
+  getPackageRedemptionsForBookings,
+} from "@/lib/admin-booking-display";
 import { attendanceLabel } from "@/lib/attendance";
 import {
   createServiceClient,
@@ -62,6 +66,12 @@ export default async function AdminBookingDetailPage({
   const booking = data as BookingWithRelations;
   const txResult = await listPaymentTransactions(id);
   const transactions: PaymentTransaction[] = txResult.ok ? txResult.data : [];
+  const packageByBooking = await getPackageRedemptionsForBookings([id]);
+  const paymentTypeLabel = adminBookingPaymentTypeLabel({
+    paymentStatus: booking.payment_status,
+    paymentMethod: booking.payment_method,
+    packageName: packageByBooking.get(id),
+  });
 
   return (
     <AdminShell profile={profile}>
@@ -178,7 +188,11 @@ export default async function AdminBookingDetailPage({
 
         <AgreementsSummary booking={booking} />
 
-        <BookingBillingPanel booking={booking} transactions={transactions} />
+        <BookingBillingPanel
+          booking={booking}
+          transactions={transactions}
+          paymentTypeLabel={paymentTypeLabel}
+        />
       </div>
     </AdminShell>
   );
