@@ -311,7 +311,7 @@ export interface TrainingPackage {
 
 export interface PackagePurchase {
   id: string;
-  parent_id: string;
+  parent_id: string | null;
   package_id: string;
   athlete_id: string | null;
   status: PackagePurchaseStatus;

@@ -1,5 +1,6 @@
 import { AdminShell } from "@/components/admin/admin-shell";
 import { ClientsTable } from "@/components/admin/clients-table";
+import { CreateClientForm } from "@/components/admin/create-client-form";
 import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { clientsToCsv, getClientFamilies } from "@/lib/admin-clients";
@@ -18,7 +19,7 @@ export default async function AdminClientsPage() {
           <div>
             <h2 className="font-heading text-3xl tracking-wide">Clients</h2>
             <p className="text-sm text-muted-foreground">
-              Families and athletes collected from bookings
+              Families, packages, and session history
             </p>
           </div>
           {families.length > 0 ? (
@@ -30,16 +31,8 @@ export default async function AdminClientsPage() {
           ) : null}
         </div>
 
-        {families.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-10 text-center">
-            <p className="font-medium">No clients yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Parent and athlete profiles appear here after the first booking.
-            </p>
-          </div>
-        ) : (
-          <ClientsTable families={families} />
-        )}
+        <CreateClientForm />
+        <ClientsTable families={families} />
       </div>
     </AdminShell>
   );

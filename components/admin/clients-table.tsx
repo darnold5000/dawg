@@ -53,9 +53,13 @@ export function ClientsTable({ families }: { families: ClientFamily[] }) {
 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/20 p-10 text-center">
-          <p className="font-medium">No matching clients</p>
+          <p className="font-medium">
+            {families.length === 0 ? "No clients yet" : "No matching clients"}
+          </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Try a different search, or wait for new bookings.
+            {families.length === 0
+              ? "Add a client above, or they will appear after a booking or package purchase."
+              : "Try a different search."}
           </p>
         </div>
       ) : (
@@ -66,8 +70,9 @@ export function ClientsTable({ families }: { families: ClientFamily[] }) {
                 <th className="px-3 py-3 sm:px-4">Parent</th>
                 <th className="px-3 py-3 sm:px-4">Contact</th>
                 <th className="px-3 py-3 sm:px-4">Athletes</th>
-                <th className="hidden px-4 py-3 md:table-cell">Bookings</th>
-                <th className="hidden px-4 py-3 lg:table-cell">Last booked</th>
+                <th className="hidden px-4 py-3 md:table-cell">Package</th>
+                <th className="hidden px-4 py-3 md:table-cell">Sessions left</th>
+                <th className="hidden px-4 py-3 lg:table-cell">Last session</th>
               </tr>
             </thead>
             <tbody>
@@ -115,12 +120,17 @@ export function ClientsTable({ families }: { families: ClientFamily[] }) {
                         </span>
                       ) : null}
                     </td>
+                    <td className="hidden px-4 py-3 text-sm md:table-cell">
+                      {family.packageSummary ?? "—"}
+                    </td>
                     <td className="hidden px-4 py-3 md:table-cell">
-                      {family.bookingCount}
+                      {family.sessionsRemaining > 0
+                        ? family.sessionsRemaining
+                        : "—"}
                     </td>
                     <td className="hidden px-4 py-3 text-sm text-muted-foreground lg:table-cell">
-                      {family.lastBookedAt
-                        ? formatDate(family.lastBookedAt)
+                      {family.lastSessionDate
+                        ? formatDate(family.lastSessionDate)
                         : "—"}
                     </td>
                   </tr>

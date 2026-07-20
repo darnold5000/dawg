@@ -1,10 +1,14 @@
 import { AdminShell } from "@/components/admin/admin-shell";
+import {
+  TrainerCreateForm,
+  TrainerEditCard,
+} from "@/components/admin/trainer-forms";
 import { requireAdmin } from "@/lib/auth";
-import { getTrainers } from "@/lib/data";
+import { getAdminTrainers } from "@/lib/admin-trainers";
 
 export default async function AdminTrainersPage() {
   const profile = await requireAdmin();
-  const trainers = await getTrainers();
+  const trainers = await getAdminTrainers();
 
   return (
     <AdminShell profile={profile}>
@@ -12,23 +16,21 @@ export default async function AdminTrainersPage() {
         <div>
           <h2 className="font-heading text-3xl tracking-wide">Trainers</h2>
           <p className="text-sm text-muted-foreground">
-            Trainer bios shown on the public site. Manage rows in Supabase or
-            expand this screen later.
+            Edit coach bios and photos shown on the home page and About page.
           </p>
         </div>
-        <div className="grid gap-4">
-          {trainers.map((trainer) => (
-            <article
-              key={trainer.id}
-              className="rounded-xl border border-border bg-card p-5"
-            >
-              <h3 className="font-heading text-xl tracking-wide">
-                {trainer.name}
-              </h3>
-              <p className="text-sm text-brand">{trainer.title}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{trainer.bio}</p>
-            </article>
-          ))}
+
+        <TrainerCreateForm />
+
+        <div className="space-y-4">
+          <h3 className="font-heading text-xl tracking-wide">Current trainers</h3>
+          {trainers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No trainers yet.</p>
+          ) : (
+            trainers.map((trainer) => (
+              <TrainerEditCard key={trainer.id} trainer={trainer} />
+            ))
+          )}
         </div>
       </div>
     </AdminShell>

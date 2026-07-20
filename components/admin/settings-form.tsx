@@ -93,6 +93,10 @@ export function SettingsForm({ settings }: { settings: BusinessSettings }) {
             setForm({ ...form, homepage_announcement: e.target.value })
           }
         />
+        <p className="text-xs text-muted-foreground">
+          Shown as a gold banner at the top of the home page only when this
+          field has text. Leave blank to hide it.
+        </p>
       </div>
       <div className="space-y-1.5 sm:col-span-2">
         <Label htmlFor="map_embed_url">Map embed URL</Label>

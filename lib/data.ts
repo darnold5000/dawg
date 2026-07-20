@@ -142,7 +142,6 @@ export async function getPublishedReviews(): Promise<Review[]> {
       .eq("published", true)
       .order("display_order");
     if (error) return FALLBACK_REVIEWS;
-    if (!data?.length) return FALLBACK_REVIEWS;
     return (data as Review[]) ?? [];
   } catch {
     return FALLBACK_REVIEWS;

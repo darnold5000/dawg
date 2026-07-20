@@ -11,6 +11,7 @@ import {
 import { CURRENT_AGREEMENTS_VERSION } from "@/lib/agreements";
 import { sendFamilyLoginEmail } from "@/lib/email";
 import { setAuthReturnCookie } from "@/lib/family-auth";
+import { evaluateLoginToken } from "@/lib/family-token-verify";
 
 const TOKEN_TTL_MINUTES = 30;
 
@@ -135,21 +136,39 @@ export async function verifyFamilyLoginToken(token: string): Promise<
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
-  if (!row || row.used_at) {
-    return { ok: false, error: "This link is invalid or already used.", code: "USED" };
+  const evaluation = evaluateLoginToken(row, now);
+  if (!evaluation.ok) {
+    const messages: Record<string, string> = {
+      USED: "This link is invalid or already used.",
+      EXPIRED: "This link has expired.",
+      INVALID: "Invalid link.",
+    };
+    return {
+      ok: false,
+      error: messages[evaluation.code],
+      code: evaluation.code,
+    };
   }
 
-  if (row.expires_at < now) {
-    return { ok: false, error: "This link has expired.", code: "EXPIRED" };
-  }
-
-  await supabase
+  const { data: claimed, error: claimError } = await supabase
     .from(DAWG_TABLES.familyLoginTokens)
     .update({ used_at: now })
-    .eq("id", row.id);
+    .eq("id", row!.id)
+    .is("used_at", null)
+    .gt("expires_at", now)
+    .select("parent_id")
+    .maybeSingle();
+
+  if (claimError || !claimed) {
+    return {
+      ok: false,
+      error: "This link is invalid or already used.",
+      code: "USED",
+    };
+  }
 
   const remembered = await rememberFamilyOnDevice({
-    parentId: row.parent_id,
+    parentId: claimed.parent_id,
     agreementsVersion: CURRENT_AGREEMENTS_VERSION,
     mediaConsent: false,
   });
@@ -158,5 +177,5 @@ export async function verifyFamilyLoginToken(token: string): Promise<
     await setFamilyDeviceCookie(remembered.token);
   }
 
-  return { ok: true, parentId: row.parent_id };
+  return { ok: true, parentId: claimed.parent_id };
 }

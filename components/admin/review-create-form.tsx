@@ -61,8 +61,8 @@ export function ReviewCreateForm() {
     <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-card p-5">
       <h3 className="font-heading text-xl tracking-wide">Add review</h3>
       <p className="text-xs text-muted-foreground">
-        Only publish authentic reviews approved by DAWG. Do not invent
-        testimonials.
+        Only publish authentic reviews approved by DAWG. Check &quot;Publish
+        publicly&quot; to show the review on the home page.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
@@ -119,7 +119,7 @@ export function ReviewCreateForm() {
           checked={form.published}
           onCheckedChange={(v) => setForm({ ...form, published: Boolean(v) })}
         />
-        Publish publicly
+        Publish on website (home page reviews section)
       </label>
       <label className="flex items-center gap-2 text-sm">
         <Checkbox

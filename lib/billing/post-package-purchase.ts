@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import { verifiedCheckoutEmail } from "@/lib/billing/verified-checkout-email";
 import { createFamilyAccessToken } from "@/lib/family-login";
 import {
   sendAccountClaimEmail,
@@ -15,18 +16,8 @@ import {
   getParentAccountStatus,
   getParentById,
   markParentInviteSent,
-  normalizeEmail,
   reassignPackagePurchaseParent,
 } from "@/lib/parent-account";
-
-function verifiedCheckoutEmail(
-  session: Stripe.Checkout.Session,
-): string | null {
-  const fromDetails = session.customer_details?.email?.trim();
-  const fromSession = session.customer_email?.trim();
-  const email = fromDetails || fromSession || null;
-  return email ? normalizeEmail(email) : null;
-}
 
 function contactFromMetadata(session: Stripe.Checkout.Session) {
   const meta = session.metadata ?? {};
@@ -39,7 +30,7 @@ function contactFromMetadata(session: Stripe.Checkout.Session) {
 
 /**
  * After Stripe confirms payment, attach the purchase to the verified checkout
- * email and send the correct post-purchase email (claim vs. view credits).
+ * email only (never the pre-checkout form email) and send claim / login email.
  */
 export async function handlePostPackagePurchase(input: {
   purchaseId: string;
@@ -65,12 +56,16 @@ export async function handlePostPackagePurchase(input: {
     return;
   }
 
-  const existingParent = await getParentById(purchaseBefore.parent_id);
+  const provisionalParent = purchaseBefore.parent_id
+    ? await getParentById(purchaseBefore.parent_id)
+    : null;
+
+  // Ownership is determined solely by Stripe's verified email — not the form.
   const parent = await findOrCreateParentByEmail({
     email: verifiedEmail,
-    firstName: contact.firstName || existingParent?.first_name || "DAWG",
-    lastName: contact.lastName || existingParent?.last_name || "Family",
-    phone: contact.phone || existingParent?.phone || "",
+    firstName: contact.firstName || provisionalParent?.first_name || "DAWG",
+    lastName: contact.lastName || provisionalParent?.last_name || "Family",
+    phone: contact.phone || provisionalParent?.phone || "",
   });
 
   if (!parent) {
@@ -79,6 +74,18 @@ export async function handlePostPackagePurchase(input: {
   }
 
   if (parent.id !== purchaseBefore.parent_id) {
+    if (purchaseBefore.parent_id && provisionalParent) {
+      console.info(
+        "[post-package-purchase] reassigned purchase from form parent to Stripe-verified parent",
+        {
+          purchaseId: input.purchaseId,
+          from: purchaseBefore.parent_id,
+          to: parent.id,
+          formEmail: provisionalParent.email,
+          verifiedEmail,
+        },
+      );
+    }
     await reassignPackagePurchaseParent(input.purchaseId, parent.id);
   }
 
@@ -88,7 +95,6 @@ export async function handlePostPackagePurchase(input: {
   }
 
   const parentName = `${parent.first_name} ${parent.last_name}`.trim();
-
   const accountStatus = await getParentAccountStatus(parent.id);
 
   if (accountStatus === "claimed") {

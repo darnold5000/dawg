@@ -4,6 +4,7 @@ import { Mail, Phone } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AgreementsSummary } from "@/components/admin/agreements-summary";
 import { ClientEmailForm } from "@/components/admin/client-email-form";
+import { MergeParentForm } from "@/components/admin/merge-parent-form";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
@@ -355,6 +356,8 @@ export default async function AdminClientDetailPage({
             </div>
           )}
         </section>
+
+        <MergeParentForm canonicalParentId={parent.id} />
       </div>
     </AdminShell>
   );

@@ -1,6 +1,6 @@
 import { AdminShell } from "@/components/admin/admin-shell";
 import { ReviewCreateForm } from "@/components/admin/review-create-form";
-import { Badge } from "@/components/ui/badge";
+import { ReviewEditCard } from "@/components/admin/review-edit-card";
 import { requireAdmin } from "@/lib/auth";
 import {
   createServiceClient,
@@ -32,32 +32,18 @@ export default async function AdminReviewsPage() {
         <div>
           <h2 className="font-heading text-3xl tracking-wide">Reviews</h2>
           <p className="text-sm text-muted-foreground">
-            Unpublished by default. Only approved authentic reviews should go
-            live.
+            Only reviews marked &quot;Publish on website&quot; appear on the home
+            page. Deleting a review removes it permanently.
           </p>
         </div>
         <ReviewCreateForm />
-        <div className="grid gap-3">
+        <div className="grid gap-4">
+          <h3 className="font-heading text-xl tracking-wide">Current reviews</h3>
           {reviews.length === 0 ? (
             <p className="text-sm text-muted-foreground">No reviews stored yet.</p>
           ) : (
             reviews.map((review) => (
-              <article
-                key={review.id}
-                className="rounded-xl border border-border bg-card p-4"
-              >
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant={review.published ? "default" : "secondary"}>
-                    {review.published ? "Published" : "Hidden"}
-                  </Badge>
-                  {review.featured ? <Badge>Featured</Badge> : null}
-                  <Badge variant="outline">{review.rating}/5</Badge>
-                </div>
-                <p className="mt-2 font-medium">{review.reviewer_name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {review.review_text}
-                </p>
-              </article>
+              <ReviewEditCard key={review.id} review={review} />
             ))
           )}
         </div>

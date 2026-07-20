@@ -51,8 +51,10 @@ export async function createPackageCheckout(
   const supabase = createServiceClient();
   const checkoutEmail = normalizeEmail(input.parentEmail);
 
-  let parentId = input.parentId;
-  if (!parentId) {
+  let parentId: string | null = input.parentId ?? null;
+
+  // Guest checkout: do not create a parent from the form — wait for Stripe-verified email.
+  if (!input.guestCheckout && !parentId) {
     const parent = await findOrCreateParentByEmail({
       email: checkoutEmail,
       firstName: input.parentFirstName,
@@ -63,7 +65,7 @@ export async function createPackageCheckout(
       return { ok: false, error: "Could not save parent", code: "PARENT_FAILED" };
     }
     parentId = parent.id;
-  } else {
+  } else if (parentId) {
     await supabase
       .from(DAWG_TABLES.parents)
       .update({
@@ -134,7 +136,7 @@ export async function createPackageCheckout(
         purchaseId: purchase.id,
         packageId: pkg.id,
         packageSlug: pkg.slug,
-        parentId,
+        parentId: parentId ?? "",
         parentFirstName: input.parentFirstName.trim(),
         parentLastName: input.parentLastName.trim(),
         parentPhone: input.parentPhone.trim(),

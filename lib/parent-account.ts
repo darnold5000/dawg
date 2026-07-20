@@ -4,10 +4,9 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { parentHasAnyIntake } from "@/lib/intake";
+import { normalizeEmail } from "@/lib/billing/verified-checkout-email";
 
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
+export { normalizeEmail };
 
 export type ParentAccountStatus = "claimed" | "invited" | "new";
 
