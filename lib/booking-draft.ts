@@ -12,11 +12,12 @@ export type BookingDraft = {
   athleteFirstName: string;
   athleteLastName: string;
   athleteDob: string;
-  primarySport: string;
+  schoolGrade?: string;
+  bookingNotes?: string;
+  primarySport?: string;
   experienceLevel: string;
-  /** Cleared on successful booking; not written to long-lived storage. */
-  medicalNotes: string;
-  customerNotes: string;
+  medicalNotes?: string;
+  customerNotes?: string;
   paymentMethod: string;
   rememberFamily: boolean;
   mediaConsent: boolean;

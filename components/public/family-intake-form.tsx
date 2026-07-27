@@ -512,31 +512,33 @@ export function FamilyIntakeForm({
           </fieldset>
         ) : null}
 
-        <fieldset className="space-y-3 rounded-xl border border-border p-4">
-          <legend className="px-1 font-heading text-lg tracking-wide">
+        <fieldset className="form-fieldset space-y-3 border-0 p-0 shadow-none">
+          <legend className="mb-1 px-0 font-heading text-lg tracking-wide">
             Agreements
           </legend>
-          <label className="flex items-start gap-3 text-sm">
-            <Checkbox
-              checked={form.acceptWaiver}
-              onCheckedChange={(v) => update("acceptWaiver", Boolean(v))}
-              required
-            />
-            <span>
-              I accept the liability waiver and booking policies.{" "}
-              <PolicyLinkButton docId="waiver">Waiver</PolicyLinkButton>
-            </span>
-          </label>
-          <label className="flex items-start gap-3 text-sm">
-            <Checkbox
-              checked={form.mediaConsent}
-              onCheckedChange={(v) => update("mediaConsent", Boolean(v))}
-            />
-            <span>
-              Photo / media consent for this athlete (optional).{" "}
-              <PolicyLinkButton docId="media">Details</PolicyLinkButton>
-            </span>
-          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="checkbox-plain flex items-start gap-3 text-sm">
+              <Checkbox
+                checked={form.acceptWaiver}
+                onCheckedChange={(v) => update("acceptWaiver", Boolean(v))}
+                required
+              />
+              <span>
+                I accept the liability waiver and booking policies.{" "}
+                <PolicyLinkButton docId="waiver">Waiver</PolicyLinkButton>
+              </span>
+            </label>
+            <label className="checkbox-plain flex items-start gap-3 text-sm">
+              <Checkbox
+                checked={form.mediaConsent}
+                onCheckedChange={(v) => update("mediaConsent", Boolean(v))}
+              />
+              <span>
+                Optional photo/media consent for this athlete.{" "}
+                <PolicyLinkButton docId="media">Details</PolicyLinkButton>
+              </span>
+            </label>
+          </div>
         </fieldset>
 
         <Button

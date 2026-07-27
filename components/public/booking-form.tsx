@@ -36,6 +36,10 @@ import {
   formatSessionDate,
   formatSessionTime,
 } from "@/lib/format";
+import {
+  BOOKING_EXPERIENCE_LEVELS,
+  BOOKING_SCHOOL_GRADES,
+} from "@/lib/booking-athlete-options";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
 const emptyForm = {
@@ -46,10 +50,9 @@ const emptyForm = {
   athleteFirstName: "",
   athleteLastName: "",
   athleteDob: "",
-  primarySport: "",
+  schoolGrade: "",
   experienceLevel: "",
-  medicalNotes: "",
-  customerNotes: "",
+  bookingNotes: "",
   acceptRequiredAgreements: false,
   mediaConsent: false,
   rememberFamily: false,
@@ -127,12 +130,15 @@ export function BookingForm({
           athleteFirstName: draft?.athleteFirstName || athlete.firstName,
           athleteLastName: draft?.athleteLastName || athlete.lastName,
           athleteDob: draft?.athleteDob || athlete.dob,
-          primarySport:
-            draft?.primarySport || athlete.primarySport || "",
+          schoolGrade: draft?.schoolGrade || "",
           experienceLevel:
             draft?.experienceLevel || athlete.experienceLevel || "",
-          medicalNotes: draft?.medicalNotes || "",
-          customerNotes: draft?.customerNotes || "",
+          bookingNotes:
+            draft?.bookingNotes ||
+            [draft?.medicalNotes, draft?.customerNotes]
+              .filter(Boolean)
+              .join("\n") ||
+            "",
           rememberFamily: true,
           mediaConsent:
             draft?.mediaConsent ?? family.mediaConsentPreference ?? false,
@@ -156,10 +162,11 @@ export function BookingForm({
           athleteFirstName: draft.athleteFirstName,
           athleteLastName: draft.athleteLastName,
           athleteDob: draft.athleteDob,
-          primarySport: draft.primarySport,
+          schoolGrade: draft.schoolGrade ?? "",
           experienceLevel: draft.experienceLevel,
-          medicalNotes: draft.medicalNotes,
-          customerNotes: draft.customerNotes,
+          bookingNotes:
+            draft.bookingNotes ||
+            [draft.medicalNotes, draft.customerNotes].filter(Boolean).join("\n"),
           rememberFamily: draft.rememberFamily,
           mediaConsent: draft.mediaConsent,
           acceptRequiredAgreements: draft.acceptRequiredAgreements,
@@ -198,10 +205,9 @@ export function BookingForm({
         athleteFirstName: form.athleteFirstName,
         athleteLastName: form.athleteLastName,
         athleteDob: form.athleteDob,
-        primarySport: form.primarySport,
+        schoolGrade: form.schoolGrade,
         experienceLevel: form.experienceLevel,
-        medicalNotes: form.medicalNotes,
-        customerNotes: form.customerNotes,
+        bookingNotes: form.bookingNotes,
         paymentMethod,
         rememberFamily: form.rememberFamily,
         mediaConsent: form.mediaConsent,
@@ -285,10 +291,9 @@ export function BookingForm({
       athleteFirstName: athlete.firstName,
       athleteLastName: athlete.lastName,
       athleteDob: athlete.dob,
-      primarySport: athlete.primarySport ?? "",
+      schoolGrade: "",
       experienceLevel: athlete.experienceLevel ?? "",
-      medicalNotes: "",
-      customerNotes: prev.customerNotes,
+      bookingNotes: "",
       rememberFamily: true,
       mediaConsent: family.mediaConsentPreference ?? prev.mediaConsent,
       acceptRequiredAgreements:
@@ -310,9 +315,9 @@ export function BookingForm({
         athleteFirstName: "",
         athleteLastName: "",
         athleteDob: "",
-        primarySport: "",
+        schoolGrade: "",
         experienceLevel: "",
-        medicalNotes: "",
+        bookingNotes: "",
       }));
       return;
     }
@@ -341,11 +346,6 @@ export function BookingForm({
   const selectedAthlete = savedFamily?.athletes.find(
     (a) => a.id === selectedAthleteId,
   );
-
-  const paymentSummary = useMemo(() => {
-    if (!paymentMethod) return "Select a payment method";
-    return paymentMethodLabel(paymentMethod);
-  }, [paymentMethod]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -391,7 +391,16 @@ export function BookingForm({
         return;
       }
 
+      const athleteId =
+        selectedAthleteId &&
+        selectedAthleteId !== "__new__" &&
+        /^[0-9a-f-]{36}$/i.test(selectedAthleteId)
+          ? selectedAthleteId
+          : undefined;
+
       const athleteDob = form.athleteDob.trim().slice(0, 10);
+      const hasValidDob = /^\d{4}-\d{2}-\d{2}$/.test(athleteDob);
+
       if (
         !form.parentFirstName.trim() ||
         !form.parentLastName.trim() ||
@@ -399,7 +408,7 @@ export function BookingForm({
         form.parentPhone.trim().length < 7 ||
         !form.athleteFirstName.trim() ||
         !form.athleteLastName.trim() ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(athleteDob)
+        !form.schoolGrade.trim()
       ) {
         toast.error(
           "Missing parent or athlete details. Tap Edit details and complete the form.",
@@ -408,12 +417,19 @@ export function BookingForm({
         return;
       }
 
-      const athleteId =
-        selectedAthleteId &&
-        selectedAthleteId !== "__new__" &&
-        /^[0-9a-f-]{36}$/i.test(selectedAthleteId)
-          ? selectedAthleteId
-          : undefined;
+      if (!athleteId && !hasValidDob) {
+        toast.error(
+          "Complete athlete intake first so we can match your athlete, or select a remembered athlete.",
+        );
+        router.push(intakeReturn);
+        return;
+      }
+
+      const notesBody = form.bookingNotes.trim();
+      const gradeLine = form.schoolGrade.trim()
+        ? `School grade: ${form.schoolGrade.trim()}`
+        : "";
+      const medicalNotes = [gradeLine, notesBody].filter(Boolean).join("\n");
 
       const res = await fetch("/api/bookings", {
         method: "POST",
@@ -426,12 +442,10 @@ export function BookingForm({
           parentPhone: form.parentPhone.trim(),
           athleteFirstName: form.athleteFirstName.trim(),
           athleteLastName: form.athleteLastName.trim(),
-          athleteDob,
+          athleteDob: hasValidDob ? athleteDob : form.athleteDob,
           athleteId,
-          primarySport: form.primarySport || undefined,
           experienceLevel: form.experienceLevel || undefined,
-          medicalNotes: form.medicalNotes || undefined,
-          customerNotes: form.customerNotes || undefined,
+          medicalNotes: medicalNotes || undefined,
           ...(rosterCredit ? {} : { paymentMethod }),
           acceptRequiredAgreements: agreementsNeeded
             ? form.acceptRequiredAgreements
@@ -466,7 +480,6 @@ export function BookingForm({
           athleteFirstName: form.athleteFirstName,
           athleteLastName: form.athleteLastName,
           athleteDob: form.athleteDob,
-          primarySport: form.primarySport || undefined,
           experienceLevel: form.experienceLevel || undefined,
         });
       }
@@ -605,21 +618,7 @@ export function BookingForm({
             </div>
           ) : null}
         </div>
-      ) : (
-        <label className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 text-sm">
-          <Checkbox
-            checked={form.rememberFamily}
-            onCheckedChange={(v) => update("rememberFamily", Boolean(v))}
-          />
-          <span>
-            <span className="font-medium">Remember this family on this device</span>
-            <span className="mt-0.5 block text-muted-foreground">
-              Saves parent contact and athlete profiles for faster bookings.
-              Medical notes and waiver details are not stored in the browser.
-            </span>
-          </span>
-        </label>
-      )}
+      ) : null}
 
       {compactReturning && selectedAthlete && savedFamily ? (
         <div className="space-y-3 rounded-xl border border-border bg-card p-4">
@@ -647,16 +646,19 @@ export function BookingForm({
               <dd className="font-medium">
                 {form.athleteFirstName} {form.athleteLastName}
               </dd>
-              <dd className="text-muted-foreground">DOB {form.athleteDob}</dd>
+              <dd className="text-muted-foreground">
+                {form.schoolGrade || "Grade on file"}
+              </dd>
             </div>
           </dl>
           <div className="space-y-1.5">
-            <Label htmlFor="customerNotes">Optional notes</Label>
+            <Label htmlFor="bookingNotesCompact">Notes (optional)</Label>
             <Textarea
-              id="customerNotes"
-              value={form.customerNotes}
-              onChange={(e) => update("customerNotes", e.target.value)}
+              id="bookingNotesCompact"
+              value={form.bookingNotes}
+              onChange={(e) => update("bookingNotes", e.target.value)}
               rows={2}
+              placeholder="Medical info, questions, or anything coaches should know"
             />
           </div>
         </div>
@@ -744,54 +746,46 @@ export function BookingForm({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="athleteDob">Date of birth</Label>
-                <Input
-                  id="athleteDob"
-                  type="date"
+                <Label htmlFor="schoolGrade">School grade</Label>
+                <select
+                  id="schoolGrade"
+                  className="form-select"
                   required
-                  value={form.athleteDob}
-                  onChange={(e) => update("athleteDob", e.target.value)}
-                />
+                  value={form.schoolGrade}
+                  onChange={(e) => update("schoolGrade", e.target.value)}
+                >
+                  <option value="">Select grade</option>
+                  {BOOKING_SCHOOL_GRADES.map((grade) => (
+                    <option key={grade} value={grade}>
+                      {grade}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="primarySport">Primary sport</Label>
-                <Input
-                  id="primarySport"
-                  value={form.primarySport}
-                  onChange={(e) => update("primarySport", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="experienceLevel">Experience level</Label>
-                <Input
+                <select
                   id="experienceLevel"
-                  placeholder="Beginner, Intermediate…"
+                  className="form-select"
                   value={form.experienceLevel}
                   onChange={(e) => update("experienceLevel", e.target.value)}
-                />
+                >
+                  <option value="">Select level</option>
+                  {BOOKING_EXPERIENCE_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="medicalNotes">
-                  Medical or physical considerations
-                </Label>
+                <Label htmlFor="bookingNotes">Notes (optional)</Label>
                 <Textarea
-                  id="medicalNotes"
-                  value={form.medicalNotes}
-                  onChange={(e) => update("medicalNotes", e.target.value)}
-                  rows={2}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Shared with coaches for this booking only — not saved in
-                  browser memory.
-                </p>
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="customerNotesFull">Optional notes</Label>
-                <Textarea
-                  id="customerNotesFull"
-                  value={form.customerNotes}
-                  onChange={(e) => update("customerNotes", e.target.value)}
-                  rows={2}
+                  id="bookingNotes"
+                  value={form.bookingNotes}
+                  onChange={(e) => update("bookingNotes", e.target.value)}
+                  rows={3}
+                  placeholder="Medical info, allergies, or anything coaches should know"
                 />
               </div>
             </div>
@@ -805,16 +799,6 @@ export function BookingForm({
               </button>
             ) : null}
           </fieldset>
-
-          {!savedFamily ? null : (
-            <label className="flex items-start gap-3 text-sm">
-              <Checkbox
-                checked={form.rememberFamily}
-                onCheckedChange={(v) => update("rememberFamily", Boolean(v))}
-              />
-              <span>Keep this family remembered on this device</span>
-            </label>
-          )}
         </>
       )}
 
@@ -895,91 +879,59 @@ export function BookingForm({
         <legend className="px-1 font-heading text-lg tracking-wide">
           Agreements
         </legend>
-        {agreementsNeeded ? (
-          <label className="flex items-start gap-3 text-sm">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {agreementsNeeded ? (
+            <label className="checkbox-plain flex items-start gap-3 text-sm">
+              <Checkbox
+                checked={form.acceptRequiredAgreements}
+                onCheckedChange={(v) =>
+                  update("acceptRequiredAgreements", Boolean(v))
+                }
+                required
+              />
+              <span>
+                I&apos;m the parent or guardian and accept the{" "}
+                <PolicyLinkButton docId="booking">booking</PolicyLinkButton>,{" "}
+                <PolicyLinkButton
+                  docId="cancellation"
+                  cancellationText={session.cancellation_policy}
+                >
+                  cancellation
+                </PolicyLinkButton>,{" "}
+                <PolicyLinkButton docId="privacy">privacy</PolicyLinkButton>, and{" "}
+                <PolicyLinkButton docId="waiver">waiver</PolicyLinkButton>.
+              </span>
+            </label>
+          ) : (
+            <p className="text-sm text-muted-foreground sm:col-span-2">
+              Policies were already accepted on this device.{" "}
+              <PolicyLinkButton docId="booking">Review policies</PolicyLinkButton>
+            </p>
+          )}
+          <label className="checkbox-plain flex items-start gap-3 text-sm">
             <Checkbox
-              checked={form.acceptRequiredAgreements}
-              onCheckedChange={(v) =>
-                update("acceptRequiredAgreements", Boolean(v))
-              }
-              required
+              checked={form.mediaConsent}
+              onCheckedChange={(v) => update("mediaConsent", Boolean(v))}
             />
             <span>
-              I am the athlete’s parent or legal guardian and I accept the{" "}
-              <PolicyLinkButton docId="booking">booking policy</PolicyLinkButton>
-              ,{" "}
-              <PolicyLinkButton
-                docId="cancellation"
-                cancellationText={session.cancellation_policy}
-              >
-                cancellation policy
-              </PolicyLinkButton>
-              ,{" "}
-              <PolicyLinkButton docId="privacy">privacy policy</PolicyLinkButton>
-              , and{" "}
-              <PolicyLinkButton docId="waiver">
-                liability waiver acknowledgment
-              </PolicyLinkButton>
-              .
+              Optional photo/media consent for this athlete.{" "}
+              <PolicyLinkButton docId="media">Details</PolicyLinkButton>
             </span>
           </label>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Required policies were already accepted on this device.{" "}
-            <PolicyLinkButton docId="booking">Review booking policy</PolicyLinkButton>
-            {" · "}
-            <PolicyLinkButton
-              docId="cancellation"
-              cancellationText={session.cancellation_policy}
-            >
-              cancellation
-            </PolicyLinkButton>
-            {" · "}
-            <PolicyLinkButton docId="privacy">privacy</PolicyLinkButton>
-            {" · "}
-            <PolicyLinkButton docId="waiver">waiver</PolicyLinkButton>
-          </p>
-        )}
-        <label className="flex items-start gap-3 text-sm">
-          <Checkbox
-            checked={form.mediaConsent}
-            onCheckedChange={(v) => update("mediaConsent", Boolean(v))}
-          />
-          <span>
-            Photo / media consent (optional).{" "}
-            <PolicyLinkButton docId="media">Details</PolicyLinkButton>
-          </span>
-        </label>
+          <label className="checkbox-plain flex items-start gap-3 text-sm sm:col-span-2">
+            <Checkbox
+              checked={form.rememberFamily}
+              onCheckedChange={(v) => update("rememberFamily", Boolean(v))}
+            />
+            <span>
+              Remember this family on this device for faster bookings (contact
+              info only — not medical notes).
+            </span>
+          </label>
+        </div>
       </fieldset>
 
-      <div className="sticky bottom-0 z-10 -mx-4 border-t border-border bg-card/95 px-4 py-4 backdrop-blur supports-backdrop-filter:bg-card/90 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-        {!rosterCredit ? (
-          <div className="mb-3 rounded-lg border border-border bg-card px-3 py-2 text-sm sm:mb-4">
-            <p>
-              <span className="text-muted-foreground">Payment: </span>
-              <span className="font-medium">{paymentSummary}</span>
-              {paymentMethod ? (
-                <span className="text-muted-foreground">
-                  {" "}
-                  · {formatPrice(session.price_cents)}
-                </span>
-              ) : null}
-            </p>
-            {form.parentFirstName && form.athleteFirstName ? (
-              <p className="mt-1 text-muted-foreground">
-                {form.athleteFirstName} {form.athleteLastName} ·{" "}
-                {form.parentFirstName} {form.parentLastName}
-              </p>
-            ) : null}
-          </div>
-        ) : form.parentFirstName && form.athleteFirstName ? (
-          <div className="mb-3 rounded-lg border border-border bg-card px-3 py-2 text-sm sm:mb-4">
-            <p className="text-muted-foreground">
-              {form.athleteFirstName} {form.athleteLastName} ·{" "}
-              {form.parentFirstName} {form.parentLastName}
-            </p>
-          </div>
-        ) : null}
+      <div className="sm:pt-2">
         <Button
           type="submit"
           disabled={submitting || (!rosterCredit && !paymentMethod)}

@@ -26,10 +26,7 @@ export function ScheduleBrowser({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {sessions.length} session{sessions.length === 1 ? "" : "s"}
-        </p>
+      <div className="flex items-center justify-end gap-3">
         <div className="inline-flex rounded-lg border border-border p-1">
           <button
             type="button"
@@ -69,7 +66,9 @@ export function ScheduleBrowser({
           ))}
         </div>
       ) : (
-        <ScheduleMonthCalendar sessions={sorted} />
+        <div className="public-light rounded-xl border border-slate-200 p-3 shadow-sm sm:p-4">
+          <ScheduleMonthCalendar sessions={sorted} />
+        </div>
       )}
     </div>
   );

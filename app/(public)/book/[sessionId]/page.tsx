@@ -53,7 +53,7 @@ export default async function BookPage({
     waitlist === "1" || (session.spots_remaining ?? 0) <= 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 md:py-16">
+    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 md:py-16 booking-flow">
       <h1 className="font-heading text-4xl tracking-wide">
         {waitlistMode ? "Join Waitlist" : "Complete Booking"}
       </h1>

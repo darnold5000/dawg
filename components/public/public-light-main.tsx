@@ -4,8 +4,6 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const LIGHT_PATH_PREFIXES = [
-  "/schedule",
-  "/book/",
   "/my/intake",
   "/packages",
 ];
