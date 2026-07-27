@@ -12,10 +12,9 @@ export function isOnlineCardPaymentEnabled(): boolean {
   const hasPublishable = Boolean(
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim(),
   );
-  if (typeof window !== "undefined") {
-    return hasPublishable;
-  }
-  return hasPublishable && Boolean(process.env.STRIPE_SECRET_KEY?.trim());
+  // Publishable key only — keeps SSR (client components) aligned with the browser.
+  // APIs still require STRIPE_SECRET_KEY via isStripeConfigured().
+  return hasPublishable;
 }
 
 export function allowedPaymentMethods(

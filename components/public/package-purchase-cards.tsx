@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,12 @@ export function PackagePurchaseCards({
       defaultPaymentMethod("online_or_facility") ?? "pay_at_facility",
   );
   const [purchasingSlug, setPurchasingSlug] = useState<string | null>(null);
+
+  // SSR can disagree with the browser on isOnlineCardPaymentEnabled; sync default once mounted.
+  useEffect(() => {
+    const next = defaultPaymentMethod("online_or_facility");
+    if (next) setPaymentMethod(next);
+  }, []);
 
   function update<K extends keyof ContactFields>(key: K, value: ContactFields[K]) {
     setContact((prev) => ({ ...prev, [key]: value }));
