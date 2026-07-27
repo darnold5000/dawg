@@ -5,7 +5,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
-import { getPackageBySlug } from "@/lib/packages";
+import { getPackageBySlug, PACKAGE_CATALOG_SEED_HINT } from "@/lib/packages";
 import type { AdapterResult } from "@/lib/billing/types";
 import { getSiteUrl } from "@/lib/billing/site-url";
 import {
@@ -49,7 +49,7 @@ export async function createPackageCheckout(
     return {
       ok: false,
       error:
-        "Package not found in the catalog. Run scripts/seed-dawg-training-catalog.sql on Pro.",
+        "Package not found in the catalog. " + PACKAGE_CATALOG_SEED_HINT,
       code: "PACKAGE_NOT_FOUND",
     };
   }

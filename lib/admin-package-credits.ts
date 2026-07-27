@@ -1,10 +1,17 @@
 import { z } from "zod";
-import { getPackageBySlug, listActivePackages } from "@/lib/packages";
+import {
+  getPackageBySlug,
+  listActivePackages,
+  PACKAGE_CATALOG_SEED_HINT,
+} from "@/lib/packages";
 import {
   createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
-import { withTenantInsert } from "@/lib/supabase/training-scope";
+import {
+  withTenantInsert,
+  withTenantScope,
+} from "@/lib/supabase/training-scope";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import type {
   PackageCreditAdjustment,
@@ -42,20 +49,22 @@ export async function listPackageCreditAdjustments(
     return [];
   }
   const supabase = createTrainingServiceClient();
-  const { data } = await supabase
-    .from(DAWG_TABLES.packageCreditAdjustments)
-    .select(
-      `
+  const { data } = await withTenantScope(
+    supabase
+      .from(DAWG_TABLES.packageCreditAdjustments)
+      .select(
+        `
       *,
       staff:training_staff_profiles ( full_name, email ),
       purchase:training_package_purchases (
         package:training_packages ( name )
       )
     `,
-    )
-    .eq("guardian_id", parentId)
-    .order("created_at", { ascending: false })
-    .limit(20);
+      )
+      .eq("guardian_id", parentId)
+      .order("created_at", { ascending: false })
+      .limit(20),
+  );
   return (data as PackageCreditAdjustment[]) ?? [];
 }
 
@@ -76,7 +85,11 @@ export async function applyPackageCreditAdjustment(input: {
   if (input.body.action === "grant") {
     const pkg = await getPackageBySlug(input.body.packageSlug);
     if (!pkg) {
-      return { ok: false, error: "Package not found", code: "NO_PACKAGE" };
+      return {
+        ok: false,
+        error: `Package not found for this tenant. ${PACKAGE_CATALOG_SEED_HINT}`,
+        code: "NO_PACKAGE",
+      };
     }
 
     const sessionCount = input.body.sessionCount ?? pkg.session_count;
@@ -107,26 +120,29 @@ export async function applyPackageCreditAdjustment(input: {
       };
     }
 
-    await supabase.from(DAWG_TABLES.packageCreditAdjustments).insert({
-      guardian_id: input.parentId,
-      purchase_id: purchase.id,
-      staff_profile_id: input.staffProfileId,
-      action: "grant",
-      delta: sessionCount,
-      sessions_before: 0,
-      sessions_after: sessionCount,
-      reason: input.body.reason,
-    });
+    await supabase.from(DAWG_TABLES.packageCreditAdjustments).insert(
+      withTenantInsert({
+        guardian_id: input.parentId,
+        purchase_id: purchase.id,
+        staff_profile_id: input.staffProfileId,
+        action: "grant",
+        delta: sessionCount,
+        sessions_before: 0,
+        sessions_after: sessionCount,
+        reason: input.body.reason,
+      }),
+    );
 
     return { ok: true, purchase: purchase as PackagePurchaseWithPackage };
   }
 
-  const { data: current } = await supabase
-    .from(DAWG_TABLES.packagePurchases)
-    .select("*")
-    .eq("id", input.body.purchaseId)
-    .eq("guardian_id", input.parentId)
-    .maybeSingle();
+  const { data: current } = await withTenantScope(
+    supabase
+      .from(DAWG_TABLES.packagePurchases)
+      .select("*")
+      .eq("id", input.body.purchaseId)
+      .eq("guardian_id", input.parentId),
+  ).maybeSingle();
 
   if (!current) {
     return { ok: false, error: "Purchase not found", code: "NOT_FOUND" };
@@ -177,16 +193,18 @@ export async function applyPackageCreditAdjustment(input: {
     };
   }
 
-  await supabase.from(DAWG_TABLES.packageCreditAdjustments).insert({
-    guardian_id: input.parentId,
-    purchase_id: input.body.purchaseId,
-    staff_profile_id: input.staffProfileId,
-    action: input.body.action,
-    delta,
-    sessions_before: before,
-    sessions_after: after,
-    reason: input.body.reason,
-  });
+  await supabase.from(DAWG_TABLES.packageCreditAdjustments).insert(
+    withTenantInsert({
+      guardian_id: input.parentId,
+      purchase_id: input.body.purchaseId,
+      staff_profile_id: input.staffProfileId,
+      action: input.body.action,
+      delta,
+      sessions_before: before,
+      sessions_after: after,
+      reason: input.body.reason,
+    }),
+  );
 
   return { ok: true, purchase: purchase as PackagePurchaseWithPackage };
 }

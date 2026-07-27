@@ -5,16 +5,20 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/billing/format";
+import { PACKAGE_CATALOG_SEED_HINT } from "@/lib/packages";
 import type {
   PackageCreditAdjustment,
   PackagePurchaseWithPackage,
@@ -59,6 +63,14 @@ export function PackageCreditAdjustmentPanel({
 
   const selectedPackage = packages.find((p) => p.slug === packageSlug);
 
+  const reasonOk = reason.trim().length >= 10;
+  const canApply =
+    confirmed &&
+    reasonOk &&
+    (mode === "grant"
+      ? packages.length > 0
+      : purchases.length > 0 && purchaseId);
+
   async function syncAttendedCredits() {
     setSyncing(true);
     try {
@@ -88,8 +100,20 @@ export function PackageCreditAdjustmentPanel({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!reasonOk) {
+      toast.error("Enter a reason (at least 10 characters)");
+      return;
+    }
     if (!confirmed) {
-      toast.error("Confirm you understand this changes the client's balance");
+      toast.error("Check the confirmation box before applying");
+      return;
+    }
+    if (mode === "grant" && packages.length === 0) {
+      toast.error(`No packages in catalog. ${PACKAGE_CATALOG_SEED_HINT}`);
+      return;
+    }
+    if (mode !== "grant" && purchases.length === 0) {
+      toast.error("No package on file to adjust — use Grant new credits");
       return;
     }
 
@@ -217,181 +241,219 @@ export function PackageCreditAdjustmentPanel({
       </section>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle>Adjust package credits</SheetTitle>
-            <SheetDescription>
-              This immediately changes the family&apos;s session balance. Double-check
-              the client and amount before saving.
-            </SheetDescription>
-          </SheetHeader>
+        <SheetContent
+          side="right"
+          className="admin-app flex w-full flex-col gap-0 border-slate-200 bg-white p-0 text-slate-900 sm:max-w-lg"
+        >
+          <form
+            onSubmit={onSubmit}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <SheetHeader className="border-b border-slate-200 px-6 py-5 text-left">
+              <SheetTitle className="text-slate-900">
+                Adjust package credits
+              </SheetTitle>
+              <SheetDescription className="text-slate-600">
+                Changes the family&apos;s session balance immediately. Confirm
+                the client and amount before saving.
+              </SheetDescription>
+            </SheetHeader>
 
-          <form onSubmit={onSubmit} className="mt-6 space-y-5">
-            <div className="space-y-2">
-              <Label>What do you need to do?</Label>
-              <div className="grid gap-2">
-                {(
-                  [
-                    ["grant", "Grant new credits (new package record)"],
-                    ["add", "Add sessions to existing package"],
-                    ["remove", "Remove sessions from existing package"],
-                  ] as const
-                ).map(([value, label]) => (
-                  <label
-                    key={value}
-                    className="flex cursor-pointer items-start gap-2 rounded-lg border border-border p-3 text-sm"
-                  >
-                    <input
-                      type="radio"
-                      name="mode"
-                      value={value}
-                      checked={mode === value}
-                      onChange={() => setMode(value)}
-                      className="mt-1"
-                    />
-                    <span>{label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {mode === "grant" ? (
-              <>
-                <div className="space-y-1.5">
-                  <Label htmlFor="packageSlug">Package type</Label>
-                  <select
-                    id="packageSlug"
-                    value={packageSlug}
-                    onChange={(e) =>
-                      setPackageSlug(
-                        e.target.value as "single" | "pack-10" | "pack-20",
-                      )
-                    }
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    {packages.map((pkg) => (
-                      <option key={pkg.id} value={pkg.slug}>
-                        {pkg.name} ({pkg.session_count} sessions)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="sessionCount">
-                    Session count (optional override)
-                  </Label>
-                  <Input
-                    id="sessionCount"
-                    type="number"
-                    min={1}
-                    max={100}
-                    placeholder={
-                      selectedPackage
-                        ? String(selectedPackage.session_count)
-                        : "Default from package"
-                    }
-                    value={sessionCount}
-                    onChange={(e) => setSessionCount(e.target.value)}
-                  />
-                </div>
-                {athletes.length > 0 ? (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="athleteId">Athlete (optional)</Label>
-                    <select
-                      id="athleteId"
-                      value={athleteId}
-                      onChange={(e) => setAthleteId(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+              {packages.length === 0 ? (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                  Package catalog is empty for this tenant. {PACKAGE_CATALOG_SEED_HINT}
+                </p>
+              ) : null}
+              <div className="space-y-2">
+                <Label className="text-slate-800">What do you need to do?</Label>
+                <div className="grid gap-2">
+                  {(
+                    [
+                      ["grant", "Grant new credits (new package record)"],
+                      ["add", "Add sessions to existing package"],
+                      ["remove", "Remove sessions from existing package"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <label
+                      key={value}
+                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition-colors ${
+                        mode === value
+                          ? "border-brand bg-blue-50/80"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                      }`}
                     >
-                      <option value="">Family-wide</option>
-                      {athletes.map((athlete) => (
-                        <option key={athlete.id} value={athlete.id}>
-                          {athlete.first_name} {athlete.last_name}
-                        </option>
-                      ))}
+                      <input
+                        type="radio"
+                        name="mode"
+                        value={value}
+                        checked={mode === value}
+                        onChange={() => setMode(value)}
+                        className="mt-0.5"
+                      />
+                      <span className="text-slate-800">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {mode === "grant" ? (
+                <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="packageSlug">Package type</Label>
+                    <select
+                      id="packageSlug"
+                      value={packageSlug}
+                      onChange={(e) =>
+                        setPackageSlug(
+                          e.target.value as "single" | "pack-10" | "pack-20",
+                        )
+                      }
+                      className="form-select bg-white"
+                    >
+                      {packages.length === 0 ? (
+                        <option value="single">No packages in catalog</option>
+                      ) : (
+                        packages.map((pkg) => (
+                          <option key={pkg.id} value={pkg.slug}>
+                            {pkg.name} ({pkg.session_count} sessions)
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <div className="space-y-1.5">
-                  <Label htmlFor="purchaseId">Existing package</Label>
-                  <select
-                    id="purchaseId"
-                    value={purchaseId}
-                    onChange={(e) => setPurchaseId(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    required
-                  >
-                    {purchases.length === 0 ? (
-                      <option value="">No purchases on file</option>
-                    ) : (
-                      purchases.map((purchase) => (
-                        <option key={purchase.id} value={purchase.id}>
-                          {purchase.package?.name ?? "Package"} ·{" "}
-                          {purchase.sessions_remaining} /{" "}
-                          {purchase.sessions_total} left
-                        </option>
-                      ))
-                    )}
-                  </select>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sessionCount">
+                      Session count (optional override)
+                    </Label>
+                    <Input
+                      id="sessionCount"
+                      type="number"
+                      min={1}
+                      max={100}
+                      placeholder={
+                        selectedPackage
+                          ? String(selectedPackage.session_count)
+                          : "Default from package"
+                      }
+                      value={sessionCount}
+                      onChange={(e) => setSessionCount(e.target.value)}
+                      className="bg-white"
+                    />
+                  </div>
+                  {athletes.length > 0 ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="athleteId">Athlete (optional)</Label>
+                      <select
+                        id="athleteId"
+                        value={athleteId}
+                        onChange={(e) => setAthleteId(e.target.value)}
+                        className="form-select bg-white"
+                      >
+                        <option value="">Family-wide</option>
+                        {athletes.map((athlete) => (
+                          <option key={athlete.id} value={athlete.id}>
+                            {athlete.first_name} {athlete.last_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="amount">Number of sessions</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    required
-                  />
+              ) : (
+                <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="purchaseId">Existing package</Label>
+                    <select
+                      id="purchaseId"
+                      value={purchaseId}
+                      onChange={(e) => setPurchaseId(e.target.value)}
+                      className="form-select bg-white"
+                      required
+                    >
+                      {purchases.length === 0 ? (
+                        <option value="">No purchases on file</option>
+                      ) : (
+                        purchases.map((purchase) => (
+                          <option key={purchase.id} value={purchase.id}>
+                            {purchase.package?.name ?? "Package"} ·{" "}
+                            {purchase.sessions_remaining} /{" "}
+                            {purchase.sessions_total} left
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="amount">Number of sessions</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      required
+                      className="bg-white"
+                    />
+                  </div>
                 </div>
-              </>
-            )}
+              )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="reason">Reason (required)</Label>
-              <textarea
-                id="reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                required
-                minLength={10}
-                rows={3}
-                placeholder="e.g. Comp session for missed class, cash payment recorded in office"
-                className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
+              <div className="space-y-1.5">
+                <Label htmlFor="reason">Reason (required)</Label>
+                <Textarea
+                  id="reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  minLength={10}
+                  rows={3}
+                  placeholder="e.g. Comp session for missed class, cash payment recorded in office"
+                  className="min-h-20 bg-white"
+                />
+                <p className="text-xs text-slate-500">
+                  {reason.trim().length}/10 characters minimum
+                </p>
+              </div>
+
+              <label
+                className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"
+              >
+                <Checkbox
+                  checked={confirmed}
+                  onCheckedChange={(v) => setConfirmed(Boolean(v))}
+                  className="mt-0.5"
+                />
+                <span>
+                  I understand this will immediately change this client&apos;s
+                  session balance and will be logged under my staff account.
+                </span>
+              </label>
             </div>
 
-            <label className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-              <input
-                type="checkbox"
-                checked={confirmed}
-                onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-1"
-              />
-              <span>
-                I understand this will immediately change this client&apos;s
-                session balance and will be logged under my staff account.
-              </span>
-            </label>
-
-            <Button
-              type="submit"
-              variant="destructive"
-              disabled={
-                submitting ||
-                reason.trim().length < 10 ||
-                !confirmed ||
-                (mode !== "grant" && purchases.length === 0)
-              }
-              className="w-full"
-            >
-              {submitting ? "Saving…" : "Apply credit change"}
-            </Button>
+            <SheetFooter className="flex flex-row flex-wrap justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+              {!canApply && !submitting ? (
+                <p className="text-center text-xs text-slate-600 sm:text-left">
+                  To apply: write a reason (10+ characters) and check the
+                  confirmation box.
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                className="border-slate-300 bg-white"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="bg-brand text-white hover:bg-brand/90 disabled:opacity-70"
+              >
+                {submitting ? "Saving…" : "Apply credit change"}
+              </Button>
+            </SheetFooter>
           </form>
         </SheetContent>
       </Sheet>

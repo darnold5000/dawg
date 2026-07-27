@@ -4,19 +4,22 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import {
+  isTrainingDeploymentConfigured,
+} from "@/lib/tenant/deployment";
+import {
   withTenantInsert,
   withTenantScope,
 } from "@/lib/supabase/training-scope";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import {
-  findOrCreateParentByEmail,
-  normalizeEmail,
-} from "@/lib/parent-account";
-import {
   mapBookingRow,
   mapPackagePurchaseRow,
   mapPackagePurchaseRows,
 } from "@/lib/supabase/tenant-row-map";
+import {
+  findOrCreateParentByEmail,
+  normalizeEmail,
+} from "@/lib/parent-account";
 import type {
   PackagePurchase,
   PackagePurchaseWithPackage,
@@ -70,6 +73,18 @@ const UUID_RE =
 
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
+}
+
+export const PACKAGE_CATALOG_SEED_HINT =
+  "Run scripts/seed-dawg-training-catalog.sql in the Signal Works Pro SQL editor.";
+
+/** Pro / tenant writes need service role + TRAINING_TENANT_ID — never hobby fallback IDs. */
+function canQueryTrainingPackageCatalog(): boolean {
+  return Boolean(
+    isSupabaseConfigured() &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY &&
+      isTrainingDeploymentConfigured(),
+  );
 }
 
 export const packagePaymentMethodSchema = z.enum([
@@ -133,8 +148,11 @@ export type LoggedInPackageCheckoutInput = z.infer<
 >;
 
 export async function listActivePackages(): Promise<TrainingPackage[]> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!isSupabaseConfigured()) {
     return FALLBACK_PACKAGES;
+  }
+  if (!canQueryTrainingPackageCatalog()) {
+    return [];
   }
   try {
     const supabase = createTrainingServiceClient();
@@ -159,8 +177,11 @@ export async function listActivePackages(): Promise<TrainingPackage[]> {
 export async function getPackageBySlug(
   slug: string,
 ): Promise<TrainingPackage | null> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!isSupabaseConfigured()) {
     return FALLBACK_PACKAGES.find((p) => p.slug === slug) ?? null;
+  }
+  if (!canQueryTrainingPackageCatalog()) {
+    return null;
   }
   try {
     const supabase = createTrainingServiceClient();
@@ -205,7 +226,7 @@ export async function createPackagePayAtFacilityPurchase(input: {
     return {
       ok: false,
       error:
-        "Package not found in the catalog. Run scripts/seed-dawg-training-catalog.sql on Pro.",
+        "Package not found in the catalog. " + PACKAGE_CATALOG_SEED_HINT,
       code: "PACKAGE_NOT_FOUND",
     };
   }
