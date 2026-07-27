@@ -629,9 +629,17 @@ export async function submitIntake(
 
   if (intakeError || !intake) {
     console.error("[intake] upsert", intakeError);
+    const detail = intakeError?.message?.trim();
+    const hint =
+      detail &&
+      /column|relation|permission|does not exist|unique|constraint/i.test(
+        detail,
+      );
     return {
       ok: false,
-      error: "Could not save intake. Run the latest database migration.",
+      error: hint
+        ? `Could not save intake: ${detail}`
+        : "Could not save intake. Run migration 016_training_intake_columns.sql on Signal Works Pro.",
       code: "INTAKE_SAVE_FAILED",
     };
   }
