@@ -231,20 +231,29 @@ create table if not exists public.training_session_bookings (
 
 create index if not exists training_session_bookings_session_idx
   on public.training_session_bookings (tenant_id, session_id);
-create index if not exists training_session_bookings_token_idx
+create index if not exists training_session_bookings_confirmation_token_idx
   on public.training_session_bookings (tenant_id, confirmation_token);
+create unique index if not exists training_session_bookings_athlete_session_uidx
+  on public.training_session_bookings (tenant_id, session_id, athlete_id)
+  where status in ('pending', 'confirmed');
 
 create table if not exists public.training_waitlist_entries (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants (id) on delete cascade,
   session_id uuid not null references public.training_sessions (id) on delete cascade,
-  guardian_id uuid not null references public.training_guardians (id) on delete cascade,
-  athlete_id uuid references public.training_athletes (id) on delete set null,
+  parent_name text not null,
+  athlete_name text not null,
   email text not null,
-  phone text,
+  phone text not null,
+  status text not null default 'waiting'
+    check (status in ('waiting', 'promoted', 'cancelled')),
+  position int not null default 0,
   created_at timestamptz not null default now(),
-  unique (tenant_id, session_id, guardian_id, athlete_id)
+  updated_at timestamptz not null default now()
 );
+
+create index if not exists training_waitlist_session_idx
+  on public.training_waitlist_entries (tenant_id, session_id, status);
 
 -- ---------------------------------------------------------------------------
 -- CMS & settings
@@ -253,11 +262,13 @@ create table if not exists public.training_waitlist_entries (
 create table if not exists public.training_reviews (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants (id) on delete cascade,
-  author_name text not null,
-  author_role text,
-  body text not null,
-  rating int check (rating between 1 and 5),
+  reviewer_name text not null,
+  reviewer_description text,
+  athlete_sport text,
+  rating int not null check (rating between 1 and 5),
+  review_text text not null,
   published boolean not null default false,
+  featured boolean not null default false,
   display_order int not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -269,14 +280,16 @@ create table if not exists public.training_tenant_settings (
   tagline text,
   phone text,
   email text,
-  address_line1 text,
+  address_line_1 text,
+  address_line_2 text,
   city text,
   state text,
   postal_code text,
   facebook_url text,
   instagram_url text,
   announcement text,
-  business_hours jsonb,
+  homepage_announcement text,
+  business_hours text,
   cancellation_policy text,
   booking_policy text,
   map_embed_url text,
@@ -287,15 +300,16 @@ create table if not exists public.training_tenant_settings (
 create table if not exists public.training_blocked_times (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants (id) on delete cascade,
-  start_at timestamptz not null,
-  end_at timestamptz not null,
+  trainer_id uuid references public.training_coaches (id) on delete cascade,
+  start_datetime timestamptz not null,
+  end_datetime timestamptz not null,
   reason text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  created_by uuid references auth.users (id),
+  created_at timestamptz not null default now()
 );
 
 create index if not exists training_blocked_times_tenant_idx
-  on public.training_blocked_times (tenant_id, start_at);
+  on public.training_blocked_times (tenant_id, start_datetime);
 
 -- ---------------------------------------------------------------------------
 -- updated_at triggers (subset; remainder in 003)
@@ -344,9 +358,4 @@ create trigger training_reviews_updated_at
 drop trigger if exists training_tenant_settings_updated_at on public.training_tenant_settings;
 create trigger training_tenant_settings_updated_at
   before update on public.training_tenant_settings
-  for each row execute function public.training_set_updated_at();
-
-drop trigger if exists training_blocked_times_updated_at on public.training_blocked_times;
-create trigger training_blocked_times_updated_at
-  before update on public.training_blocked_times
   for each row execute function public.training_set_updated_at();
