@@ -10,6 +10,24 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Program, SessionType, Trainer } from "@/lib/types/database";
 import { SITE } from "@/lib/constants";
 
+function endTimeFromStart(startHHMM: string, durationMinutes: number): string {
+  const [h, m] = startHHMM.split(":").map(Number);
+  const total = h * 60 + m + durationMinutes;
+  const nh = Math.floor(total / 60) % 24;
+  const nm = total % 60;
+  return `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
+}
+
+function durationForProgram(
+  programs: Program[],
+  programId: string,
+): number {
+  const program = programs.find((p) => p.id === programId);
+  return (
+    program?.default_duration_minutes ?? SITE.defaultSessionDurationMinutes
+  );
+}
+
 export function SessionForm({
   programs,
   sessionTypes,
@@ -169,7 +187,19 @@ export function SessionForm({
             id="program_id"
             className="form-select"
             value={form.program_id}
-            onChange={(e) => update("program_id", e.target.value)}
+            onChange={(e) => {
+              const programId = e.target.value;
+              setForm((prev) => ({
+                ...prev,
+                program_id: programId,
+                end_time: programId
+                  ? endTimeFromStart(
+                      prev.start_time,
+                      durationForProgram(programs, programId),
+                    )
+                  : prev.end_time,
+              }));
+            }}
           >
             <option value="">None</option>
             {programs.map((p) => (
@@ -242,7 +272,19 @@ export function SessionForm({
             type="time"
             required
             value={form.start_time}
-            onChange={(e) => update("start_time", e.target.value)}
+            onChange={(e) => {
+              const start = e.target.value;
+              setForm((prev) => {
+                const mins = prev.program_id
+                  ? durationForProgram(programs, prev.program_id)
+                  : SITE.defaultSessionDurationMinutes;
+                return {
+                  ...prev,
+                  start_time: start,
+                  end_time: endTimeFromStart(start, mins),
+                };
+              });
+            }}
           />
         </div>
         <div className="space-y-1.5">

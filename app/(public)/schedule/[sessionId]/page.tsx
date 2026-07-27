@@ -5,13 +5,17 @@ import { getSessionById } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
 import { bookLoginPath } from "@/lib/family-auth-url";
 import {
-  ageRangeLabel,
   durationMinutes,
   formatPrice,
   formatSessionDate,
   formatSessionTime,
   formatSessionTitle,
 } from "@/lib/format";
+import {
+  audienceLabelForSession,
+  isGradeGroupedProgram,
+} from "@/lib/program-grades";
+import { GradePlacementNote } from "@/components/public/grade-placement-note";
 
 export async function generateMetadata({
   params,
@@ -69,9 +73,9 @@ export default async function SessionDetailPage({
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-muted-foreground">Ages</dt>
+          <dt className="text-sm text-muted-foreground">Grades</dt>
           <dd className="font-medium">
-            {ageRangeLabel(session.minimum_age, session.maximum_age)}
+            {audienceLabelForSession(session)}
           </dd>
         </div>
         <div>
@@ -113,6 +117,10 @@ export default async function SessionDetailPage({
           </div>
         ) : null}
       </dl>
+
+      {isGradeGroupedProgram(session.program?.slug) ? (
+        <GradePlacementNote className="mt-4 rounded-lg border border-border bg-muted/40 px-4 py-3" />
+      ) : null}
 
       <div className="mt-8 flex flex-wrap gap-3">
         {full ? (

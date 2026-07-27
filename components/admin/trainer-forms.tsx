@@ -414,7 +414,7 @@ function TrainerFields({
         <Label htmlFor={`photo-url-${form.name}`}>Or photo URL</Label>
         <Input
           id={`photo-url-${form.name}`}
-          placeholder="/images/dawg/trainers/avery.jpg"
+          placeholder="/images/dawg/trainers/coach-avery.png"
           value={form.photo_url}
           onChange={(e) => setForm({ ...form, photo_url: e.target.value })}
         />

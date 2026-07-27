@@ -6,13 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { SessionWithRelations } from "@/lib/types/database";
 import {
-  ageRangeLabel,
   durationMinutes,
   formatPrice,
   formatSessionDateShort,
   formatSessionTime,
   formatSessionTitle,
 } from "@/lib/format";
+import { audienceLabelForSession } from "@/lib/program-grades";
 import { bookLoginPath } from "@/lib/family-auth-url";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
@@ -55,7 +55,7 @@ export function SessionCard({ session }: { session: SessionWithRelations }) {
             {durationMinutes(session.start_time, session.end_time)} min
           </p>
           <p className="text-sm text-muted-foreground">
-            {ageRangeLabel(session.minimum_age, session.maximum_age)}
+            {audienceLabelForSession(session)}
             {session.trainer?.name ? ` · ${session.trainer.name}` : ""}
             {!rosterCredit ? ` · ${formatPrice(session.price_cents)}` : ""}
           </p>

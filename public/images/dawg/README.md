@@ -1,12 +1,13 @@
 # DAWG image assets
 
-Official logo and training photos from the DAWG Facebook page (client-approved).
+Client-approved photos for the public site (`/public/images/dawg/`).
 
 ```
-logo.jpg              # Official DAWG logo (brick wall background)
-hero/training.jpg
-gallery/*.jpg
-trainers/avery.jpg    # Brand mark (logo) until a coach portrait is provided
+logo.svg / logo.jpg
+programs/little-dawgs.png   # Little Dawgs group (2nd–6th grade)
+programs/big-dawgs.png      # Big Dawgs group (7th grade–collegiate)
+trainers/coach-avery.png    # Coach Avery portrait
+about/training-action.png   # About page hero
 ```
 
-**Palette from logo:** electric blue `#1F5CFF` · spike gold `#FFD400` · charcoal `#07090F`
+Program and coach URLs in Supabase should match these paths (see migration `011_training_media_assets.sql` on Signal Works Pro).

@@ -2,7 +2,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { ProgramsAdminSections } from "@/components/admin/programs-admin-sections";
 import { requireAdmin } from "@/lib/auth";
 import { getPrograms, getSessionTypes, getTrainers } from "@/lib/data";
-import { ageRangeLabel } from "@/lib/format";
+import { audienceLabelForProgram } from "@/lib/program-grades";
 
 export default async function AdminProgramsPage() {
   const profile = await requireAdmin();
@@ -36,7 +36,7 @@ export default async function AdminProgramsPage() {
                 {program.short_description}
               </p>
               <p className="mt-3 text-sm">
-                {ageRangeLabel(program.minimum_age, program.maximum_age)} ·{" "}
+                {audienceLabelForProgram(program)} ·{" "}
                 {program.default_duration_minutes} min · package credit booking
               </p>
             </article>

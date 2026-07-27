@@ -26,6 +26,8 @@ export const SITE = {
     url: "https://signalworks.io",
   },
   hoursPlaceholder: "Hours TBD — contact DAWG for current training times",
+  /** Standard group class length (minutes). */
+  defaultSessionDurationMinutes: 60,
 } as const;
 
 export const NAV_LINKS = [

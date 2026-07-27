@@ -3,9 +3,9 @@ import { HeartHandshake, Layers, Target, Trophy } from "lucide-react";
 const REASONS = [
   {
     icon: Target,
-    title: "Age-Appropriate Development",
+    title: "Grade-Appropriate Development",
     description:
-      "Training matches the athlete’s age, experience, physical development, and current abilities.",
+      "Training matches the athlete’s grade, experience, physical development, and current abilities.",
   },
   {
     icon: HeartHandshake,

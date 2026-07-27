@@ -2,7 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Program } from "@/lib/types/database";
-import { ageRangeLabel } from "@/lib/format";
+import { audienceLabelForProgram } from "@/lib/program-grades";
+import { GradePlacementNote } from "@/components/public/grade-placement-note";
+import { SITE } from "@/lib/constants";
 
 export function HomePrograms({ programs }: { programs: Program[] }) {
   return (
@@ -19,8 +21,10 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
           </h2>
           <p className="mt-4 text-muted-foreground">
             Group classes and private training designed for youth athletes —
-            book online anytime.
+            book online anytime. Little Dawgs and Big Dawgs are grouped by
+            school grade.
           </p>
+          <GradePlacementNote className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground" />
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-2">
@@ -31,7 +35,7 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
             >
               <div className="relative aspect-[16/9] bg-ink">
                 <Image
-                  src={program.image_url ?? "/images/dawg/programs/big-dawgs.jpg"}
+                  src={program.image_url ?? "/images/dawg/programs/big-dawgs.png"}
                   alt={`${program.name} training program`}
                   fill
                   className="object-cover object-center opacity-95"
@@ -48,17 +52,15 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
                 </p>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <dt className="text-muted-foreground">Ages</dt>
+                    <dt className="text-muted-foreground">Grades</dt>
                     <dd className="font-semibold">
-                      {ageRangeLabel(program.minimum_age, program.maximum_age)}
+                      {audienceLabelForProgram(program)}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Duration</dt>
                     <dd className="font-semibold">
-                      {program.default_duration_minutes
-                        ? `${program.default_duration_minutes} min`
-                        : "Varies"}
+                      {`${program.default_duration_minutes ?? SITE.defaultSessionDurationMinutes} min`}
                     </dd>
                   </div>
                   <div>

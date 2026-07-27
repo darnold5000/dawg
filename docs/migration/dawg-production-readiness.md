@@ -10,9 +10,10 @@ Update this file as each gate is satisfied. Do not apply migrations or change Ve
 
 ## Architecture
 
-- [x] `training_*` schema defined (`supabase-signalworks/migrations/001`–`007`)
+- [x] `training_*` schema defined (`supabase-signalworks/migrations/001`–`008`)
 - [x] `tenant_id` on every training vertical business table
 - [x] RLS policies defined (`005_training_rls.sql`)
+- [x] Staff table API grants + login RPCs (`008_training_staff_login_grants.sql`)
 - [x] Deployment context (`TRAINING_TENANT_ID`, `lib/tenant/deployment.ts`)
 - [ ] Migrations applied on **disposable** Pro project
 - [ ] Migrations applied on **live** Pro project (cutover approval only)
@@ -25,7 +26,7 @@ Update this file as each gate is satisfied. Do not apply migrations or change Ve
 - [x] RPCs receive `p_tenant_id` via scoped client
 - [x] Guardian ↔ `parent_id` mapping helpers for app types
 - [x] Stripe idempotency documented; `training_stripe_events` PK `(tenant_id, stripe_event_id)` + adapter columns (`007`)
-- [ ] Staff auth verified on Pro (anon client + `training_staff_profiles` / RLS)
+- [ ] Staff auth verified on Pro (`POST /api/admin/login`, `training_staff_profiles` + migration `008` grants/RPCs; server-side login sets session cookies)
 - [ ] End-to-end review of billing webhook + `claimStripeEvent` on disposable Pro
 
 ## Migration

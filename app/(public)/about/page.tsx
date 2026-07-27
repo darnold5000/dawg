@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { HomeTrainers } from "@/components/public/home/trainers";
 import { HomeWhyDawg } from "@/components/public/home/why-dawg";
+import { GradePlacementNote } from "@/components/public/grade-placement-note";
+import { PROGRAM_GRADE_RANGES } from "@/lib/program-grades";
 import { getTrainers } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
 import { SITE } from "@/lib/constants";
@@ -33,6 +35,11 @@ export default async function AboutPage() {
               Young athletes train for strength, speed, agility, confidence, and
               discipline — with coaching that parents can trust.
             </p>
+            <ul className="mt-4 space-y-1 text-sm font-semibold text-foreground">
+              <li>Little Dawgs: {PROGRAM_GRADE_RANGES["little-dawgs"]}</li>
+              <li>Big Dawgs: {PROGRAM_GRADE_RANGES["big-dawgs"]}</li>
+            </ul>
+            <GradePlacementNote className="mt-4 border-l-2 border-brand/40 pl-4 text-sm" />
             <Button
               asChild
               className="mt-6 bg-brand text-brand-foreground hover:bg-brand/90"
@@ -42,17 +49,18 @@ export default async function AboutPage() {
           </div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-ink">
             <Image
-              src="/images/dawg/programs/big-dawgs.jpg"
-              alt="Athletes training at DAWG Youth Training"
+              src="/images/dawg/about/training-action.png"
+              alt="DAWG athletes training agility on the turf in Mooresville"
               fill
-              className="object-cover"
+              className="object-cover object-center"
               sizes="(max-width: 1024px) 100vw, 50vw"
+              priority
             />
           </div>
         </div>
       </section>
       <HomeWhyDawg />
-      <HomeTrainers trainers={trainers} />
+      <HomeTrainers trainers={trainers} variant="spotlight" />
     </>
   );
 }
