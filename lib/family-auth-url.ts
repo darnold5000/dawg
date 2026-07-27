@@ -20,7 +20,7 @@ export function intakePath(
 }
 
 export function claimPath(returnTo?: string | null): string {
-  const safe = sanitizeReturnPath(returnTo, "/my");
+  const safe = sanitizeReturnPath(returnTo, "/schedule");
   return `/my/login?return=${encodeURIComponent(safe)}`;
 }
 

@@ -121,7 +121,6 @@ export function BookSessionGate({
       {!alreadyCompletedIntake ? (
         <FamilyIntakeForm
           returnTo={bookReturn}
-          showAccountPrompt={false}
           bookingFlow
         />
       ) : null}

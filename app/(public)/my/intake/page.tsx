@@ -2,7 +2,6 @@ import Link from "next/link";
 import { FamilyIntakeForm } from "@/components/public/family-intake-form";
 import {
   getAuthenticatedFamily,
-  loginPath,
   sanitizeReturnPath,
 } from "@/lib/family-auth";
 import { getIntakeFormContext } from "@/lib/intake";
@@ -38,7 +37,7 @@ export default async function FamilyIntakePage({
     : "Complete athlete intake";
   let description = bookingReturn
     ? "Fill this out once for your athlete. Next step: confirm payment and book the session."
-    : "One-time intake is required before we can confirm a training session. Signing in to My account later is optional.";
+    : "One-time intake is required before we can confirm a training session.";
 
   if (context.mode === "add-athlete") {
     heading = "Add another athlete";
@@ -55,7 +54,6 @@ export default async function FamilyIntakePage({
       <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 md:py-16">
         <IntakeAlreadyComplete
           returnTo={returnTo}
-          showAccountPrompt={!bookingReturn}
           athleteName={
             context.athlete
               ? `${context.athlete.firstName} ${context.athlete.lastName}`
@@ -74,7 +72,6 @@ export default async function FamilyIntakePage({
         <FamilyIntakeForm
           returnTo={returnTo}
           athleteId={athleteId}
-          showAccountPrompt={!bookingReturn}
           bookingFlow={bookingReturn}
           initialContact={
             family
@@ -95,13 +92,6 @@ export default async function FamilyIntakePage({
           }
         />
       </div>
-      {bookingReturn ? null : (
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          <Link href={loginPath(returnTo)} className="underline underline-offset-2">
-            Email me a secure sign-in link
-          </Link>
-        </p>
-      )}
     </div>
   );
 }

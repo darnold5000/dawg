@@ -47,7 +47,7 @@ export default async function MyVerifyPage({
           This link is missing or incomplete.
         </p>
         <Button asChild className="mt-6 bg-brand text-brand-foreground hover:bg-brand/90">
-          <Link href="/my/login">Request a new link</Link>
+          <Link href="/schedule">Back to schedule</Link>
         </Button>
       </div>
     );
@@ -62,7 +62,7 @@ export default async function MyVerifyPage({
         </h1>
         <p className="mt-3 text-muted-foreground">{peek.error}</p>
         <Button asChild className="mt-6 bg-brand text-brand-foreground hover:bg-brand/90">
-          <Link href="/my/login">Request a new link</Link>
+          <Link href="/schedule">Back to schedule</Link>
         </Button>
       </div>
     );

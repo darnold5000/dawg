@@ -73,7 +73,7 @@ export default async function PackageSuccessPage({
           <Link href="/schedule">Book a session</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/my/login">Sign in to my account</Link>
+          <Link href="/packages">View packages</Link>
         </Button>
       </div>
     </div>

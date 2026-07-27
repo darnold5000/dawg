@@ -12,9 +12,9 @@ const purposeCopy: Record<
   { title: string; body: string; button: string }
 > = {
   login: {
-    title: "Sign in to your account",
-    body: "Tap continue to open your athletes, packages, and bookings.",
-    button: "Continue to my account",
+    title: "Continue to DAWG",
+    body: "Tap continue to pick up where you left off.",
+    button: "Continue",
   },
   claim: {
     title: "Create your online account",
@@ -54,7 +54,7 @@ export function FamilyVerifyConfirm({
         toast.error(data.error ?? "Could not sign in");
         return;
       }
-      router.push(data.redirect ?? "/my");
+      router.push(data.redirect ?? "/schedule");
       router.refresh();
     } catch {
       toast.error("Something went wrong");
@@ -73,14 +73,14 @@ export function FamilyVerifyConfirm({
         disabled={submitting}
         onClick={() => void onContinue()}
       >
-        {submitting ? "Signing in…" : copy.button}
+        {submitting ? "Continuing…" : copy.button}
       </Button>
       <p className="mt-6 text-xs text-muted-foreground">
         This link expires in 24 hours and can only be used once.
       </p>
       <p className="mt-4 text-sm text-muted-foreground">
-        <Link href="/my/login" className="underline underline-offset-2">
-          Request a new link
+        <Link href="/schedule" className="underline underline-offset-2">
+          Back to schedule
         </Link>
       </p>
     </div>

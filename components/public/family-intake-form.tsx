@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PolicyLinkButton } from "@/components/public/policy-dialog";
 import {
-  IntakeAccountPrompt,
   IntakeAlreadyComplete,
 } from "@/components/public/intake-complete-prompts";
 import { loadBookingDraft } from "@/lib/booking-draft";
@@ -29,13 +28,11 @@ export function FamilyIntakeForm({
   returnTo,
   initialContact,
   athleteId: initialAthleteId,
-  showAccountPrompt = true,
   bookingFlow = false,
 }: {
   returnTo: string;
   initialContact?: Partial<ContactFields>;
   athleteId?: string | null;
-  showAccountPrompt?: boolean;
   bookingFlow?: boolean;
 }) {
   const router = useRouter();
@@ -70,14 +67,16 @@ export function FamilyIntakeForm({
     const draftSession = returnTo.match(/^\/book\/([^/?]+)/)?.[1];
     const draft = draftSession ? loadBookingDraft(draftSession) : null;
 
-    async function loadContext() {
-      setLoading(true);
+    async function loadContext(options?: {
+      email?: string;
+      silent?: boolean;
+    }) {
+      if (!options?.silent) setLoading(true);
       try {
         const params = new URLSearchParams();
         if (initialAthleteId) params.set("athleteId", initialAthleteId);
-        if (draft?.parentEmail || form.parentEmail) {
-          params.set("email", draft?.parentEmail || form.parentEmail);
-        }
+        const email = options?.email?.trim() || draft?.parentEmail?.trim();
+        if (email) params.set("email", email);
         if (draft?.athleteFirstName) {
           params.set("athleteFirstName", draft.athleteFirstName);
           params.set("athleteLastName", draft.athleteLastName ?? "");
@@ -133,7 +132,7 @@ export function FamilyIntakeForm({
           sportPosition: draft?.primarySport || prev.sportPosition,
         }));
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && !options?.silent) setLoading(false);
       }
     }
 
@@ -141,7 +140,60 @@ export function FamilyIntakeForm({
     return () => {
       cancelled = true;
     };
-  }, [returnTo, initialAthleteId, form.parentEmail]);
+  }, [returnTo, initialAthleteId]);
+
+  function onParentEmailBlur() {
+    const email = form.parentEmail.trim();
+    if (!email.includes("@")) return;
+    void (async () => {
+      const draftSession = returnTo.match(/^\/book\/([^/?]+)/)?.[1];
+      const draft = draftSession ? loadBookingDraft(draftSession) : null;
+      const params = new URLSearchParams();
+      if (initialAthleteId) params.set("athleteId", initialAthleteId);
+      params.set("email", email);
+      if (draft?.athleteFirstName) {
+        params.set("athleteFirstName", draft.athleteFirstName);
+        params.set("athleteLastName", draft.athleteLastName ?? "");
+        params.set("athleteDob", draft.athleteDob ?? "");
+      }
+      const res = await fetch(`/api/intake/context?${params.toString()}`, {
+        credentials: "same-origin",
+      });
+      if (!res.ok) return;
+      const context = (await res.json()) as IntakeFormContext;
+      setMode(context.mode);
+      setAlreadyComplete(context.alreadyComplete);
+      setForm((prev) => {
+        if (prev.parentEmail.trim().toLowerCase() !== email.toLowerCase()) {
+          return prev;
+        }
+        return {
+          ...prev,
+          parentFirstName: context.parent?.firstName || prev.parentFirstName,
+          parentLastName: context.parent?.lastName || prev.parentLastName,
+          parentEmail: context.parent?.email || prev.parentEmail,
+          parentPhone: context.parent?.phone || prev.parentPhone,
+          athleteFirstName: context.athlete?.firstName || prev.athleteFirstName,
+          athleteLastName: context.athlete?.lastName || prev.athleteLastName,
+          athleteDob: context.athlete?.dob || prev.athleteDob,
+          healthIssues: context.athlete?.healthIssues || prev.healthIssues,
+          mediaConsent: context.athlete?.mediaConsent ?? prev.mediaConsent,
+          emergencyContact1Name:
+            context.emergencyContacts?.contact1Name ||
+            prev.emergencyContact1Name,
+          emergencyContact1Phone:
+            context.emergencyContacts?.contact1Phone ||
+            prev.emergencyContact1Phone,
+          emergencyContact2Name:
+            context.emergencyContacts?.contact2Name ||
+            prev.emergencyContact2Name,
+          emergencyContact2Phone:
+            context.emergencyContacts?.contact2Phone ||
+            prev.emergencyContact2Phone,
+        };
+      });
+    })();
+  }
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -206,7 +258,6 @@ export function FamilyIntakeForm({
       <IntakeAlreadyComplete
         returnTo={returnTo}
         athleteName={athleteName}
-        showAccountPrompt={showAccountPrompt && !isBookingReturn}
       />
     );
   }
@@ -276,6 +327,8 @@ export function FamilyIntakeForm({
                 required
                 value={form.parentEmail}
                 onChange={(e) => update("parentEmail", e.target.value)}
+                onBlur={onParentEmailBlur}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
@@ -494,10 +547,6 @@ export function FamilyIntakeForm({
           {submitting ? "Saving…" : submitLabel}
         </Button>
       </form>
-
-      {showAccountPrompt && !isBookingReturn ? (
-        <IntakeAccountPrompt returnTo={returnTo} />
-      ) : null}
     </div>
   );
 }

@@ -20,9 +20,6 @@ function isNavLinkActive(
   if (href === "/#training") {
     return pathname === "/" && hash === "#training";
   }
-  if (href === "/my") {
-    return pathname === "/my" || pathname.startsWith("/my/");
-  }
   const pathOnly = href.split("#")[0];
   return (
     pathname === pathOnly || pathname.startsWith(`${pathOnly}/`)

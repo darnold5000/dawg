@@ -826,10 +826,10 @@ export function BookingForm({
           <p className="text-sm text-muted-foreground">
             {formatPrice(session.price_cents)} due for this session
           </p>
-          <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {showDisabledPayOnline ? (
               <div
-                className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3 text-sm opacity-80"
+                className="flex h-full items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3 text-sm opacity-80"
                 aria-disabled
               >
                 <input
@@ -847,8 +847,7 @@ export function BookingForm({
                     Coming soon
                   </span>
                   <span className="mt-0.5 block text-muted-foreground">
-                    Card checkout will be available here soon. For now, choose
-                    pay at facility below.
+                    Card checkout will be available here soon.
                   </span>
                 </span>
               </div>
@@ -856,7 +855,7 @@ export function BookingForm({
             {paymentOptions.map((method) => (
               <label
                 key={method}
-                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
+                className={`flex h-full cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
                   paymentMethod === method
                     ? "border-brand bg-brand/10"
                     : "border-border"

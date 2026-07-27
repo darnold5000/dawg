@@ -60,7 +60,7 @@ export function FamilyDashboard({ data }: { data: FamilyPortalData }) {
 
   async function signOut() {
     await forgetRememberedFamily();
-    router.push("/my");
+    router.push("/schedule");
     router.refresh();
   }
 

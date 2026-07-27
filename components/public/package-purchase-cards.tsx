@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -11,7 +10,6 @@ import {
   isOnlineCardPaymentEnabled,
   paymentMethodLabel,
 } from "@/lib/billing/payment-options";
-import { loginPath } from "@/lib/family-auth-url";
 import { formatPrice } from "@/lib/format";
 import type { PaymentMethod } from "@/lib/types/database";
 import type { TrainingPackage } from "@/lib/types/database";
@@ -28,11 +26,9 @@ const PACKAGE_PAYMENT_OPTIONS: PaymentMethod[] = ["stripe", "pay_at_facility"];
 export function PackagePurchaseCards({
   packages,
   initialContact,
-  isSignedIn = false,
 }: {
   packages: TrainingPackage[];
   initialContact?: Partial<ContactFields>;
-  isSignedIn?: boolean;
 }) {
   const router = useRouter();
   const [contact, setContact] = useState<ContactFields>({
@@ -107,19 +103,6 @@ export function PackagePurchaseCards({
 
   return (
     <div className="space-y-10">
-      {!isSignedIn ? (
-        <p className="text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link
-            href={loginPath("/packages")}
-            className="font-medium text-brand underline underline-offset-2"
-          >
-            Sign in
-          </Link>{" "}
-          to automatically connect this purchase — checkout works either way.
-        </p>
-      ) : null}
-
       <div className="form-panel grid gap-4 sm:grid-cols-2">
         <p className="sm:col-span-2 text-sm text-muted-foreground">
           Enter your contact info once, choose how you want to pay, then pick a
@@ -172,7 +155,7 @@ export function PackagePurchaseCards({
         <div className="grid gap-3 sm:grid-cols-2">
           {!isOnlineCardPaymentEnabled() ? (
             <div
-              className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3 text-sm opacity-80 sm:col-span-2"
+              className="flex h-full items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3 text-sm opacity-80"
               aria-disabled
             >
               <input type="radio" className="mt-1" disabled readOnly />
@@ -195,7 +178,7 @@ export function PackagePurchaseCards({
           ).map((method) => (
             <label
               key={method}
-              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
+              className={`flex h-full cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
                 paymentMethod === method
                   ? "border-brand bg-brand/10"
                   : "border-border"

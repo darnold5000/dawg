@@ -99,13 +99,13 @@ export function ScheduleMonthCalendar({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="grid grid-cols-7 border-b border-border bg-muted/40 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="grid grid-cols-7 border-b border-border bg-muted/60 text-center text-xs font-semibold uppercase tracking-wide text-foreground/80">
           {WEEKDAY_LABELS.map((label) => (
             <div key={label} className="py-2.5">{label}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-7 bg-background/40">
           {gridDays.map((day) => {
             const dateKey = format(day, "yyyy-MM-dd");
             const daySessions = byDate.get(dateKey) ?? [];
@@ -114,12 +114,16 @@ export function ScheduleMonthCalendar({
             return (
               <div
                 key={dateKey}
-                className={`min-h-[10rem] border-b border-r border-border p-2 sm:min-h-[11rem] sm:p-2.5 ${
-                  isToday ? "bg-brand/5 ring-1 ring-inset ring-brand/40" : "bg-card"
+                className={`min-h-[10rem] border-b border-r border-border/80 p-2 sm:min-h-[11rem] sm:p-2.5 ${
+                  isToday
+                    ? "bg-brand/10 ring-1 ring-inset ring-brand/50"
+                    : "bg-card/30"
                 }`}
               >
                 <p
-                  className="mb-1.5 text-xs font-semibold tabular-nums text-foreground sm:text-sm"
+                  className={`mb-1.5 text-xs font-bold tabular-nums sm:text-sm ${
+                    isToday ? "text-brand" : "text-foreground"
+                  }`}
                 >
                   {format(day, "d")}
                 </p>
@@ -131,74 +135,68 @@ export function ScheduleMonthCalendar({
                     const booked =
                       session.booked_count ??
                       Math.max(0, capacity - spots);
-                    const color = session.program?.calendar_color;
+                    const accent = session.program?.calendar_color ?? "#1f5cff";
                     const title =
                       session.program?.name ??
                       formatSessionTitle(session.title);
-                    const availLabel = full
-                      ? "Full"
-                      : `${spots} avail`;
 
                     return (
                       <li
                         key={session.id}
-                        className="rounded-lg border border-border/80 bg-background px-2 py-2 shadow-sm"
+                        className="rounded-md border border-border bg-surface px-2.5 py-2 shadow-[0_1px_0_rgba(255,255,255,0.04)]"
+                        style={{
+                          borderLeftWidth: 3,
+                          borderLeftColor: accent,
+                        }}
                       >
-                        <div className="flex min-w-0 items-start gap-1.5">
-                          {color ? (
+                        <p className="text-xs leading-snug sm:text-sm">
+                          <span className="font-bold tabular-nums text-foreground">
+                            {formatSessionTime(session.start_time)}
+                          </span>
+                          <span className="font-semibold text-foreground/95">
+                            {" · "}
+                            {title}
+                          </span>
+                        </p>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <p
+                            className="min-w-0 text-[11px] leading-snug text-muted-foreground sm:text-xs"
+                            title={
+                              full
+                                ? "Class full"
+                                : `${booked} booked, ${spots} spots available`
+                            }
+                          >
+                            <span className="font-semibold text-foreground">
+                              {booked}/{capacity}
+                            </span>
+                            {" booked"}
+                            <br className="sm:hidden" />
+                            <span className="hidden sm:inline"> · </span>
                             <span
-                              className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full"
-                              style={{ backgroundColor: color }}
-                              aria-hidden
-                            />
-                          ) : null}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold leading-snug text-brand tabular-nums sm:text-sm">
-                              {formatSessionTime(session.start_time)}
-                              <span className="font-medium text-foreground">
-                                {" · "}
-                                {title}
-                              </span>
-                            </p>
-                            <div className="mt-1.5 flex items-center justify-between gap-2">
-                              <p
-                                className="text-[11px] leading-tight text-muted-foreground sm:text-xs"
-                                title={
-                                  full
-                                    ? "Class full"
-                                    : `${booked} booked, ${spots} spots available`
-                                }
-                              >
-                                <span className="font-medium text-foreground">
-                                  {booked}/{capacity}
-                                </span>
-                                {" booked · "}
-                                <span
-                                  className={
-                                    full
-                                      ? "font-medium text-destructive"
-                                      : "font-medium text-foreground"
-                                  }
-                                >
-                                  {availLabel}
-                                </span>
-                              </p>
-                              <Button
-                                asChild
-                                size="sm"
-                                className={`h-7 shrink-0 px-2.5 text-[11px] font-bold sm:text-xs ${
-                                  full
-                                    ? ""
-                                    : "bg-gold text-gold-foreground hover:bg-gold/90"
-                                }`}
-                                variant={full ? "secondary" : "default"}
-                              >
-                                <Link href={bookLoginPath(session.id, full)}>
-                                  {full ? "Waitlist" : "Book now"}
-                                </Link>
-                              </Button>
-                            </div>
-                          </div>
+                              className={
+                                full
+                                  ? "font-semibold text-destructive"
+                                  : "font-semibold text-foreground"
+                              }
+                            >
+                              {full ? "Full" : `${spots} avail`}
+                            </span>
+                          </p>
+                          <Button
+                            asChild
+                            size="sm"
+                            className={`h-7 shrink-0 px-2.5 text-[11px] font-bold sm:text-xs ${
+                              full
+                                ? ""
+                                : "bg-brand text-brand-foreground hover:bg-brand/90"
+                            }`}
+                            variant={full ? "secondary" : "default"}
+                          >
+                            <Link href={bookLoginPath(session.id, full)}>
+                              {full ? "Waitlist" : "Book"}
+                            </Link>
+                          </Button>
                         </div>
                       </li>
                     );
@@ -210,8 +208,7 @@ export function ScheduleMonthCalendar({
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Use the arrows to move by two weeks. Tap Book now to sign in and reserve
-        a spot.
+        Use the arrows to move by two weeks. Tap Book to reserve a spot.
       </p>
     </div>
   );
