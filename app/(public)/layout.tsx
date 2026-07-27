@@ -1,4 +1,5 @@
 import { InstallHint } from "@/components/public/install-hint";
+import { PublicLightMain } from "@/components/public/public-light-main";
 import { SiteFooter } from "@/components/public/site-footer";
 import { SiteHeader } from "@/components/public/site-header";
 
@@ -17,9 +18,7 @@ export default function PublicLayout({
       </a>
       <SiteHeader />
       <InstallHint />
-      <main id="main-content" className="flex-1">
-        {children}
-      </main>
+      <PublicLightMain>{children}</PublicLightMain>
       <SiteFooter />
     </>
   );

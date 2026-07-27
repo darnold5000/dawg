@@ -113,6 +113,73 @@
   --ring: #1f5cff;
 }
 
+/* Schedule, booking, intake, packages — readable light surfaces */
+.public-light {
+  --background: #f1f5f9;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #1f5cff;
+  --primary-foreground: #ffffff;
+  --secondary: #f8fafc;
+  --secondary-foreground: #0f172a;
+  --muted: #e2e8f0;
+  --muted-foreground: #475569;
+  --accent: #eff6ff;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --border: #cbd5e1;
+  --input: #cbd5e1;
+  --ring: #1f5cff;
+  --surface: #ffffff;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.public-light .form-panel,
+.public-light .form-fieldset {
+  @apply border-slate-200 bg-white shadow-sm;
+}
+
+.public-light [data-slot="input"],
+.public-light [data-slot="textarea"] {
+  @apply bg-white text-slate-900;
+  color-scheme: light;
+}
+
+.public-light [data-slot="input"]:-webkit-autofill,
+.public-light [data-slot="input"]:-webkit-autofill:hover,
+.public-light [data-slot="input"]:-webkit-autofill:focus,
+.public-light [data-slot="textarea"]:-webkit-autofill,
+.public-light [data-slot="textarea"]:-webkit-autofill:hover,
+.public-light [data-slot="textarea"]:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a;
+}
+
+.public-light [data-slot="input"][type="date"]::-webkit-calendar-picker-indicator,
+.public-light
+  [data-slot="input"][type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.65;
+}
+
+.public-light .form-select {
+  @apply bg-white text-slate-900;
+}
+
+.public-light .text-amber-100,
+.public-light .text-amber-200 {
+  @apply text-amber-900;
+}
+
+.public-light :focus-visible {
+  @apply outline-brand/50;
+}
+
 .admin-app .form-panel,
 .admin-app .form-fieldset {
   @apply border-slate-200 bg-white shadow-sm;

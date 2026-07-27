@@ -52,13 +52,51 @@ export function SiteHeader() {
     return () => window.removeEventListener("hashchange", syncHash);
   }, [pathname]);
 
+  useEffect(() => {
+    if (pathname !== "/") return;
+
+    const training = document.getElementById("training");
+    if (!training) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.2) {
+          setHash("#training");
+        } else if (window.scrollY < 80) {
+          setHash("");
+        }
+      },
+      { threshold: [0, 0.2, 0.45] },
+    );
+
+    observer.observe(training);
+    return () => observer.disconnect();
+  }, [pathname]);
+
+  function onNavClick(href: string) {
+    setOpen(false);
+    if (href === "/#training") {
+      setHash("#training");
+      if (pathname === "/" && window.location.hash !== "#training") {
+        window.history.replaceState(null, "", "/#training");
+      }
+    } else if (href === "/") {
+      setHash("");
+      if (pathname === "/" && window.location.hash) {
+        window.history.replaceState(null, "", "/");
+      }
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-ink/95 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link
           href="/"
           className="flex items-center gap-2.5"
-          onClick={() => setOpen(false)}
+          onClick={() => onNavClick("/")}
         >
           <Image
             src="/images/dawg/logo.jpg"
@@ -82,6 +120,7 @@ export function SiteHeader() {
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 className={navLinkClass(active)}
+                onClick={() => onNavClick(link.href)}
               >
                 {link.label}
               </Link>
@@ -120,7 +159,7 @@ export function SiteHeader() {
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 className={mobileNavLinkClass(active)}
-                onClick={() => setOpen(false)}
+                onClick={() => onNavClick(link.href)}
               >
                 {link.label}
               </Link>

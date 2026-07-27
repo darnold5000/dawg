@@ -60,12 +60,23 @@ export default async function PackageSuccessPage({
             {purchase.package.name}
           </p>
           <p className="mt-2 text-muted-foreground">
-            {purchase.sessions_remaining} of {purchase.sessions_total} sessions
-            remaining
+            {pendingFacility
+              ? "Session credits activate after staff confirms payment at the facility."
+              : `${purchase.sessions_remaining} of ${purchase.sessions_total} sessions remaining`}
           </p>
-          <p className="mt-1">
-            Paid {formatPrice(purchase.amount_paid_cents || purchase.package.price_cents)}
-          </p>
+          {pendingFacility || payAtFacility ? (
+            <p className="mt-1 text-muted-foreground">
+              Amount due at facility:{" "}
+              {formatPrice(purchase.package.price_cents)}
+            </p>
+          ) : (
+            <p className="mt-1">
+              Paid{" "}
+              {formatPrice(
+                purchase.amount_paid_cents || purchase.package.price_cents,
+              )}
+            </p>
+          )}
         </div>
       ) : null}
       <div className="mt-8 flex flex-wrap justify-center gap-3">

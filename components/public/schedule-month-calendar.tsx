@@ -117,7 +117,7 @@ export function ScheduleMonthCalendar({
                 className={`min-h-[10rem] border-b border-r border-border/80 p-2 sm:min-h-[11rem] sm:p-2.5 ${
                   isToday
                     ? "bg-brand/10 ring-1 ring-inset ring-brand/50"
-                    : "bg-card/30"
+                    : "bg-muted/30"
                 }`}
               >
                 <p
@@ -143,7 +143,7 @@ export function ScheduleMonthCalendar({
                     return (
                       <li
                         key={session.id}
-                        className="rounded-md border border-border bg-surface px-2.5 py-2 shadow-[0_1px_0_rgba(255,255,255,0.04)]"
+                        className="rounded-md border border-border bg-surface px-2.5 py-2 shadow-sm"
                         style={{
                           borderLeftWidth: 3,
                           borderLeftColor: accent,
