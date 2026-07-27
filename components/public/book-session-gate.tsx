@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BookingForm } from "@/components/public/booking-form";
 import { FamilyIntakeForm } from "@/components/public/family-intake-form";
+import { Checkbox } from "@/components/ui/checkbox";
 import { loadBookingDraft } from "@/lib/booking-draft";
 import { fetchRememberedFamily } from "@/lib/returning-family";
 import type { SessionWithRelations } from "@/lib/types/database";
@@ -18,9 +19,15 @@ export function BookSessionGate({
 }) {
   const bookReturn = `/book/${session.id}${waitlistMode ? "?waitlist=1" : ""}`;
   const [phase, setPhase] = useState<Phase>("loading");
+  const [alreadyCompletedIntake, setAlreadyCompletedIntake] = useState(false);
 
   useEffect(() => {
     if (waitlistMode) {
+      setPhase("book");
+      return;
+    }
+
+    if (alreadyCompletedIntake) {
       setPhase("book");
       return;
     }
@@ -77,7 +84,7 @@ export function BookSessionGate({
     return () => {
       cancelled = true;
     };
-  }, [session.id, waitlistMode]);
+  }, [session.id, waitlistMode, alreadyCompletedIntake]);
 
   if (phase === "loading") {
     return (
@@ -85,22 +92,39 @@ export function BookSessionGate({
     );
   }
 
-  if (phase === "intake") {
-    return (
-      <div className="space-y-6">
-        <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-          One-time athlete intake is required before we can confirm a session.
-          After you continue, you&apos;ll pick payment and complete the booking —
-          no second intake step.
-        </p>
+  if (phase === "book") {
+    return <BookingForm session={session} waitlistMode={waitlistMode} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+        One-time athlete intake is required before we can confirm a session.
+        After you continue, you&apos;ll pick payment and complete the booking —
+        no second intake step.
+      </p>
+      <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm">
+        <Checkbox
+          checked={alreadyCompletedIntake}
+          onCheckedChange={(checked) => setAlreadyCompletedIntake(checked)}
+        />
+        <span>
+          <span className="font-medium text-foreground">
+            I&apos;ve already completed athlete intake
+          </span>
+          <span className="mt-1 block text-muted-foreground">
+            Skip the form and go straight to booking. We&apos;ll match your
+            athlete by name and date of birth — intake must already be on file.
+          </span>
+        </span>
+      </label>
+      {!alreadyCompletedIntake ? (
         <FamilyIntakeForm
           returnTo={bookReturn}
           showAccountPrompt={false}
           bookingFlow
         />
-      </div>
-    );
-  }
-
-  return <BookingForm session={session} waitlistMode={waitlistMode} />;
+      ) : null}
+    </div>
+  );
 }

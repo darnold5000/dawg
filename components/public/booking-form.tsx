@@ -26,7 +26,9 @@ import {
 import {
   allowedPaymentMethods,
   defaultPaymentMethod,
+  isOnlineCardPaymentEnabled,
   paymentMethodLabel,
+  selectablePaymentMethods,
 } from "@/lib/billing/payment-options";
 import type { PaymentMethod } from "@/lib/types/database";
 import {
@@ -82,9 +84,13 @@ export function BookingForm({
   );
 
   const paymentOptions = useMemo(
-    () => allowedPaymentMethods(session.payment_requirement),
+    () => selectablePaymentMethods(session.payment_requirement),
     [session.payment_requirement],
   );
+  const showDisabledPayOnline = useMemo(() => {
+    if (isOnlineCardPaymentEnabled()) return false;
+    return allowedPaymentMethods(session.payment_requirement).includes("stripe");
+  }, [session.payment_requirement]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
     () => defaultPaymentMethod(session.payment_requirement) ?? "",
   );
@@ -135,7 +141,7 @@ export function BookingForm({
             Boolean(family.agreementsCurrent),
         }));
         if (draft?.paymentMethod) {
-          const allowed = allowedPaymentMethods(session.payment_requirement);
+          const allowed = selectablePaymentMethods(session.payment_requirement);
           if (allowed.includes(draft.paymentMethod as PaymentMethod)) {
             setPaymentMethod(draft.paymentMethod as PaymentMethod);
           }
@@ -159,7 +165,7 @@ export function BookingForm({
           acceptRequiredAgreements: draft.acceptRequiredAgreements,
         }));
         if (draft.paymentMethod) {
-          const allowed = allowedPaymentMethods(session.payment_requirement);
+          const allowed = selectablePaymentMethods(session.payment_requirement);
           if (allowed.includes(draft.paymentMethod as PaymentMethod)) {
             setPaymentMethod(draft.paymentMethod as PaymentMethod);
           }
@@ -246,7 +252,7 @@ export function BookingForm({
         if (cancelled) return;
         setIntakeRequired(Boolean(data.intakeRequired));
         setPaymentMethod((prev) => {
-          const next = allowedPaymentMethods(session.payment_requirement);
+          const next = selectablePaymentMethods(session.payment_requirement);
           if (prev && next.includes(prev)) return prev;
           return defaultPaymentMethod(session.payment_requirement) ?? "";
         });
@@ -821,6 +827,32 @@ export function BookingForm({
             {formatPrice(session.price_cents)} due for this session
           </p>
           <div className="grid gap-3">
+            {showDisabledPayOnline ? (
+              <div
+                className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3 text-sm opacity-80"
+                aria-disabled
+              >
+                <input
+                  type="radio"
+                  className="mt-1"
+                  disabled
+                  checked={false}
+                  readOnly
+                />
+                <span>
+                  <span className="font-medium text-muted-foreground">
+                    {paymentMethodLabel("stripe")}
+                  </span>
+                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Coming soon
+                  </span>
+                  <span className="mt-0.5 block text-muted-foreground">
+                    Card checkout will be available here soon. For now, choose
+                    pay at facility below.
+                  </span>
+                </span>
+              </div>
+            ) : null}
             {paymentOptions.map((method) => (
               <label
                 key={method}
@@ -851,10 +883,10 @@ export function BookingForm({
             ))}
           </div>
           {session.payment_requirement === "online_or_facility" &&
-          !paymentMethod ? (
+          !paymentMethod &&
+          paymentOptions.length > 1 ? (
             <p className="text-sm text-amber-200">
-              Choose pay online or pay at facility — neither is selected by
-              default.
+              Choose pay at facility to complete your booking.
             </p>
           ) : null}
         </fieldset>

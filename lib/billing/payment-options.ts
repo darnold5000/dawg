@@ -1,5 +1,10 @@
 import type { PaymentMethod, PaymentRequirement } from "@/lib/types/database";
 
+/** Set `NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED=true` when Stripe checkout is live. */
+export function isOnlineCardPaymentEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED === "true";
+}
+
 export function allowedPaymentMethods(
   requirement: PaymentRequirement | string,
 ): PaymentMethod[] {
@@ -15,12 +20,24 @@ export function allowedPaymentMethods(
   }
 }
 
+/** Methods the customer can actually select (Stripe omitted when disabled). */
+export function selectablePaymentMethods(
+  requirement: PaymentRequirement | string,
+): PaymentMethod[] {
+  const allowed = allowedPaymentMethods(requirement);
+  if (isOnlineCardPaymentEnabled()) return allowed;
+  const withoutStripe = allowed.filter((m) => m !== "stripe");
+  if (withoutStripe.length > 0) return withoutStripe;
+  return ["pay_at_facility"];
+}
+
 export function defaultPaymentMethod(
   requirement: PaymentRequirement | string,
 ): PaymentMethod | null {
-  const allowed = allowedPaymentMethods(requirement);
-  if (allowed.length === 1) return allowed[0];
-  return null;
+  const selectable = selectablePaymentMethods(requirement);
+  if (selectable.length === 1) return selectable[0];
+  if (selectable.includes("pay_at_facility")) return "pay_at_facility";
+  return selectable[0] ?? null;
 }
 
 export function paymentMethodLabel(method: PaymentMethod): string {

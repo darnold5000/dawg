@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { isOnlineCardPaymentEnabled } from "@/lib/billing/payment-options";
 import { createPackageCheckout } from "@/lib/billing/package-checkout";
 import {
   createPackagePayAtFacilityPurchase,
@@ -30,6 +31,18 @@ export async function POST(request: Request) {
   try {
     if (!(family instanceof NextResponse)) {
       const parsed = loggedInPackageCheckoutSchema.parse(body);
+      if (
+        parsed.paymentMethod === "stripe" &&
+        !isOnlineCardPaymentEnabled()
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Online payment is coming soon. Please choose pay at facility.",
+          },
+          { status: 400 },
+        );
+      }
       const supabase = createTrainingServiceClient();
       const { data: parent } = await supabase
         .from(DAWG_TABLES.parents)
@@ -116,6 +129,16 @@ export async function POST(request: Request) {
     }
 
     const parsed = publicPackageCheckoutSchema.parse(body);
+
+    if (parsed.paymentMethod === "stripe" && !isOnlineCardPaymentEnabled()) {
+      return NextResponse.json(
+        {
+          error:
+            "Online payment is coming soon. Please choose pay at facility.",
+        },
+        { status: 400 },
+      );
+    }
 
     if (parsed.paymentMethod === "pay_at_facility") {
       const facility = await createPackagePayAtFacilityPurchase({

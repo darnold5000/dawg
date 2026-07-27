@@ -21,6 +21,7 @@ import {
   setFamilyDeviceCookie,
 } from "@/lib/family-device";
 import { athleteBookingReady } from "@/lib/intake";
+import { isOnlineCardPaymentEnabled } from "@/lib/billing/payment-options";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
 const bookingFieldsSchema = z.object({
@@ -322,6 +323,14 @@ export async function createPublicBooking(
 
   if (!rosterCredit) {
     const requirement = session.payment_requirement as string;
+    if (paymentMethod === "stripe" && !isOnlineCardPaymentEnabled()) {
+      return {
+        ok: false,
+        error:
+          "Online payment is coming soon. Please choose pay at facility.",
+        code: "ONLINE_PAYMENT_DISABLED",
+      };
+    }
     if (
       paymentMethod === "stripe" &&
       requirement !== "pay_online" &&
@@ -336,7 +345,10 @@ export async function createPublicBooking(
     if (
       paymentMethod === "pay_at_facility" &&
       requirement !== "pay_at_facility" &&
-      requirement !== "online_or_facility"
+      requirement !== "online_or_facility" &&
+      !(
+        requirement === "pay_online" && !isOnlineCardPaymentEnabled()
+      )
     ) {
       return {
         ok: false,

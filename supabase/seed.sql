@@ -165,20 +165,20 @@ insert into public.dawg_reviews (
   reviewer_name, reviewer_description, rating, review_text, published, featured, display_order
 )
 select * from (values
-  ('Brad Allen', 'Parent · Facebook review', 5,
-   'Working with Jordan is a true blessing. My boys have been going to the Dawgs house for a little over 6 months and their transformation is incredible. Not only are they stronger and more agile but their confidence in themselves is skyrocketing! Can’t recommend Jordan highly enough!',
+  ('Brad Allen', 'Parent · Facebook · August 24, 2025', 5,
+   'Working with Avery is a true blessing. My boys have been going to the Dawg house for a little over 6 months and their transformation is incredible. Not only are they stronger and more agile but their confidence in themselves is skyrocketing! Can''t recommend Avery highly enough!',
    true, true, 1),
-  ('Jessica M.', 'Parent of a youth athlete', 5,
-   'My daughter looks forward to every session. The coaching is positive, the workouts are challenging, and we’ve seen real gains in her speed and confidence on the field.',
+  ('Amber Altmeyer', 'Parent · Facebook · February 5, 2020', 5,
+   'Great program and highly recommend it. Love seeing all the kids from different local sports get involved in workouts and strength building. I have to say my boys truly loved it. Love how the community is getting together and later we will all look back and remember these days. I''ve seen a lot of Previous BD Giant parents and love watching my kids experience growing up in the Wayne township and Ben Davis Community.',
    true, true, 2),
-  ('Marcus T.', 'Parent · Big Dawgs', 5,
-   'DAWG has been a game changer for my son. Better movement, stronger legs, and a mindset that shows up in practice and games. Jordan knows how to push kids the right way.',
+  ('Jen McCann', 'Parent · Facebook · February 4, 2020', 5,
+   'My boys love going to workouts. They are learning how to push through challenges and having fun at the same time. They are aware of how these workouts will help them in-season. My youngest went to show off his new exercise move to his soccer coach because he was so proud of himself! I love how kid-friendly the workouts are while making them work (hard!) and teaching life lessons at the same time!',
    true, true, 3),
-  ('Amanda R.', 'Parent of a Little Dawgs', 5,
-   'Perfect environment for younger athletes. Fun, structured, and encouraging — my kids leave sweaty, smiling, and proud of what they worked on.',
+  ('Amy Armour', 'Parent · Facebook · February 4, 2020', 5,
+   'My son enjoys going to the workouts. It''s challenging and fun',
    true, false, 4),
-  ('Chris D.', 'Parent · Private training', 5,
-   'One-on-one training helped my athlete fix bad habits and build explosive movement. Clear coaching, great energy, and results you can see.',
+  ('Melissa Aguirre', 'Parent · Facebook · February 3, 2020', 5,
+   'This is such a great experience for the kids! Especially during the winter months when the weather is crazy and it''s dark by dinner time! Not to mention he''s doing it all for free!',
    true, false, 5)
 ) as v(reviewer_name, reviewer_description, rating, review_text, published, featured, display_order)
 where not exists (select 1 from public.dawg_reviews limit 1);

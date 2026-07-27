@@ -12,9 +12,14 @@ export function HomeReviews({ reviews }: { reviews: Review[] }) {
         <h2 className="font-heading text-4xl tracking-wide md:text-5xl">
           100% Recommend
         </h2>
-          <p className="mt-3 text-muted-foreground">
-            Families recommend DAWG for stronger athletes and bigger confidence.
-          </p>
+        <p className="mt-2 text-sm font-semibold text-muted-foreground">
+          {reviews.length > 0
+            ? `${reviews.length} ${reviews.length === 1 ? "Review" : "Reviews"}`
+            : null}
+        </p>
+        <p className="mt-3 text-muted-foreground">
+          Families recommend DAWG for stronger athletes and bigger confidence.
+        </p>
       </div>
 
       {reviews.length === 0 ? (

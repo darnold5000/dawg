@@ -7,7 +7,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { paymentMethodLabel } from "@/lib/billing/payment-options";
+import {
+  isOnlineCardPaymentEnabled,
+  paymentMethodLabel,
+} from "@/lib/billing/payment-options";
 import { loginPath } from "@/lib/family-auth-url";
 import { formatPrice } from "@/lib/format";
 import type { PaymentMethod } from "@/lib/types/database";
@@ -38,7 +41,9 @@ export function PackagePurchaseCards({
     parentEmail: initialContact?.parentEmail ?? "",
     parentPhone: initialContact?.parentPhone ?? "",
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    "pay_at_facility",
+  );
   const [purchasingSlug, setPurchasingSlug] = useState<string | null>(null);
 
   function update<K extends keyof ContactFields>(key: K, value: ContactFields[K]) {
@@ -165,7 +170,29 @@ export function PackagePurchaseCards({
           Payment
         </legend>
         <div className="grid gap-3 sm:grid-cols-2">
-          {PACKAGE_PAYMENT_OPTIONS.map((method) => (
+          {!isOnlineCardPaymentEnabled() ? (
+            <div
+              className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3 text-sm opacity-80 sm:col-span-2"
+              aria-disabled
+            >
+              <input type="radio" className="mt-1" disabled readOnly />
+              <span>
+                <span className="font-medium text-muted-foreground">
+                  {paymentMethodLabel("stripe")}
+                </span>
+                <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Coming soon
+                </span>
+                <span className="mt-0.5 block text-muted-foreground">
+                  Online package checkout will be available soon.
+                </span>
+              </span>
+            </div>
+          ) : null}
+          {(isOnlineCardPaymentEnabled()
+            ? PACKAGE_PAYMENT_OPTIONS
+            : (["pay_at_facility"] as PaymentMethod[])
+          ).map((method) => (
             <label
               key={method}
               className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${

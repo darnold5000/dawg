@@ -183,7 +183,9 @@ export async function getPublishedReviews(): Promise<Review[]> {
       .eq("published", true)
       .order("display_order");
     if (error) return FALLBACK_REVIEWS;
-    return (data as Review[]) ?? [];
+    const rows = (data as Review[]) ?? [];
+    if (rows.length === 0) return FALLBACK_REVIEWS;
+    return rows;
   } catch {
     return FALLBACK_REVIEWS;
   }

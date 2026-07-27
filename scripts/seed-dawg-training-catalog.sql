@@ -242,6 +242,83 @@ begin
     display_order = excluded.display_order,
     updated_at = now();
 
+  -- Parent reviews (Facebook recommends)
+  delete from public.training_reviews r
+  where r.tenant_id = v_tenant_id
+    and r.reviewer_name in (
+      'Brad Allen',
+      'Amber Altmeyer',
+      'Jen McCann',
+      'Amy Armour',
+      'Melissa Aguirre',
+      'Jessica M.',
+      'Marcus T.',
+      'Amanda R.',
+      'Chris D.'
+    );
+
+  insert into public.training_reviews (
+    tenant_id,
+    reviewer_name,
+    reviewer_description,
+    rating,
+    review_text,
+    published,
+    featured,
+    display_order
+  )
+  values
+    (
+      v_tenant_id,
+      'Brad Allen',
+      'Parent · Facebook · August 24, 2025',
+      5,
+      'Working with Avery is a true blessing. My boys have been going to the Dawg house for a little over 6 months and their transformation is incredible. Not only are they stronger and more agile but their confidence in themselves is skyrocketing! Can''t recommend Avery highly enough!',
+      true,
+      true,
+      1
+    ),
+    (
+      v_tenant_id,
+      'Amber Altmeyer',
+      'Parent · Facebook · February 5, 2020',
+      5,
+      'Great program and highly recommend it. Love seeing all the kids from different local sports get involved in workouts and strength building. I have to say my boys truly loved it. Love how the community is getting together and later we will all look back and remember these days. I''ve seen a lot of Previous BD Giant parents and love watching my kids experience growing up in the Wayne township and Ben Davis Community.',
+      true,
+      true,
+      2
+    ),
+    (
+      v_tenant_id,
+      'Jen McCann',
+      'Parent · Facebook · February 4, 2020',
+      5,
+      'My boys love going to workouts. They are learning how to push through challenges and having fun at the same time. They are aware of how these workouts will help them in-season. My youngest went to show off his new exercise move to his soccer coach because he was so proud of himself! I love how kid-friendly the workouts are while making them work (hard!) and teaching life lessons at the same time!',
+      true,
+      true,
+      3
+    ),
+    (
+      v_tenant_id,
+      'Amy Armour',
+      'Parent · Facebook · February 4, 2020',
+      5,
+      'My son enjoys going to the workouts. It''s challenging and fun',
+      true,
+      false,
+      4
+    ),
+    (
+      v_tenant_id,
+      'Melissa Aguirre',
+      'Parent · Facebook · February 3, 2020',
+      5,
+      'This is such a great experience for the kids! Especially during the winter months when the weather is crazy and it''s dark by dinner time! Not to mention he''s doing it all for free!',
+      true,
+      false,
+      5
+    );
+
   raise notice 'DAWG catalog seeded for tenant %', v_tenant_id;
 end $$;
 
@@ -264,4 +341,9 @@ union all
 select 'packages', count(*)::text
 from public.training_packages pk
 join public.tenants t on t.id = pk.tenant_id
-where t.slug = 'dawg-youth-training';
+where t.slug = 'dawg-youth-training'
+union all
+select 'reviews', count(*)::text
+from public.training_reviews r
+join public.tenants t on t.id = r.tenant_id
+where t.slug = 'dawg-youth-training' and r.published = true;
