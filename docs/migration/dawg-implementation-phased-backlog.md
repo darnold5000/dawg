@@ -8,7 +8,7 @@
 
 ## Phase A — Platform registration (DB + env docs)
 
-1. Add migration `001_yt_tenant_registration.sql` (idempotent insert `tenants` slug `dawg-youth-training`, `platform_category = services`).
+1. Add migration `001_training_tenant_registration.sql` (idempotent insert `tenants` slug `dawg-youth-training`, `platform_category = services`).
 2. Document `YOUTH_TENANT_ID` (or `DAWG_TENANT_ID`) in `.env.example` on **feature branch only**.
 3. Add `lib/tenant/deployment.ts` mirroring MA5 pattern: `requireYouthTenantId()`, UUID validation, no client bundle import.
 
@@ -16,13 +16,13 @@
 
 ---
 
-## Phase B — Youth vertical schema (forward-only migrations)
+## Phase B — Training vertical schema (forward-only migrations)
 
 New directory: `dawg/supabase-signalworks/migrations/` (never modify `supabase/migrations/001-014`).
 
 1. Create core tables with `tenant_id NOT NULL`, indexes on `(tenant_id, …)`, FKs tenant-safe.
 2. Port RPC logic from `dawg_try_create_booking`, redeem, expire, merge with `p_tenant_id`.
-3. RLS: enable on all `yt_*`; policies via platform membership helpers (align with MA5 `028`/`029` patterns where applicable).
+3. RLS: enable on all `training_*`; policies via platform membership helpers (align with MA5 `028`/`029` patterns where applicable).
 4. Grants for `authenticated`, `service_role` explicit.
 
 **Exit:** `supabase db reset` or push to disposable project succeeds; no app wired yet.
@@ -33,7 +33,7 @@ New directory: `dawg/supabase-signalworks/migrations/` (never modify `supabase/m
 
 1. Replace `DAWG_TABLES` with `YOUTH_TABLES` (or generated map).
 2. Refactor **every** `createServiceClient()` query to `.eq('tenant_id', ctx.tenantId)` (or RPC with tenant param).
-3. Staff auth: load role from `yt_staff_profiles` + verify `tenant_memberships`.
+3. Staff auth: load role from `training_staff_profiles` + verify `tenant_memberships`.
 4. Keep family portal **non-Auth** but scope all token/parent lookups by tenant.
 
 **Exit:** Grep shows no unscoped service-role table access; no `ma5_` references.
@@ -50,7 +50,7 @@ New directory: `dawg/supabase-signalworks/migrations/` (never modify `supabase/m
 
 ## Phase E — Stripe & webhooks
 
-1. `yt_stripe_events` with unique `(tenant_id, stripe_event_id)`.
+1. `training_stripe_events` with unique `(tenant_id, stripe_event_id)`.
 2. Webhook handler: resolve tenant from deployment env; reject metadata tenant mismatch.
 3. Package + session checkout metadata includes `tenant_id` for defense in depth.
 4. Idempotency replay tests.
@@ -60,7 +60,7 @@ New directory: `dawg/supabase-signalworks/migrations/` (never modify `supabase/m
 ## Phase F — Auth redirects & staff lifecycle
 
 1. Document Supabase redirect URLs for feature-branch preview host only (operator adds in dashboard).
-2. Staff invite flow: create auth user + `tenant_memberships` + `yt_staff_profiles` (no `dawg_profiles` on Pro).
+2. Staff invite flow: create auth user + `tenant_memberships` + `training_staff_profiles` (no `dawg_profiles` on Pro).
 3. **No** `auth.users` trigger for automatic vertical profile creation.
 
 ---
@@ -110,7 +110,7 @@ New directory: `dawg/supabase-signalworks/migrations/` (never modify `supabase/m
 | Range | Content |
 |-------|---------|
 | `001` | Tenant registration |
-| `002` | `yt_staff_profiles`, coaches, programs, session types |
+| `002` | `training_staff_profiles`, coaches, programs, session types |
 | `003` | Sessions, guardians, athletes, bookings, waitlist |
 | `004` | Packages, purchases, redemptions, adjustments, intake |
 | `005` | Stripe events, payment transactions, family tokens, device families |
@@ -123,7 +123,7 @@ New directory: `dawg/supabase-signalworks/migrations/` (never modify `supabase/m
 
 ## Approval checklist (operator)
 
-- [ ] Accept `yt_` naming (or request rename before Phase B)
+- [ ] Accept `training_` naming (or request rename before Phase B)
 - [ ] Confirm hobby data: migrate vs reseed
 - [ ] Confirm Pro Supabase project URL for disposable testing
 - [ ] Authorize Phase B–H implementation on feature branch

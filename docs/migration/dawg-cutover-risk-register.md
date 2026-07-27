@@ -5,9 +5,9 @@
 
 | ID | Risk | Severity | Mitigation |
 |----|------|----------|------------|
-| R1 | **Shared Auth** — same `auth.users` pool as MA5 and SW portal | High | No global auth triggers writing to `yt_*` or `ma5_*`; staff invites set `tenant_memberships` only for DAWG tenant; document Supabase redirect URLs for both apps |
+| R1 | **Shared Auth** — same `auth.users` pool as MA5 and SW portal | High | No global auth triggers writing to `training_*` or `ma5_*`; staff invites set `tenant_memberships` only for DAWG tenant; document Supabase redirect URLs for both apps |
 | R2 | **Global auth trigger** (if MA5 hobby trigger still on Pro) | Critical | Confirm Pro has `ma5_on_auth_user_created` **dropped** (MA5 migration 036+); never add DAWG equivalent without metadata gate |
-| R3 | **Cross-tenant RLS leakage** on new `yt_*` tables | Critical | Every table `tenant_id NOT NULL`; policies use `is_tenant_member(tenant_id)`; cross-tenant integration tests with two `yt_` tenants |
+| R3 | **Cross-tenant RLS leakage** on new `training_*` tables | Critical | Every table `tenant_id NOT NULL`; policies use `is_tenant_member(tenant_id)`; cross-tenant integration tests with two `training_` tenants |
 | R4 | **Service-role queries without `tenant_id`** | Critical | `requireYouthDeploymentContext()`; code review grep; lint rule / test that fails unscoped `.from()` in service paths |
 | R5 | **RPCs trust session_id only** | High | All RPCs take `p_tenant_id`; validate child rows match tenant |
 | R6 | **`dawg_expire_stale_pending_bookings` global** | High | Replace with tenant-scoped RPC; cron iterates tenants or single-tenant deploy env per DAWG Vercel project |
@@ -30,4 +30,4 @@
 
 1. Revert Vercel env to Dugout Supabase URL/keys (operator—out of scope for agent).
 2. Hobby `dawg_*` unchanged—immediate app recovery.
-3. Pro `yt_*` rows may remain orphan until cleanup script—document retention.
+3. Pro `training_*` rows may remain orphan until cleanup script—document retention.

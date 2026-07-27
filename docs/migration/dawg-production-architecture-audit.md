@@ -159,10 +159,10 @@ Used in **~30 application modules** (grep count on `createServiceClient` / servi
 See full matrix: [dawg-table-layer-mapping.md](./dawg-table-layer-mapping.md).
 
 - **Platform:** tenant registration, staff via `tenant_memberships`, SW commercial/docs as needed for Signal Works client relationship—not DAWG parent PII.
-- **Youth vertical:** guardians, athletes, sessions, bookings, packages, intake, family tokens, vertical stripe event log (or shared payments module with `tenant_id`).
+- **Training vertical:** guardians, athletes, sessions, bookings, packages, intake, family tokens, vertical stripe event log (or shared payments module with `tenant_id`).
 - **Remain hobby-only:** all existing `dawg_*` objects on Dugout—unchanged.
 
-**Proposed vertical prefix (working name):** `yt_` (*youth training* module). Final names confirmed at implementation approval.
+**Proposed vertical prefix (working name):** `training_` (*training vertical* module). Final names confirmed at implementation approval.
 
 ---
 
