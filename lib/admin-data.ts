@@ -15,6 +15,7 @@ import type {
 import { getPrograms, getSessionTypes, getTrainers } from "@/lib/data";
 
 export async function getAdminSessions(): Promise<SessionWithRelations[]> {
+  // Demo rows (sess-*) only when Supabase is not configured — never on a live DB.
   if (!isSupabaseConfigured()) {
     return FALLBACK_SESSIONS;
   }
@@ -27,7 +28,13 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
       .order("session_date", { ascending: true })
       .order("start_time", { ascending: true });
 
-    if (error || !data) return FALLBACK_SESSIONS;
+    if (error) {
+      console.error("[getAdminSessions]", error.message);
+      return [];
+    }
+    if (!data?.length) {
+      return [];
+    }
 
     const supabaseService = createTrainingServiceClient();
     const ids = data.map((s) => s.id);
@@ -67,8 +74,9 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
         spots_remaining: Math.max(0, session.capacity - booked),
       };
     });
-  } catch {
-    return FALLBACK_SESSIONS;
+  } catch (err) {
+    console.error("[getAdminSessions]", err);
+    return [];
   }
 }
 

@@ -32,7 +32,22 @@ export default async function AdminSessionsPage() {
         </div>
 
         <div className="grid gap-3">
-          {sessions.map((session) => {
+          {sessions.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-10 text-center">
+              <p className="font-medium">No sessions yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Create your first group session — it will appear on the public
+                schedule when published.
+              </p>
+              <Button
+                asChild
+                className="mt-4 bg-brand text-brand-foreground hover:bg-brand/90"
+              >
+                <Link href="/admin/sessions/new">New group session</Link>
+              </Button>
+            </div>
+          ) : (
+          sessions.map((session) => {
             const rosterOffering = isRosterCreditSession(session);
             return (
             <div
@@ -75,7 +90,8 @@ export default async function AdminSessionsPage() {
               </div>
             </div>
             );
-          })}
+          })
+          )}
         </div>
       </div>
     </AdminShell>
