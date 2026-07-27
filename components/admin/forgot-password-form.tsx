@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminPasswordResetRedirectUrl } from "@/lib/auth/admin-password-reset";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -16,27 +15,26 @@ export function ForgotPasswordForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isSupabaseConfigured()) {
-      toast.message("Supabase is not configured");
-      return;
-    }
-
     setLoading(true);
+
     try {
-      const supabase = createClient();
-      const redirectTo = adminPasswordResetRedirectUrl();
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        email.trim(),
-        { redirectTo },
-      );
-      if (error) {
-        toast.error(error.message);
+      const res = await fetch("/api/admin/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+
+      if (!res.ok && res.status === 400) {
+        toast.error(data.error ?? "Enter a valid email address");
+        setLoading(false);
         return;
       }
+
       setSent(true);
-      toast.success("Check your email for a reset link.");
+      toast.success("If that email is on file, we sent a reset link.");
     } catch {
-      toast.error("Could not send reset email.");
+      setSent(true);
     } finally {
       setLoading(false);
     }
@@ -46,10 +44,10 @@ export function ForgotPasswordForm() {
     return (
       <div className="space-y-4 text-sm text-muted-foreground">
         <p>
-          If an account exists for that email, we sent a link to set a new
-          password. The link opens on this site (
+          If an account exists for that email, we sent a DAWG-branded link to set
+          a new password. The link opens on this site (
           <span className="font-mono text-xs">{adminPasswordResetRedirectUrl()}</span>
-          ), not the Signal Works marketing site.
+          ).
         </p>
         <Link
           href="/admin/login"

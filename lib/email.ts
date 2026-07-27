@@ -11,6 +11,11 @@ function fromAddress() {
   return process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
 }
 
+function staffFromAddress() {
+  const email = fromAddress();
+  return `${SITE.name} <${email}>`;
+}
+
 function requireResend() {
   if (!resend) {
     console.error("[email] RESEND_API_KEY is not set — skipping send");
@@ -565,5 +570,41 @@ export async function sendParentStaffMessage(payload: {
     `,
     },
     "staff-to-parent",
+  );
+}
+
+export async function sendStaffPasswordResetEmail(payload: {
+  email: string;
+  fullName: string;
+  actionLink: string;
+}): Promise<void> {
+  const name = firstName(payload.fullName);
+  const subject = `Reset your ${SITE.shortName} staff password`;
+  const intro = `Use this secure link to set or update your password for ${SITE.name} admin.`;
+  const footer = `If you did not request this, you can ignore this email. Questions? ${SITE.phone} or ${SITE.email}.`;
+
+  await sendEmail(
+    {
+      from: staffFromAddress(),
+      to: payload.email.trim().toLowerCase(),
+      replyTo: SITE.email,
+      subject,
+      html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
+        <p style="font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #666;">${escapeHtml(SITE.shortName)} Staff</p>
+        <h1 style="font-size: 22px; margin: 16px 0 12px;">Reset your password</h1>
+        <p>Hi ${escapeHtml(name)},</p>
+        <p>${escapeHtml(intro)}</p>
+        <p style="margin: 24px 0;">
+          <a href="${payload.actionLink}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            Set new password
+          </a>
+        </p>
+        <p style="color: #666; font-size: 13px;">${escapeHtml(footer)}</p>
+      </div>
+    `,
+      text: `${subject}\n\nHi ${name},\n\n${intro}\n\n${payload.actionLink}\n\n${footer}`,
+    },
+    "staff-password-reset",
   );
 }
