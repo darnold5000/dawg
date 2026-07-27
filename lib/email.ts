@@ -581,13 +581,12 @@ export async function sendStaffPasswordResetEmail(payload: {
   const name = firstName(payload.fullName);
   const subject = `Reset your ${SITE.shortName} staff password`;
   const intro = `Use this secure link to set or update your password for ${SITE.name} admin.`;
-  const footer = `If you did not request this, you can ignore this email. Questions? ${SITE.phone} or ${SITE.email}.`;
+  const footer = `If you did not request this, you can ignore this email.`;
 
   await sendEmail(
     {
       from: staffFromAddress(),
       to: payload.email.trim().toLowerCase(),
-      replyTo: SITE.email,
       subject,
       html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
