@@ -1,11 +1,12 @@
-import { addDays, format, parse } from "date-fns";
+import { addDays, differenceInCalendarDays, format, parse } from "date-fns";
 import { z } from "zod";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { dollarsToCents } from "@/lib/billing/format";
+import { endTimeFromStart, normalizeTime } from "@/lib/session-time";
 import type { PaymentRequirement, SessionStatus } from "@/lib/types/database";
 
 export const sessionFormSchema = z.object({
@@ -55,24 +56,36 @@ export const sessionFormSchema = z.object({
 
 export type SessionFormInput = z.infer<typeof sessionFormSchema>;
 
-function normalizeTime(value: string): string {
-  if (/^\d{2}:\d{2}$/.test(value)) return `${value}:00`;
-  return value.slice(0, 8);
-}
-
-function buildOccurrenceDates(
+export function buildOccurrenceDates(
   startDate: string,
   recurrence: "none" | "weekly" | "weekdays" | "custom",
   weeks: number,
   recurrenceDays: number[] = [],
+  endDate?: string | null,
 ): string[] {
   if (recurrence === "none") return [startDate];
 
   const dates: string[] = [];
   const start = parse(startDate, "yyyy-MM-dd", new Date());
   const daySet = new Set(recurrenceDays);
+  const end =
+    endDate?.trim()
+      ? parse(endDate.trim(), "yyyy-MM-dd", new Date())
+      : null;
+  const maxDayOffset =
+    end && end >= start
+      ? differenceInCalendarDays(end, start) + 1
+      : weeks * 7;
 
   if (recurrence === "weekly") {
+    if (end) {
+      let d = start;
+      while (d <= end) {
+        dates.push(format(d, "yyyy-MM-dd"));
+        d = addDays(d, 7);
+      }
+      return dates;
+    }
     for (let i = 0; i < weeks; i++) {
       dates.push(format(addDays(start, i * 7), "yyyy-MM-dd"));
     }
@@ -80,8 +93,9 @@ function buildOccurrenceDates(
   }
 
   if (recurrence === "weekdays") {
-    for (let i = 0; i < weeks * 7; i++) {
+    for (let i = 0; i < maxDayOffset; i++) {
       const d = addDays(start, i);
+      if (end && d > end) break;
       const day = d.getDay();
       if (day !== 0 && day !== 6) {
         dates.push(format(d, "yyyy-MM-dd"));
@@ -90,9 +104,10 @@ function buildOccurrenceDates(
     return dates;
   }
 
-  // custom: selected weekdays for N weeks from the start date
-  for (let i = 0; i < weeks * 7; i++) {
+  // custom: selected weekdays through range (end date or N weeks)
+  for (let i = 0; i < maxDayOffset; i++) {
     const d = addDays(start, i);
+    if (end && d > end) break;
     if (daySet.has(d.getDay())) {
       dates.push(format(d, "yyyy-MM-dd"));
     }
@@ -110,7 +125,7 @@ export async function createSessionsFromForm(
     return { ok: true, ids: [`demo-${crypto.randomUUID()}`] };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const dates = buildOccurrenceDates(
     parsed.session_date,
     parsed.recurrence ?? "none",
@@ -173,7 +188,7 @@ export async function deleteSession(
     return { ok: true, bookingCount: 0 };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { count } = await supabase
     .from(DAWG_TABLES.bookings)
     .select("id", { count: "exact", head: true })
@@ -196,7 +211,7 @@ export async function updateSessionStatus(
     return { ok: true };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { error } = await supabase
     .from(DAWG_TABLES.sessions)
     .update({

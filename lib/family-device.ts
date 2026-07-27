@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -73,13 +73,13 @@ export async function loadRememberedFamily(): Promise<RememberedFamily | null> {
     return null;
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const tokenHash = hashToken(token);
 
   const { data: device } = await supabase
     .from(DAWG_TABLES.deviceFamilies)
     .select(
-      "id, parent_id, accepted_agreements_version, accepted_agreements_at, media_consent_preference, revoked_at",
+      "id, parent_id:guardian_id, accepted_agreements_version, accepted_agreements_at, media_consent_preference, revoked_at",
     )
     .eq("token_hash", tokenHash)
     .is("revoked_at", null)
@@ -100,7 +100,7 @@ export async function loadRememberedFamily(): Promise<RememberedFamily | null> {
     .select(
       "id, first_name, last_name, date_of_birth, primary_sport, experience_level",
     )
-    .eq("parent_id", parent.id)
+    .eq("guardian_id", parent.id)
     .order("first_name", { ascending: true });
 
   await supabase
@@ -141,7 +141,7 @@ export async function rememberFamilyOnDevice(input: {
     return { error: "Storage unavailable" };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const existingToken = await readFamilyDeviceToken();
   const now = new Date().toISOString();
 
@@ -149,7 +149,7 @@ export async function rememberFamilyOnDevice(input: {
     const existingHash = hashToken(existingToken);
     const { data: existing } = await supabase
       .from(DAWG_TABLES.deviceFamilies)
-      .select("id, parent_id, revoked_at")
+      .select("id, parent_id:guardian_id, revoked_at")
       .eq("token_hash", existingHash)
       .maybeSingle();
 
@@ -177,7 +177,7 @@ export async function rememberFamilyOnDevice(input: {
   const token = newToken();
   const { error } = await supabase.from(DAWG_TABLES.deviceFamilies).insert({
     token_hash: hashToken(token),
-    parent_id: input.parentId,
+    guardian_id: input.parentId,
     accepted_agreements_version: input.agreementsVersion,
     accepted_agreements_at: now,
     media_consent_preference: input.mediaConsent,
@@ -199,7 +199,7 @@ export async function forgetFamilyOnDevice() {
     isSupabaseConfigured() &&
     process.env.SUPABASE_SERVICE_ROLE_KEY
   ) {
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     await supabase
       .from(DAWG_TABLES.deviceFamilies)
       .update({ revoked_at: new Date().toISOString() })
@@ -224,7 +224,7 @@ export async function refreshDeviceAgreementsIfPresent(input: {
     return;
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const now = new Date().toISOString();
   await supabase
     .from(DAWG_TABLES.deviceFamilies)
@@ -235,7 +235,7 @@ export async function refreshDeviceAgreementsIfPresent(input: {
       last_used_at: now,
     })
     .eq("token_hash", hashToken(token))
-    .eq("parent_id", input.parentId)
+    .eq("guardian_id", input.parentId)
     .is("revoked_at", null);
 }
 

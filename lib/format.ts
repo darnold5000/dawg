@@ -8,6 +8,25 @@ export function formatSessionDateShort(date: string): string {
   return format(parseISO(date), "EEE, MMM d");
 }
 
+/** Schedule list: MONDAY */
+export function formatScheduleWeekday(date: string): string {
+  return format(parseISO(date), "EEEE").toUpperCase();
+}
+
+export function formatScheduleDaySubdate(date: string): string {
+  return format(parseISO(date), "MMMM d, yyyy");
+}
+
+export function formatScheduleDateRange(start: string, end: string): string {
+  const s = parseISO(start);
+  const e = parseISO(end);
+  if (start === end) return format(s, "MMM d, yyyy");
+  if (s.getFullYear() === e.getFullYear()) {
+    return `${format(s, "MMM d")} – ${format(e, "MMM d, yyyy")}`;
+  }
+  return `${format(s, "MMM d, yyyy")} – ${format(e, "MMM d, yyyy")}`;
+}
+
 export function formatSessionTime(time: string): string {
   const normalized = time.length === 5 ? `${time}:00` : time.slice(0, 8);
   return format(parse(normalized, "HH:mm:ss", new Date()), "h:mm a");

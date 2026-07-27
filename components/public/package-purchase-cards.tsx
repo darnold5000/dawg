@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { paymentMethodLabel } from "@/lib/billing/payment-options";
 import { loginPath } from "@/lib/family-auth-url";
 import { formatPrice } from "@/lib/format";
+import type { PaymentMethod } from "@/lib/types/database";
 import type { TrainingPackage } from "@/lib/types/database";
 
 type ContactFields = {
@@ -16,6 +19,8 @@ type ContactFields = {
   parentEmail: string;
   parentPhone: string;
 };
+
+const PACKAGE_PAYMENT_OPTIONS: PaymentMethod[] = ["stripe", "pay_at_facility"];
 
 export function PackagePurchaseCards({
   packages,
@@ -26,12 +31,14 @@ export function PackagePurchaseCards({
   initialContact?: Partial<ContactFields>;
   isSignedIn?: boolean;
 }) {
+  const router = useRouter();
   const [contact, setContact] = useState<ContactFields>({
     parentFirstName: initialContact?.parentFirstName ?? "",
     parentLastName: initialContact?.parentLastName ?? "",
     parentEmail: initialContact?.parentEmail ?? "",
     parentPhone: initialContact?.parentPhone ?? "",
   });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
   const [purchasingSlug, setPurchasingSlug] = useState<string | null>(null);
 
   function update<K extends keyof ContactFields>(key: K, value: ContactFields[K]) {
@@ -56,12 +63,19 @@ export function PackagePurchaseCards({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           packageSlug: pkg.slug,
+          paymentMethod,
           ...contact,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Could not start checkout");
+        return;
+      }
+      if (data.payAtFacility && data.purchaseId) {
+        router.push(
+          `/packages/success?purchase_id=${encodeURIComponent(data.purchaseId)}&payment=pay_at_facility`,
+        );
         return;
       }
       if (data.checkoutUrl) {
@@ -74,6 +88,16 @@ export function PackagePurchaseCards({
     } finally {
       setPurchasingSlug(null);
     }
+  }
+
+  if (packages.length === 0) {
+    return (
+      <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        Packages are not set up yet. Run{" "}
+        <code className="text-xs">scripts/seed-dawg-training-catalog.sql</code>{" "}
+        in the Signal Works Pro SQL editor, then refresh this page.
+      </p>
+    );
   }
 
   return (
@@ -93,8 +117,8 @@ export function PackagePurchaseCards({
 
       <div className="form-panel grid gap-4 sm:grid-cols-2">
         <p className="sm:col-span-2 text-sm text-muted-foreground">
-          Enter your contact info once, then choose a package to pay securely with
-          Stripe.
+          Enter your contact info once, choose how you want to pay, then pick a
+          package.
         </p>
         <div className="space-y-1.5">
           <Label htmlFor="parentFirstName">First name</Label>
@@ -136,6 +160,41 @@ export function PackagePurchaseCards({
         </div>
       </div>
 
+      <fieldset className="space-y-3 rounded-xl border border-border p-4">
+        <legend className="px-1 font-heading text-lg tracking-wide">
+          Payment
+        </legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {PACKAGE_PAYMENT_OPTIONS.map((method) => (
+            <label
+              key={method}
+              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
+                paymentMethod === method
+                  ? "border-brand bg-brand/10"
+                  : "border-border"
+              }`}
+            >
+              <input
+                type="radio"
+                name="packagePayment"
+                className="mt-1"
+                checked={paymentMethod === method}
+                onChange={() => setPaymentMethod(method)}
+                value={method}
+              />
+              <span>
+                <span className="font-medium">{paymentMethodLabel(method)}</span>
+                <span className="mt-0.5 block text-muted-foreground">
+                  {method === "stripe"
+                    ? "Secure card payment via Stripe."
+                    : "Order is saved — pay when you arrive. Credits activate after staff confirms payment."}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
       <div className="grid gap-6 sm:grid-cols-3">
         {packages.map((pkg) => (
           <div
@@ -154,7 +213,13 @@ export function PackagePurchaseCards({
               disabled={purchasingSlug !== null}
               onClick={() => void purchase(pkg)}
             >
-              {purchasingSlug === pkg.slug ? "Starting checkout…" : "Purchase"}
+              {purchasingSlug === pkg.slug
+                ? paymentMethod === "stripe"
+                  ? "Starting checkout…"
+                  : "Saving order…"
+                : paymentMethod === "stripe"
+                  ? "Purchase online"
+                  : "Order — pay at facility"}
             </Button>
           </div>
         ))}

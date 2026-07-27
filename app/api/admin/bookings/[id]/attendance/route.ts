@@ -4,7 +4,7 @@ import { requireStaffApi } from "@/lib/auth";
 import { ATTENDANCE_STATUSES } from "@/lib/attendance";
 import { redeemPackageCreditOnAttendance } from "@/lib/packages";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -35,7 +35,7 @@ export async function PATCH(
       });
     }
 
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const { data, error } = await supabase
       .from(DAWG_TABLES.bookings)
       .update({ attendance_status: body.attendanceStatus })

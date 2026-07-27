@@ -11,7 +11,7 @@ import {
 import { applyPaidCheckoutSession } from "./reconcile-checkout";
 import { applyPaidPackageCheckoutSession } from "./reconcile-package";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -29,7 +29,7 @@ async function loadBooking(bookingId: string): Promise<Booking | null> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.bookings)
     .select("*")
@@ -67,7 +67,7 @@ async function handleCheckoutExpired(
       isSupabaseConfigured() &&
       process.env.SUPABASE_SERVICE_ROLE_KEY
     ) {
-      const supabase = createServiceClient();
+      const supabase = createTrainingServiceClient();
       await supabase
         .from(DAWG_TABLES.packagePurchases)
         .update({ status: "expired", updated_at: new Date().toISOString() })
@@ -120,7 +120,7 @@ async function handleChargeRefunded(
       ? charge.payment_intent
       : charge.payment_intent?.id ?? null;
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   let booking: Booking | null = null;
 
   if (paymentIntentId) {

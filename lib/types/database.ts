@@ -1,3 +1,5 @@
+import type { TrainingVisibility } from "@/lib/training-visibility";
+
 export type UserRole = "owner" | "admin" | "trainer";
 
 export type SessionStatus =
@@ -81,6 +83,8 @@ export interface Program {
   default_duration_minutes: number | null;
   default_capacity: number | null;
   default_price_cents: number | null;
+  calendar_color: string | null;
+  default_visibility: TrainingVisibility | null;
   image_url: string | null;
   active: boolean;
   featured: boolean;
@@ -96,11 +100,37 @@ export interface SessionType {
   active: boolean;
 }
 
+export interface SessionTemplate {
+  id: string;
+  name: string;
+  program_id: string | null;
+  description: string | null;
+  default_start_time: string;
+  default_duration_minutes: number;
+  default_capacity: number | null;
+  default_price_cents: number | null;
+  /** training_coaches.id (same as sessions.trainer_id). */
+  default_trainer_id: string | null;
+  default_assistant_trainer_id: string | null;
+  default_session_type_id: string | null;
+  default_visibility: TrainingVisibility | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SessionTemplateWithRelations extends SessionTemplate {
+  program?: Program | null;
+  trainer?: Trainer | null;
+  session_type?: SessionType | null;
+}
+
 export interface TrainingSession {
   id: string;
   program_id: string | null;
   session_type_id: string | null;
   trainer_id: string | null;
+  template_id: string | null;
   title: string;
   description: string | null;
   session_date: string;
@@ -123,6 +153,7 @@ export interface TrainingSession {
   featured: boolean;
   published_at: string | null;
   recurrence_group_id: string | null;
+  visibility: TrainingVisibility | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

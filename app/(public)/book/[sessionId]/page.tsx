@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { BookingForm } from "@/components/public/booking-form";
+import { BookSessionGate } from "@/components/public/book-session-gate";
 import { getSessionById } from "@/lib/data";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { createMetadata } from "@/lib/seo";
@@ -63,7 +63,7 @@ export default async function BookPage({
           : bookingIntro(session)}
       </p>
       <div className="mt-8">
-        <BookingForm session={session} waitlistMode={waitlistMode} />
+        <BookSessionGate session={session} waitlistMode={waitlistMode} />
       </div>
     </div>
   );

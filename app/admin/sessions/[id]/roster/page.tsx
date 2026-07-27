@@ -62,7 +62,7 @@ export default async function RosterPage({
 
   return (
     <AdminShell profile={profile}>
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-heading text-3xl tracking-wide">Roster</h2>

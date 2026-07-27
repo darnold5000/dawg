@@ -3,7 +3,7 @@
  * Guest session bookings — not catalog/membership billing.
  */
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -24,20 +24,20 @@ import type {
 
 const BOOKING_SELECT = `
   *,
-  session:dawg_sessions (
+  session:training_sessions (
     id, title, session_date, start_time, end_time,
     price_cents, currency, payment_requirement, status,
     location_name, location_address, cancellation_policy
   ),
-  parent:dawg_parents ( id, first_name, last_name, email, phone ),
-  athlete:dawg_athletes ( id, first_name, last_name )
+  parent:training_guardians ( id, first_name, last_name, email, phone ),
+  athlete:training_athletes ( id, first_name, last_name )
 `;
 
 function requireService() {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error("Supabase service role is required for billing adapter");
   }
-  return createServiceClient();
+  return createTrainingServiceClient();
 }
 
 // Launch: cancellations disabled.
@@ -691,8 +691,8 @@ export async function listPaymentTransactions(
 }
 
 /**
- * Idempotent Stripe event claim.
- * Returns whether this worker should process the event.
+ * Idempotent Stripe event claim (scoped by TRAINING_TENANT_ID via service client).
+ * Uniqueness is (tenant_id, stripe_event_id) on training_stripe_events.
  */
 export async function claimStripeEvent(input: {
   stripeEventId: string;
@@ -747,7 +747,7 @@ export async function markStripeEventProcessed(input: {
   error?: string | null;
 }): Promise<void> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) return;
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   await supabase
     .from(DAWG_TABLES.stripeEvents)
     .update({

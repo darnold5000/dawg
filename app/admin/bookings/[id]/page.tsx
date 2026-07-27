@@ -10,7 +10,7 @@ import { adminBookingPaymentTypeLabel } from "@/lib/admin-booking-labels";
 import { getPackageRedemptionsForBookings } from "@/lib/admin-package-redemptions";
 import { attendanceLabel } from "@/lib/attendance";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -46,15 +46,15 @@ export default async function AdminBookingDetailPage({
     );
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.bookings)
     .select(
       `
       *,
-      session:dawg_sessions (*),
-      parent:dawg_parents (*),
-      athlete:dawg_athletes (*)
+      session:training_sessions (*),
+      parent:training_guardians (*),
+      athlete:training_athletes (*)
     `,
     )
     .eq("id", id)

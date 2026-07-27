@@ -1,5 +1,5 @@
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -8,9 +8,9 @@ import { retrieveCheckoutSession } from "./webhook-handlers";
 
 const REL_SELECT = `
   *,
-  session:dawg_sessions (*),
-  parent:dawg_parents (*),
-  athlete:dawg_athletes (*)
+  session:training_sessions (*),
+  parent:training_guardians (*),
+  athlete:training_athletes (*)
 `;
 
 export async function getBookingByIdAndToken(
@@ -20,7 +20,7 @@ export async function getBookingByIdAndToken(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.bookings)
     .select(REL_SELECT)
@@ -37,7 +37,7 @@ export async function getBookingByCheckoutSessionId(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   let query = supabase
     .from(DAWG_TABLES.bookings)
     .select(REL_SELECT)
@@ -70,9 +70,9 @@ export async function expireStalePendingBookings(): Promise<number> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return 0;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data, error } = await supabase.rpc(
-    "dawg_expire_stale_pending_bookings",
+    "training_expire_stale_pending_bookings",
   );
   if (error) {
     console.error("expire stale bookings", error);

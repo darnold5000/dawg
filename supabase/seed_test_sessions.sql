@@ -58,7 +58,7 @@ select
   'Coach Jordan',
   'Owner / Head Trainer',
   'Test trainer for DAWG booking demos.',
-  '/images/dawg/trainers/avery.jpg',
+  '/images/dawg/trainers/coach-avery.png',
   array['Speed', 'Agility'],
   true,
   1

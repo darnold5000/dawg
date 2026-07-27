@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -9,10 +10,12 @@ export function DeleteSessionButton({
   sessionId,
   title,
   bookedCount,
+  iconOnly = false,
 }: {
   sessionId: string;
   title: string;
   bookedCount: number;
+  iconOnly?: boolean;
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -46,13 +49,24 @@ export function DeleteSessionButton({
   return (
     <Button
       type="button"
-      variant="outline"
-      size="sm"
-      className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+      variant={iconOnly ? "ghost" : "outline"}
+      size={iconOnly ? "icon-sm" : "sm"}
+      className={
+        iconOnly
+          ? "size-7 shrink-0 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+          : "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+      }
       disabled={deleting}
+      aria-label={iconOnly ? `Remove ${title}` : undefined}
       onClick={onDelete}
     >
-      {deleting ? "Deleting…" : "Delete"}
+      {iconOnly ? (
+        <Trash2 className="size-3.5" />
+      ) : deleting ? (
+        "Deleting…"
+      ) : (
+        "Delete"
+      )}
     </Button>
   );
 }

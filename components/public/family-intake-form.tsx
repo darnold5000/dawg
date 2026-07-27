@@ -29,10 +29,14 @@ export function FamilyIntakeForm({
   returnTo,
   initialContact,
   athleteId: initialAthleteId,
+  showAccountPrompt = true,
+  bookingFlow = false,
 }: {
   returnTo: string;
   initialContact?: Partial<ContactFields>;
   athleteId?: string | null;
+  showAccountPrompt?: boolean;
+  bookingFlow?: boolean;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -189,6 +193,8 @@ export function FamilyIntakeForm({
     ? `${form.athleteFirstName} ${form.athleteLastName}`.trim()
     : undefined;
 
+  const isBookingReturn = bookingFlow || returnTo.startsWith("/book/");
+
   if (loading) {
     return (
       <p className="text-sm text-muted-foreground">Loading your information…</p>
@@ -197,7 +203,11 @@ export function FamilyIntakeForm({
 
   if (alreadyComplete) {
     return (
-      <IntakeAlreadyComplete returnTo={returnTo} athleteName={athleteName} />
+      <IntakeAlreadyComplete
+        returnTo={returnTo}
+        athleteName={athleteName}
+        showAccountPrompt={showAccountPrompt && !isBookingReturn}
+      />
     );
   }
 
@@ -205,12 +215,19 @@ export function FamilyIntakeForm({
   const showEmergency = mode === "full";
   const showAthleteDetails = mode !== "waiver-only";
   const showExtras = mode === "full" || mode === "add-athlete";
+
   const submitLabel =
     mode === "waiver-only"
-      ? "Accept updated waiver & continue"
+      ? isBookingReturn
+        ? "Accept waiver & continue to booking"
+        : "Accept updated waiver & continue"
       : mode === "add-athlete"
-        ? "Add athlete & continue"
-        : "Save & continue";
+        ? isBookingReturn
+          ? "Add athlete & continue to booking"
+          : "Add athlete & continue"
+        : isBookingReturn
+          ? "Continue to booking"
+          : "Save & continue";
 
   return (
     <div className="space-y-6">
@@ -478,7 +495,9 @@ export function FamilyIntakeForm({
         </Button>
       </form>
 
-      <IntakeAccountPrompt returnTo={returnTo} />
+      {showAccountPrompt && !isBookingReturn ? (
+        <IntakeAccountPrompt returnTo={returnTo} />
+      ) : null}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { ReviewsAdminPanel } from "@/components/admin/reviews-admin-panel";
 import { requireAdmin } from "@/lib/auth";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -14,7 +14,7 @@ export default async function AdminReviewsPage() {
 
   if (isSupabaseConfigured() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
-      const supabase = createServiceClient();
+      const supabase = createTrainingServiceClient();
       const { data } = await supabase
         .from(DAWG_TABLES.reviews)
         .select("*")

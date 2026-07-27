@@ -229,7 +229,7 @@ export function TrainerEditCard({ trainer }: { trainer: Trainer }) {
               src={photoSrc}
               alt={`Photo of ${trainer.name}`}
               fill
-              className="object-cover"
+              className="object-contain object-center p-0.5"
               sizes="80px"
             />
           </div>
@@ -306,7 +306,7 @@ export function TrainerEditCard({ trainer }: { trainer: Trainer }) {
           src={previewSrc}
           alt={`Photo of ${form.name}`}
           fill
-          className="object-cover"
+          className="object-contain object-center p-0.5"
           sizes="96px"
           unoptimized={previewSrc.startsWith("blob:")}
         />
@@ -414,7 +414,7 @@ function TrainerFields({
         <Label htmlFor={`photo-url-${form.name}`}>Or photo URL</Label>
         <Input
           id={`photo-url-${form.name}`}
-          placeholder="/images/dawg/trainers/avery.jpg"
+          placeholder="/images/dawg/trainers/coach-avery.png"
           value={form.photo_url}
           onChange={(e) => setForm({ ...form, photo_url: e.target.value })}
         />

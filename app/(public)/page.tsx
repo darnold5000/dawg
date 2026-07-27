@@ -45,8 +45,10 @@ export default async function HomePage() {
       <HomePrograms programs={programs} />
       <HomeUpcomingSessions sessions={sessions} />
       <HomeWhyDawg />
-      <HomeTrainers trainers={trainers} />
-      <HomeGallery />
+      <HomeTrainers trainers={trainers} variant="spotlight" />
+      <div className="hidden" aria-hidden>
+        <HomeGallery />
+      </div>
       <HomeReviews reviews={reviews} />
       <HomeLocation settings={settings} />
       <HomeCta />

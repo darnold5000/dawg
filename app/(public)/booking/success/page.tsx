@@ -14,7 +14,7 @@ import { reconcileCheckoutSession } from "@/lib/billing/reconcile-checkout";
 import { SITE } from "@/lib/constants";
 import { createMetadata } from "@/lib/seo";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -35,7 +35,7 @@ async function resolveCoachName(
   ) {
     return null;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.trainers)
     .select("name")

@@ -1,16 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 
-export function AdminLoginForm() {
-  const router = useRouter();
+type AdminLoginFormProps = {
+  staffAccessDenied?: boolean;
+};
+
+export function AdminLoginForm({ staffAccessDenied }: AdminLoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,17 +31,26 @@ export function AdminLoginForm() {
 
     setLoading(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
-      if (error) {
-        toast.error(error.message);
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        redirectTo?: string;
+      };
+
+      if (!res.ok) {
+        toast.error(body.error ?? "Unable to sign in");
         return;
       }
-      router.push("/admin");
-      router.refresh();
+
+      const dest =
+        body.redirectTo?.startsWith("/") && !body.redirectTo.startsWith("//")
+          ? body.redirectTo
+          : "/admin";
+      window.location.assign(dest);
     } catch {
       toast.error("Login failed");
     } finally {
@@ -48,6 +60,11 @@ export function AdminLoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      {staffAccessDenied ? (
+        <p className="text-sm text-muted-foreground">
+          Sign in with a DAWG staff account to continue.
+        </p>
+      ) : null}
       <div className="space-y-1.5">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -92,6 +109,14 @@ export function AdminLoginForm() {
       >
         {loading ? "Signing in…" : "Sign in"}
       </Button>
+      <p className="text-center text-sm">
+        <Link
+          href="/admin/forgot-password"
+          className="text-brand underline-offset-4 hover:underline"
+        >
+          Forgot password?
+        </Link>
+      </p>
       <p className="text-center text-xs text-muted-foreground">
         Invitation-only. Public registration is disabled.
       </p>

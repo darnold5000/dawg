@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { createPackageCheckout } from "@/lib/billing/package-checkout";
 import {
+  createPackagePayAtFacilityPurchase,
   loggedInPackageCheckoutSchema,
   publicPackageCheckoutSchema,
 } from "@/lib/packages";
@@ -10,7 +11,7 @@ import {
   requireFamilySessionApi,
 } from "@/lib/family-auth";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
   try {
     if (!(family instanceof NextResponse)) {
       const parsed = loggedInPackageCheckoutSchema.parse(body);
-      const supabase = createServiceClient();
+      const supabase = createTrainingServiceClient();
       const { data: parent } = await supabase
         .from(DAWG_TABLES.parents)
         .select("id, first_name, last_name, email, phone")
@@ -62,9 +63,31 @@ export async function POST(request: Request) {
         const { data: athletes } = await supabase
           .from(DAWG_TABLES.athletes)
           .select("id")
-          .eq("parent_id", family.parentId)
+          .eq("guardian_id", family.parentId)
           .limit(1);
         athleteId = athletes?.[0]?.id ?? null;
+      }
+
+      if (parsed.paymentMethod === "pay_at_facility") {
+        const facility = await createPackagePayAtFacilityPurchase({
+          packageSlug: parsed.packageSlug,
+          parentId: family.parentId,
+          athleteId,
+          parentFirstName: parent.first_name ?? family.parentFirstName,
+          parentLastName: parent.last_name ?? family.parentLastName,
+          parentEmail: parent.email,
+          parentPhone: parent.phone ?? family.parentPhone,
+        });
+        if (!facility.ok) {
+          return NextResponse.json(
+            { error: facility.error, code: facility.code },
+            { status: 400 },
+          );
+        }
+        return NextResponse.json({
+          purchaseId: facility.purchaseId,
+          payAtFacility: true,
+        });
       }
 
       const result = await createPackageCheckout({
@@ -93,6 +116,27 @@ export async function POST(request: Request) {
     }
 
     const parsed = publicPackageCheckoutSchema.parse(body);
+
+    if (parsed.paymentMethod === "pay_at_facility") {
+      const facility = await createPackagePayAtFacilityPurchase({
+        packageSlug: parsed.packageSlug,
+        parentFirstName: parsed.parentFirstName,
+        parentLastName: parsed.parentLastName,
+        parentEmail: parsed.parentEmail,
+        parentPhone: parsed.parentPhone,
+      });
+      if (!facility.ok) {
+        return NextResponse.json(
+          { error: facility.error, code: facility.code },
+          { status: 400 },
+        );
+      }
+      return NextResponse.json({
+        purchaseId: facility.purchaseId,
+        payAtFacility: true,
+      });
+    }
+
     const result = await createPackageCheckout({
       packageSlug: parsed.packageSlug,
       parentFirstName: parsed.parentFirstName,

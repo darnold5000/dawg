@@ -75,7 +75,7 @@ export function ContactForm() {
         <Button
           type="button"
           variant="outline"
-          className="mt-4"
+          className="mt-4 border-slate-300 bg-white text-slate-900 hover:bg-slate-100"
           onClick={() => setSent(false)}
         >
           Send another message

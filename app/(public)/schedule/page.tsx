@@ -1,4 +1,5 @@
 import { ScheduleBrowser } from "@/components/public/schedule-browser";
+import { GradePlacementNote } from "@/components/public/grade-placement-note";
 import { getFilteredSessions } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
 
@@ -23,8 +24,10 @@ export default async function SchedulePage() {
         </h1>
         <p className="mt-4 text-muted-foreground">
           Browse upcoming sessions and reserve your athlete&apos;s spot on the
-          roster.
+          roster. Little Dawgs (2nd–6th grade) and Big Dawgs (7th grade–collegiate)
+          are grouped by school grade.
         </p>
+        <GradePlacementNote className="mt-3 max-w-2xl" />
       </div>
       <div className="mt-8">
         <ScheduleBrowser sessions={sessions} />

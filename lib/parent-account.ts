@@ -1,5 +1,5 @@
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -25,7 +25,7 @@ export async function getParentById(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.parents)
     .select(
@@ -45,7 +45,7 @@ export async function getParentByEmail(
   const normalized = normalizeEmail(email);
   if (!normalized) return null;
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.parents)
     .select(
@@ -76,7 +76,7 @@ export async function markParentAccountClaimed(parentId: string): Promise<void> 
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   await supabase
     .from(DAWG_TABLES.parents)
     .update({
@@ -91,7 +91,7 @@ export async function markParentInviteSent(parentId: string): Promise<void> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   await supabase
     .from(DAWG_TABLES.parents)
     .update({
@@ -114,7 +114,7 @@ export async function findOrCreateParentByEmail(input: {
   const email = normalizeEmail(input.email);
   if (!email) return null;
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const existing = await getParentByEmail(email);
   if (existing) {
     await supabase
@@ -156,11 +156,11 @@ export async function reassignPackagePurchaseParent(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   await supabase
     .from(DAWG_TABLES.packagePurchases)
     .update({
-      parent_id: parentId,
+      guardian_id: parentId,
       updated_at: new Date().toISOString(),
     })
     .eq("id", purchaseId);

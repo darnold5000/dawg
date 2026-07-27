@@ -1,5 +1,5 @@
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -121,7 +121,7 @@ export async function getFamilyPortalData(
     return null;
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
 
   const { data: parent } = await supabase
     .from(DAWG_TABLES.parents)
@@ -136,12 +136,12 @@ export async function getFamilyPortalData(
       supabase
         .from(DAWG_TABLES.athletes)
         .select("*")
-        .eq("parent_id", parentId)
+        .eq("guardian_id", parentId)
         .order("first_name", { ascending: true }),
       supabase
         .from(DAWG_TABLES.packagePurchases)
-        .select(`*, package:dawg_packages (*)`)
-        .eq("parent_id", parentId)
+        .select(`*, package:training_packages (*)`)
+        .eq("guardian_id", parentId)
         .order("created_at", { ascending: false }),
       supabase
         .from(DAWG_TABLES.bookings)
@@ -153,8 +153,8 @@ export async function getFamilyPortalData(
           attendance_status,
           payment_status,
           booked_at,
-          athlete:dawg_athletes ( first_name, last_name ),
-          session:dawg_sessions (
+          athlete:training_athletes ( first_name, last_name ),
+          session:training_sessions (
             title,
             session_date,
             start_time,
@@ -163,7 +163,7 @@ export async function getFamilyPortalData(
           )
         `,
         )
-        .eq("parent_id", parentId)
+        .eq("guardian_id", parentId)
         .neq("status", "cancelled")
         .neq("status", "expired")
         .order("booked_at", { ascending: false }),
@@ -210,10 +210,10 @@ export async function getFamilyPortalData(
         id,
         redeemed_at,
         purchase_id,
-        booking:dawg_bookings (
+        booking:training_session_bookings (
           confirmation_number,
-          athlete:dawg_athletes ( first_name, last_name ),
-          session:dawg_sessions ( title, session_date, start_time )
+          athlete:training_athletes ( first_name, last_name ),
+          session:training_sessions ( title, session_date, start_time )
         )
       `,
       )

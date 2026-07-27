@@ -1,10 +1,13 @@
 import { format } from "date-fns";
 import {
   createClient,
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
+import { getTrainingTenantIdOrNull } from "@/lib/tenant/deployment";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { COACH_AVERY } from "@/lib/content/coach-avery";
+import { isPublicScheduleVisibility } from "@/lib/training-visibility";
 import {
   FALLBACK_PROGRAMS,
   FALLBACK_REVIEWS,
@@ -32,7 +35,7 @@ async function bookingCounts(
 ): Promise<Record<string, number>> {
   if (!sessionIds.length || !isSupabaseConfigured()) return {};
   try {
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const { data } = await supabase
       .from(DAWG_TABLES.bookings)
       .select("session_id, status, booking_expires_at")
@@ -88,47 +91,85 @@ const HIDDEN_PROGRAM_SLUGS = new Set([
 
 const HIDDEN_TRAINER_NAMES = new Set(["Coach Jordan"]);
 
+/** Tenant-scoped service reads for server catalog (avoids missing GRANT on authenticated). */
+function trainingCatalogClient() {
+  if (
+    !isSupabaseConfigured() ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    !getTrainingTenantIdOrNull()
+  ) {
+    return null;
+  }
+  return createTrainingServiceClient();
+}
+
 export async function getPrograms(): Promise<Program[]> {
   if (!isSupabaseConfigured()) {
     return FALLBACK_PROGRAMS.filter((p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug));
   }
+  const service = trainingCatalogClient();
   try {
-    const supabase = await createClient();
+    const supabase = service ?? (await createClient());
     const { data, error } = await supabase
       .from(DAWG_TABLES.programs)
       .select("*")
       .eq("active", true)
       .order("display_order");
-    if (error || !data?.length) {
-      return FALLBACK_PROGRAMS.filter((p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug));
+    if (error) {
+      console.error("[getPrograms]", error.message);
+      return service ? [] : FALLBACK_PROGRAMS.filter((p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug));
+    }
+    if (!data?.length) {
+      return service ? [] : FALLBACK_PROGRAMS.filter((p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug));
     }
     return (data as Program[]).filter(
       (p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug),
     );
   } catch {
-    return FALLBACK_PROGRAMS.filter((p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug));
+    return service ? [] : FALLBACK_PROGRAMS.filter((p) => !HIDDEN_PROGRAM_SLUGS.has(p.slug));
   }
 }
 
+function withCanonicalCoachCopy(trainers: Trainer[]): Trainer[] {
+  return trainers.map((t) => {
+    if (!t.name.toLowerCase().includes("avery")) return t;
+    return {
+      ...t,
+      name: COACH_AVERY.name,
+      title: COACH_AVERY.title,
+      bio: COACH_AVERY.bio,
+      photo_url: t.photo_url ?? COACH_AVERY.photoPath,
+    };
+  });
+}
+
 export async function getTrainers(): Promise<Trainer[]> {
+  const visible = (list: Trainer[]) =>
+    withCanonicalCoachCopy(
+      list.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name)),
+    );
+
   if (!isSupabaseConfigured()) {
-    return FALLBACK_TRAINERS.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name));
+    return visible(FALLBACK_TRAINERS);
   }
+  const service = trainingCatalogClient();
   try {
-    const supabase = await createClient();
+    const supabase = service ?? (await createClient());
     const { data, error } = await supabase
       .from(DAWG_TABLES.trainers)
       .select("*")
       .eq("active", true)
       .order("display_order");
-    if (error || !data?.length) {
-      return FALLBACK_TRAINERS.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name));
+    if (error) {
+      console.error("[getTrainers]", error.message);
+      return service ? [] : visible(FALLBACK_TRAINERS);
     }
-    return (data as Trainer[]).filter(
-      (t) => !HIDDEN_TRAINER_NAMES.has(t.name),
-    );
+    if (!data?.length) {
+      return service ? [] : visible(FALLBACK_TRAINERS);
+    }
+    return visible(data as Trainer[]);
   } catch {
-    return FALLBACK_TRAINERS.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name));
+    return service ? [] : visible(FALLBACK_TRAINERS);
   }
 }
 
@@ -168,17 +209,24 @@ export async function getBusinessSettings(): Promise<BusinessSettings> {
 
 export async function getSessionTypes(): Promise<SessionType[]> {
   if (!isSupabaseConfigured()) return FALLBACK_SESSION_TYPES;
+  const service = trainingCatalogClient();
   try {
-    const supabase = await createClient();
+    const supabase = service ?? (await createClient());
     const { data, error } = await supabase
       .from(DAWG_TABLES.sessionTypes)
       .select("*")
       .eq("active", true)
       .order("name");
-    if (error || !data?.length) return FALLBACK_SESSION_TYPES;
+    if (error) {
+      console.error("[getSessionTypes]", error.message);
+      return service ? [] : FALLBACK_SESSION_TYPES;
+    }
+    if (!data?.length) {
+      return service ? [] : FALLBACK_SESSION_TYPES;
+    }
     return data as SessionType[];
   } catch {
-    return FALLBACK_SESSION_TYPES;
+    return service ? [] : FALLBACK_SESSION_TYPES;
   }
 }
 
@@ -222,9 +270,11 @@ export async function getUpcomingSessions(
       types,
       trainers,
       counts,
-    }).filter(
-      (s) => !s.program || !HIDDEN_PROGRAM_SLUGS.has(s.program.slug),
-    );
+    })
+      .filter(
+        (s) => !s.program || !HIDDEN_PROGRAM_SLUGS.has(s.program.slug),
+      )
+      .filter((s) => isPublicScheduleVisibility(s.visibility));
   } catch {
     return [];
   }
@@ -307,7 +357,9 @@ export async function getFilteredSessions(
     }
 
     return sessions.filter(
-      (s) => !s.program || !HIDDEN_PROGRAM_SLUGS.has(s.program.slug),
+      (s) =>
+        (!s.program || !HIDDEN_PROGRAM_SLUGS.has(s.program.slug)) &&
+        isPublicScheduleVisibility(s.visibility),
     );
   } catch {
     return [];

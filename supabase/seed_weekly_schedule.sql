@@ -15,8 +15,8 @@ insert into public.dawg_trainers (name, title, bio, photo_url, specialties, acti
 select
   'Coach Avery',
   'Owner / Head Trainer',
-  'DAWG emphasizes developing physical and mental attributes in athletes within a positive, engaging setting.',
-  '/images/dawg/trainers/placeholder.svg',
+  'Coach Avery leads DAWG Youth Training in Mooresville, helping athletes build strength, speed, agility, and confidence in a positive, high-energy room.',
+  '/images/dawg/trainers/coach-avery.png',
   array['Speed', 'Agility', 'Youth Athletic Development'],
   true,
   1
@@ -53,9 +53,9 @@ with dates as (
 slots as (
   select *
   from (values
-    ('little-dawgs', 'Little Dawgs', '16:00'::time, '17:00'::time, 5, 10, 2500, 10, 45),
-    ('big-dawgs',     'Big Dawgs',  '17:00'::time, '18:00'::time, 11, 18, 3000, 12, 60),
-    ('little-dawgs', 'Little Dawgs', '18:00'::time, '19:00'::time, 5, 10, 2500, 10, 60)
+    ('little-dawgs', 'Little Dawgs', '16:00'::time, '17:00'::time, null::int, null::int, 2500, 10, 60),
+    ('big-dawgs',     'Big Dawgs',  '17:00'::time, '18:00'::time, null::int, null::int, 3000, 12, 60),
+    ('little-dawgs', 'Little Dawgs', '18:00'::time, '19:00'::time, null::int, null::int, 2500, 10, 60)
   ) as t(program_slug, title, start_time, end_time, min_age, max_age, price_cents, capacity, duration_hint)
 )
 insert into public.dawg_sessions (

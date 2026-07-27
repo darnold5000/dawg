@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { fetchTrainingStaffProfileForUser } from "@/lib/auth/training-staff";
+import { getTrainingTenantIdOrNull } from "@/lib/tenant/deployment";
 import type { Profile } from "@/lib/types/database";
 import { isAdminRole, isOwnerRole, isStaffRole } from "@/lib/roles";
 
@@ -34,20 +36,57 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 
   if (!user) return null;
 
-  const { data } = await supabase
-    .from(DAWG_TABLES.profiles)
-    .select("*")
-    .eq("id", user.id)
-    .eq("active", true)
-    .single();
+  const tenantId = getTrainingTenantIdOrNull();
+  if (tenantId) {
+    const data = await fetchTrainingStaffProfileForUser(user.id, {
+      userClient: supabase,
+    });
+    if (!data) return null;
+    return {
+      id: user.id,
+      full_name: data.full_name,
+      email: data.email,
+      phone: data.phone,
+      role: data.role,
+      active: data.active,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    } as Profile;
+  }
 
-  return (data as Profile) ?? null;
+  let query = supabase
+    .from(DAWG_TABLES.profiles)
+    .select(
+      "user_id, full_name, email, phone, role, active, created_at, updated_at",
+    )
+    .eq("user_id", user.id)
+    .eq("active", true);
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    console.error("[auth] training_staff_profiles lookup failed:", error.message);
+    return null;
+  }
+
+  if (!data) return null;
+
+  return {
+    id: user.id,
+    full_name: data.full_name,
+    email: data.email,
+    phone: data.phone,
+    role: data.role,
+    active: data.active,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+  } as Profile;
 }
 
 export async function requireStaff(): Promise<Profile> {
   const profile = await getCurrentProfile();
   if (!profile || !isStaffRole(profile.role)) {
-    redirect("/admin/login");
+    redirect("/admin/login?reason=no_staff");
   }
   return profile;
 }

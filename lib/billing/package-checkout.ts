@@ -1,17 +1,19 @@
 import type Stripe from "stripe";
 import { getStripe, isStripeConfigured } from "@/lib/billing/stripe/server";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { getPackageBySlug } from "@/lib/packages";
+import { PACKAGE_CATALOG_SEED_HINT } from "@/lib/package-catalog-hints";
 import type { AdapterResult } from "@/lib/billing/types";
 import { getSiteUrl } from "@/lib/billing/site-url";
 import {
   findOrCreateParentByEmail,
   normalizeEmail,
 } from "@/lib/parent-account";
+import { withTenantInsert } from "@/lib/supabase/training-scope";
 
 export type CreatePackageCheckoutInput = {
   packageSlug: "single" | "pack-10" | "pack-20";
@@ -45,10 +47,15 @@ export async function createPackageCheckout(
 
   const pkg = await getPackageBySlug(input.packageSlug);
   if (!pkg || !pkg.active) {
-    return { ok: false, error: "Package not found", code: "PACKAGE_NOT_FOUND" };
+    return {
+      ok: false,
+      error:
+        "Package not found in the catalog. " + PACKAGE_CATALOG_SEED_HINT,
+      code: "PACKAGE_NOT_FOUND",
+    };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const checkoutEmail = normalizeEmail(input.parentEmail);
 
   let parentId: string | null = input.parentId ?? null;
@@ -81,16 +88,18 @@ export async function createPackageCheckout(
 
   const { data: purchase, error: purchaseError } = await supabase
     .from(DAWG_TABLES.packagePurchases)
-    .insert({
-      parent_id: parentId,
-      package_id: pkg.id,
-      athlete_id: athleteId,
-      status: "pending",
-      sessions_total: pkg.session_count,
-      sessions_remaining: 0,
-      amount_paid_cents: 0,
-      currency: pkg.currency,
-    })
+    .insert(
+      withTenantInsert({
+        guardian_id: parentId,
+        package_id: pkg.id,
+        athlete_id: athleteId,
+        status: "pending",
+        sessions_total: pkg.session_count,
+        sessions_remaining: 0,
+        amount_paid_cents: 0,
+        currency: pkg.currency,
+      }),
+    )
     .select("*")
     .single();
 

@@ -7,7 +7,7 @@ import {
 } from "@/lib/email";
 import { getPurchaseById } from "@/lib/packages";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -141,7 +141,7 @@ export async function handlePostPackagePurchase(input: {
   }
 
   if (isSupabaseConfigured() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     await supabase
       .from(DAWG_TABLES.packagePurchases)
       .update({

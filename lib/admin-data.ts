@@ -1,10 +1,10 @@
 import { addDays, format, parseISO } from "date-fns";
 import {
-  createClient,
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { mapAthleteRow, mapBookingRows } from "@/lib/supabase/tenant-row-map";
 import { FALLBACK_SESSIONS } from "@/lib/fallback-data";
 import type {
   BookingWithRelations,
@@ -17,18 +17,28 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
   if (!isSupabaseConfigured()) {
     return FALLBACK_SESSIONS;
   }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("[getAdminSessions] SUPABASE_SERVICE_ROLE_KEY is not set");
+    return [];
+  }
 
   try {
-    const supabase = await createClient();
+    const supabase = createTrainingServiceClient();
     const { data, error } = await supabase
       .from(DAWG_TABLES.sessions)
       .select("*")
       .order("session_date", { ascending: true })
       .order("start_time", { ascending: true });
 
-    if (error || !data) return FALLBACK_SESSIONS;
+    if (error) {
+      console.error("[getAdminSessions]", error.message);
+      return [];
+    }
+    if (!data?.length) {
+      return [];
+    }
 
-    const supabaseService = createServiceClient();
+    const supabaseService = supabase;
     const ids = data.map((s) => s.id);
     const { data: bookings } = await supabaseService
       .from(DAWG_TABLES.bookings)
@@ -66,8 +76,9 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
         spots_remaining: Math.max(0, session.capacity - booked),
       };
     });
-  } catch {
-    return FALLBACK_SESSIONS;
+  } catch (err) {
+    console.error("[getAdminSessions]", err);
+    return [];
   }
 }
 
@@ -116,7 +127,7 @@ export async function getDashboardMetrics() {
 
   if (isSupabaseConfigured() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
-      const supabase = createServiceClient();
+      const supabase = createTrainingServiceClient();
       const [{ data: paidRows }, { count: waitlistCount }] = await Promise.all([
         supabase
           .from(DAWG_TABLES.bookings)
@@ -162,14 +173,14 @@ export async function getSessionRoster(
   }
 
   try {
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const { data } = await supabase
       .from(DAWG_TABLES.bookings)
       .select("*")
       .eq("session_id", sessionId)
       .order("booked_at");
 
-    const bookings = (data ?? []) as BookingWithRelations[];
+    const bookings = mapBookingRows((data ?? []) as Record<string, unknown>[]);
     const parentIds = [...new Set(bookings.map((b) => b.parent_id))];
     const athleteIds = [...new Set(bookings.map((b) => b.athlete_id))];
 
@@ -178,10 +189,15 @@ export async function getSessionRoster(
       supabase.from(DAWG_TABLES.athletes).select("*").in("id", athleteIds),
     ]);
 
-    const enriched = bookings.map((b) => ({
+    const enriched: BookingWithRelations[] = bookings.map((b) => ({
       ...b,
-      parent: parents?.find((p) => p.id === b.parent_id),
-      athlete: athletes?.find((a) => a.id === b.athlete_id),
+      parent: parents?.find((p) => p.id === b.parent_id) ?? null,
+      athlete:
+        mapAthleteRow(
+          (athletes?.find((a) => a.id === b.athlete_id) ?? {
+            id: b.athlete_id,
+          }) as Record<string, unknown>,
+        ) ?? null,
       session: session ?? undefined,
     }));
 

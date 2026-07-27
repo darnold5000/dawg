@@ -244,9 +244,7 @@ export function BookingForm({
           intakeRequired?: boolean;
         };
         if (cancelled) return;
-        setIntakeRequired(
-          Boolean(data.athleteId && data.intakeRequired),
-        );
+        setIntakeRequired(Boolean(data.intakeRequired));
         setPaymentMethod((prev) => {
           const next = allowedPaymentMethods(session.payment_requirement);
           if (prev && next.includes(prev)) return prev;

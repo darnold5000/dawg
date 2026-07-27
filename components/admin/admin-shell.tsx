@@ -12,6 +12,7 @@ import {
   Users,
   Dumbbell,
   Star,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,13 @@ import { isAdminRole } from "@/lib/roles";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/sessions", label: "Sessions", icon: CalendarDays },
+  { href: "/admin/sessions", label: "Schedule", icon: CalendarDays },
+  {
+    href: "/admin/classes",
+    label: "Classes",
+    icon: BookOpen,
+    adminOnly: true,
+  },
   { href: "/admin/bookings", label: "Bookings", icon: ClipboardList },
   { href: "/admin/clients", label: "Clients", icon: ContactRound },
   { href: "/admin/programs", label: "Programs", icon: Dumbbell, adminOnly: true },
