@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { HomeTrainers } from "@/components/public/home/trainers";
 import { HomeWhyDawg } from "@/components/public/home/why-dawg";
+import { AboutFaq } from "@/components/public/about-faq";
 import { GradePlacementNote } from "@/components/public/grade-placement-note";
 import { PROGRAM_GRADE_RANGES } from "@/lib/program-grades";
 import { getTrainers } from "@/lib/data";
@@ -64,6 +65,7 @@ export default async function AboutPage() {
       </section>
       <HomeWhyDawg />
       <HomeTrainers trainers={trainers} variant="spotlight" />
+      <AboutFaq />
     </>
   );
 }

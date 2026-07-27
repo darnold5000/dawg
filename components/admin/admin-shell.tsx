@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types/database";
+import { AdminHelpDialog } from "@/components/admin/admin-help-dialog";
 import { isAdminRole } from "@/lib/roles";
 
 const NAV = [
@@ -74,6 +75,7 @@ export function AdminShell({
               <span className="text-border"> · </span>
               <span className="capitalize">{profile.role}</span>
             </span>
+            <AdminHelpDialog />
             <Button
               variant="outline"
               size="sm"
