@@ -11,7 +11,10 @@ import {
   setFamilyDeviceCookie,
 } from "@/lib/family-device";
 import { sendIntakeStaffNotification } from "@/lib/email";
-import { markParentAccountClaimed } from "@/lib/parent-account";
+import {
+  findOrCreateParentByContact,
+  markParentAccountClaimed,
+} from "@/lib/parent-account";
 
 export const intakeSchema = z.object({
   parentFirstName: z.string().trim().min(1).max(80),
@@ -451,38 +454,20 @@ export async function submitIntake(
   const mode = options?.mode ?? "full";
 
   let parentId: string;
-  const { data: existingParent } = await supabase
-    .from(DAWG_TABLES.parents)
-    .select("id")
-    .ilike("email", input.parentEmail)
-    .maybeSingle();
-
-  if (existingParent) {
-    parentId = existingParent.id;
-    await supabase
-      .from(DAWG_TABLES.parents)
-      .update({
-        first_name: input.parentFirstName,
-        last_name: input.parentLastName,
-        phone: input.parentPhone,
-      })
-      .eq("id", parentId);
-  } else {
-    const { data: parent, error } = await supabase
-      .from(DAWG_TABLES.parents)
-      .insert({
-        first_name: input.parentFirstName,
-        last_name: input.parentLastName,
-        email: input.parentEmail,
-        phone: input.parentPhone,
-      })
-      .select("id")
-      .single();
-    if (error || !parent) {
-      return { ok: false, error: "Could not save parent information." };
-    }
-    parentId = parent.id;
+  const parentResult = await findOrCreateParentByContact({
+    email: input.parentEmail,
+    firstName: input.parentFirstName,
+    lastName: input.parentLastName,
+    phone: input.parentPhone,
+  });
+  if (!parentResult.ok) {
+    return {
+      ok: false,
+      error: parentResult.error,
+      code: parentResult.code,
+    };
   }
+  parentId = parentResult.parent.id;
 
   const savedEmergency =
     (await getParentEmergencyContacts(parentId)) ??

@@ -21,6 +21,7 @@ import {
   setFamilyDeviceCookie,
 } from "@/lib/family-device";
 import { athleteBookingReady } from "@/lib/intake";
+import { findOrCreateParentByContact } from "@/lib/parent-account";
 import { isOnlineCardPaymentEnabled } from "@/lib/billing/payment-options";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
@@ -359,38 +360,20 @@ export async function createPublicBooking(
   }
 
   let parentId: string;
-  const { data: existingParent } = await supabase
-    .from(DAWG_TABLES.parents)
-    .select("id")
-    .ilike("email", input.parentEmail)
-    .maybeSingle();
-
-  if (existingParent) {
-    parentId = existingParent.id;
-    await supabase
-      .from(DAWG_TABLES.parents)
-      .update({
-        first_name: input.parentFirstName,
-        last_name: input.parentLastName,
-        phone: input.parentPhone,
-      })
-      .eq("id", parentId);
-  } else {
-    const { data: parent, error: parentError } = await supabase
-      .from(DAWG_TABLES.parents)
-      .insert({
-        first_name: input.parentFirstName,
-        last_name: input.parentLastName,
-        email: input.parentEmail,
-        phone: input.parentPhone,
-      })
-      .select("*")
-      .single();
-    if (parentError || !parent) {
-      return { ok: false, error: "Could not save parent information." };
-    }
-    parentId = parent.id;
+  const parentResult = await findOrCreateParentByContact({
+    email: input.parentEmail,
+    firstName: input.parentFirstName,
+    lastName: input.parentLastName,
+    phone: input.parentPhone,
+  });
+  if (!parentResult.ok) {
+    return {
+      ok: false,
+      error: parentResult.error,
+      code: parentResult.code,
+    };
   }
+  parentId = parentResult.parent.id;
 
   const { athlete, error: athleteError } = await upsertAthleteForParent(
     supabase,

@@ -20,7 +20,7 @@ import {
   mapPackagePurchaseRows,
 } from "@/lib/supabase/tenant-row-map";
 import {
-  findOrCreateParentByEmail,
+  findOrCreateParentByContact,
   normalizeEmail,
 } from "@/lib/parent-account";
 import type {
@@ -274,16 +274,20 @@ export async function createPackagePayAtFacilityPurchase(input: {
   let parentId = input.parentId ?? null;
 
   if (!parentId) {
-    const parent = await findOrCreateParentByEmail({
+    const parentResult = await findOrCreateParentByContact({
       email: normalizeEmail(input.parentEmail),
       firstName: input.parentFirstName,
       lastName: input.parentLastName,
       phone: input.parentPhone,
     });
-    if (!parent) {
-      return { ok: false, error: "Could not save parent", code: "PARENT_FAILED" };
+    if (!parentResult.ok) {
+      return {
+        ok: false,
+        error: parentResult.error,
+        code: parentResult.code,
+      };
     }
-    parentId = parent.id;
+    parentId = parentResult.parent.id;
   } else {
     await supabase
       .from(DAWG_TABLES.parents)

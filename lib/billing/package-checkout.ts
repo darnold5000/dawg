@@ -10,7 +10,7 @@ import { PACKAGE_CATALOG_SEED_HINT } from "@/lib/package-catalog-hints";
 import type { AdapterResult } from "@/lib/billing/types";
 import { getSiteUrl } from "@/lib/billing/site-url";
 import {
-  findOrCreateParentByEmail,
+  findOrCreateParentByContact,
   normalizeEmail,
 } from "@/lib/parent-account";
 import { withTenantInsert } from "@/lib/supabase/training-scope";
@@ -62,16 +62,20 @@ export async function createPackageCheckout(
 
   // Guest checkout: do not create a parent from the form — wait for Stripe-verified email.
   if (!input.guestCheckout && !parentId) {
-    const parent = await findOrCreateParentByEmail({
+    const parentResult = await findOrCreateParentByContact({
       email: checkoutEmail,
       firstName: input.parentFirstName,
       lastName: input.parentLastName,
       phone: input.parentPhone,
     });
-    if (!parent) {
-      return { ok: false, error: "Could not save parent", code: "PARENT_FAILED" };
+    if (!parentResult.ok) {
+      return {
+        ok: false,
+        error: parentResult.error,
+        code: parentResult.code,
+      };
     }
-    parentId = parent.id;
+    parentId = parentResult.parent.id;
   } else if (parentId) {
     await supabase
       .from(DAWG_TABLES.parents)

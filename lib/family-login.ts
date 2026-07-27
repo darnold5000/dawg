@@ -163,6 +163,7 @@ export async function requestFamilyAccessLink(
       firstName: "DAWG",
       lastName: "Family",
       phone: "",
+      requirePhone: false,
     });
   }
 

@@ -590,7 +590,7 @@ export function BookingForm({
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="waitlistParentName">Parent name</Label>
+            <Label htmlFor="waitlistParentName" required>Parent name</Label>
             <Input
               id="waitlistParentName"
               required
@@ -599,7 +599,7 @@ export function BookingForm({
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="waitlistAthleteName">Athlete name</Label>
+            <Label htmlFor="waitlistAthleteName" required>Athlete name</Label>
             <Input
               id="waitlistAthleteName"
               required
@@ -608,7 +608,7 @@ export function BookingForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="waitlistEmail">Email</Label>
+            <Label htmlFor="waitlistEmail" required>Email</Label>
             <Input
               id="waitlistEmail"
               type="email"
@@ -618,7 +618,7 @@ export function BookingForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="waitlistPhone">Phone</Label>
+            <Label htmlFor="waitlistPhone" required>Phone</Label>
             <Input
               id="waitlistPhone"
               type="tel"
@@ -648,6 +648,10 @@ export function BookingForm({
         <p className="mt-1 text-sm text-muted-foreground">
           {formatSessionDate(session.session_date)} ·{" "}
           {formatSessionTime(session.start_time)}
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Fields marked with <span className="text-destructive">*</span> are
+          required.
         </p>
       </div>
 
@@ -734,7 +738,7 @@ export function BookingForm({
         </legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="athleteFirstName">First name</Label>
+            <Label htmlFor="athleteFirstName" required>First name</Label>
             <Input
               id="athleteFirstName"
               required
@@ -744,7 +748,7 @@ export function BookingForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="athleteLastName">Last name</Label>
+            <Label htmlFor="athleteLastName" required>Last name</Label>
             <Input
               id="athleteLastName"
               required
@@ -754,7 +758,7 @@ export function BookingForm({
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="athleteDob">Date of birth</Label>
+            <Label htmlFor="athleteDob" required>Date of birth</Label>
             <Input
               id="athleteDob"
               type="date"
@@ -776,7 +780,7 @@ export function BookingForm({
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="parentFirstName">First name</Label>
+              <Label htmlFor="parentFirstName" required>First name</Label>
               <Input
                 id="parentFirstName"
                 required
@@ -786,7 +790,7 @@ export function BookingForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="parentLastName">Last name</Label>
+              <Label htmlFor="parentLastName" required>Last name</Label>
               <Input
                 id="parentLastName"
                 required
@@ -796,7 +800,7 @@ export function BookingForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="parentEmail">Email</Label>
+              <Label htmlFor="parentEmail" required>Email</Label>
               <Input
                 id="parentEmail"
                 type="email"
@@ -807,7 +811,7 @@ export function BookingForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="parentPhone">Phone</Label>
+              <Label htmlFor="parentPhone" required>Phone</Label>
               <Input
                 id="parentPhone"
                 type="tel"
@@ -826,7 +830,7 @@ export function BookingForm({
           </legend>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="athleteEmail">Email</Label>
+              <Label htmlFor="athleteEmail" required>Email</Label>
               <Input
                 id="athleteEmail"
                 type="email"
@@ -837,7 +841,7 @@ export function BookingForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="athletePhone">Phone</Label>
+              <Label htmlFor="athletePhone" required>Phone</Label>
               <Input
                 id="athletePhone"
                 type="tel"
@@ -861,7 +865,7 @@ export function BookingForm({
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="schoolGrade">School grade</Label>
+              <Label htmlFor="schoolGrade" required>School grade</Label>
               <select
                 id="schoolGrade"
                 className="form-select"

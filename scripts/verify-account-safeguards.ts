@@ -10,6 +10,7 @@ import {
   verifiedCheckoutEmail,
 } from "../lib/billing/verified-checkout-email";
 import { evaluateLoginToken } from "../lib/family-token-verify";
+import { normalizePhone, phonesMatch } from "../lib/normalize-phone";
 
 function testVerifiedEmailExtraction() {
   const prefersCheckoutEntry = verifiedCheckoutEmail({
@@ -82,9 +83,16 @@ function testEmailNormalizationIsExact() {
   assert.notEqual(normalizeEmail("a@b.com"), normalizeEmail("a@b.co"));
 }
 
+function testPhoneNormalization() {
+  assert.equal(normalizePhone("(317) 555-1212"), "3175551212");
+  assert.equal(normalizePhone("1-317-555-1212"), "3175551212");
+  assert.equal(phonesMatch("3175551212", "(317) 555-1212"), true);
+}
+
 testVerifiedEmailExtraction();
 testTypoCreatesSeparateParent();
 testClaimTokenExpiryAndReuse();
 testEmailNormalizationIsExact();
+testPhoneNormalization();
 
 console.log("✓ All account safeguard checks passed");
