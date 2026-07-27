@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
@@ -92,6 +93,14 @@ export function AdminLoginForm() {
       >
         {loading ? "Signing in…" : "Sign in"}
       </Button>
+      <p className="text-center text-sm">
+        <Link
+          href="/admin/forgot-password"
+          className="text-brand underline-offset-4 hover:underline"
+        >
+          Forgot password?
+        </Link>
+      </p>
       <p className="text-center text-xs text-muted-foreground">
         Invitation-only. Public registration is disabled.
       </p>
