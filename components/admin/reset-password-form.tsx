@@ -7,7 +7,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { establishSessionFromAuthRedirect } from "@/lib/auth/auth-callback";
+import {
+  dawgAuthHashErrorMessages,
+  dawgInvalidRecoveryLinkMessage,
+  establishSessionFromAuthRedirect,
+} from "@/lib/auth/auth-callback";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export function ResetPasswordForm() {
@@ -31,7 +35,11 @@ export function ResetPasswordForm() {
       }
 
       const supabase = createClient();
-      const result = await establishSessionFromAuthRedirect(supabase);
+      const result = await establishSessionFromAuthRedirect(supabase, {
+        hashErrorMessages: dawgAuthHashErrorMessages,
+        invalidLinkMessage: dawgInvalidRecoveryLinkMessage,
+        logTag: "dawg-reset-password",
+      });
 
       if (cancelled) return;
 

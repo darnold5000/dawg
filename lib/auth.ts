@@ -122,3 +122,11 @@ export async function requireAdminApi(): Promise<Profile | NextResponse> {
   }
   return profile;
 }
+
+export async function requireOwnerApi(): Promise<Profile | NextResponse> {
+  const profile = await getCurrentProfile();
+  if (!profile || !isOwnerRole(profile.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  return profile;
+}

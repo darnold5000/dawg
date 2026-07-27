@@ -1,4 +1,11 @@
 import { Resend } from "resend";
+import {
+  buildPasswordResetEmail,
+  escapeHtml,
+  firstName,
+  formatBrandedFromAddress,
+  resolveResendFromEmail,
+} from "@/lib/signalworks/email";
 import { SITE } from "@/lib/constants";
 import { buildIcsCalendar, calendarDetailsLine } from "@/lib/calendar";
 import { formatPrice, formatSessionDate, formatSessionTime } from "@/lib/format";
@@ -8,12 +15,13 @@ import type { Booking, PaymentMethod, PaymentStatus } from "@/lib/types/database
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 function fromAddress() {
-  return process.env.RESEND_FROM_EMAIL ?? "bookings@signalworks.io";
+  return resolveResendFromEmail({
+    RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
+  });
 }
 
 function staffFromAddress() {
-  const email = fromAddress();
-  return `${SITE.name} <${email}>`;
+  return formatBrandedFromAddress(SITE.name, fromAddress());
 }
 
 function requireResend() {
@@ -35,14 +43,6 @@ async function sendEmail(
     throw new Error(error.message || `EMAIL_SEND_FAILED:${label}`);
   }
   return data;
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 function paymentLabel(method: PaymentMethod, opts?: { paid?: boolean }) {
@@ -93,10 +93,6 @@ export type StaffPayload = {
   amountDueCents: number;
   rosterOnly?: boolean;
 };
-
-function firstName(fullName: string) {
-  return fullName.trim().split(/\s+/)[0] || fullName;
-}
 
 export async function sendBookingConfirmation(
   payload: ConfirmPayload,
@@ -578,32 +574,64 @@ export async function sendStaffPasswordResetEmail(payload: {
   fullName: string;
   actionLink: string;
 }): Promise<void> {
-  const name = firstName(payload.fullName);
-  const subject = `Reset your ${SITE.shortName} staff password`;
   const intro = `Use this secure link to set or update your password for ${SITE.name} admin.`;
   const footer = `If you did not request this, you can ignore this email.`;
+  const { subject, html, text } = buildPasswordResetEmail({
+    brandShortName: SITE.shortName,
+    brandName: SITE.name,
+    recipientFullName: payload.fullName,
+    actionLink: payload.actionLink,
+    intro,
+    footer,
+    staff: true,
+    subject: `Reset your ${SITE.shortName} staff password`,
+  });
 
   await sendEmail(
     {
       from: staffFromAddress(),
       to: payload.email.trim().toLowerCase(),
       subject,
-      html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
-        <p style="font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #666;">${escapeHtml(SITE.shortName)} Staff</p>
-        <h1 style="font-size: 22px; margin: 16px 0 12px;">Reset your password</h1>
-        <p>Hi ${escapeHtml(name)},</p>
-        <p>${escapeHtml(intro)}</p>
-        <p style="margin: 24px 0;">
-          <a href="${payload.actionLink}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
-            Set new password
-          </a>
-        </p>
-        <p style="color: #666; font-size: 13px;">${escapeHtml(footer)}</p>
-      </div>
-    `,
-      text: `${subject}\n\nHi ${name},\n\n${intro}\n\n${payload.actionLink}\n\n${footer}`,
+      html,
+      text,
     },
     "staff-password-reset",
+  );
+}
+
+export async function sendStaffInviteEmail(payload: {
+  email: string;
+  fullName: string;
+  actionLink: string;
+}): Promise<void> {
+  const name = payload.fullName.trim() || "there";
+  const subject = `You're invited to ${SITE.shortName} admin`;
+  const html = `
+    <div style="font-family: system-ui, sans-serif; max-width: 520px; margin: 0 auto; color: #111;">
+      <p style="margin: 0 0 16px;">Hi ${escapeHtml(name)},</p>
+      <p style="margin: 0 0 24px; line-height: 1.5;">
+        You've been added as staff on ${escapeHtml(SITE.name)}. Use the button below to accept your invite and set your password.
+      </p>
+      <p style="margin: 0 0 24px;">
+        <a href="${escapeHtml(payload.actionLink)}" style="display: inline-block; background: #c9a227; color: #111; font-weight: 600; padding: 12px 20px; text-decoration: none; border-radius: 6px;">
+          Accept invite
+        </a>
+      </p>
+      <p style="margin: 0; color: #666; font-size: 13px;">
+        If you already have a password, you can sign in at ${escapeHtml(SITE.url)}/admin/login after accepting.
+      </p>
+    </div>
+  `;
+  const text = `You've been invited to ${SITE.name} admin. Accept your invite: ${payload.actionLink}`;
+
+  await sendEmail(
+    {
+      from: staffFromAddress(),
+      to: payload.email.trim().toLowerCase(),
+      subject,
+      html,
+      text,
+    },
+    "staff-invite",
   );
 }

@@ -1,3 +1,4 @@
+import { createAuthLinkService, deliverPasswordResetRequest } from "@/lib/signalworks/auth-recovery";
 import { adminPasswordResetRedirectUrl } from "@/lib/auth/admin-password-reset";
 import { sendStaffPasswordResetEmail } from "@/lib/email";
 import { createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -5,27 +6,10 @@ import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { createTrainingServiceClient } from "@/lib/supabase/training-service";
 import { getTrainingTenantIdOrNull } from "@/lib/tenant/deployment";
 
-async function createStaffRecoveryLink(email: string): Promise<string> {
-  const admin = createServiceClient();
-  const redirectTo = adminPasswordResetRedirectUrl();
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: "recovery",
-    email: email.trim().toLowerCase(),
-    options: { redirectTo },
-  });
-
-  const actionLink = data?.properties?.action_link;
-  if (error || !actionLink) {
-    throw new Error(error?.message ?? "Could not create recovery link");
-  }
-
-  return actionLink;
-}
-
-async function staffDisplayNameForEmail(email: string): Promise<string> {
+async function staffDisplayNameForEmail(email: string): Promise<string | undefined> {
   const tenantId = getTrainingTenantIdOrNull();
   if (!tenantId || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return "there";
+    return undefined;
   }
 
   try {
@@ -44,7 +28,7 @@ async function staffDisplayNameForEmail(email: string): Promise<string> {
     // fall through
   }
 
-  return "there";
+  return undefined;
 }
 
 /**
@@ -59,15 +43,17 @@ export async function deliverStaffPasswordResetRequest(
     return;
   }
 
-  try {
-    const actionLink = await createStaffRecoveryLink(emailNorm);
-    const fullName = await staffDisplayNameForEmail(emailNorm);
-    await sendStaffPasswordResetEmail({
-      email: emailNorm,
-      fullName,
-      actionLink,
-    });
-  } catch (err) {
-    console.error("[staff-forgot-password] delivery failed", err);
-  }
+  const admin = createServiceClient();
+  const links = createAuthLinkService(admin);
+  const redirectTo = adminPasswordResetRedirectUrl();
+
+  await deliverPasswordResetRequest({
+    emailNorm,
+    redirectTo,
+    logTag: "staff-forgot-password",
+    createRecoveryLink: (input) =>
+      links.createRecoveryLink(input).then((r) => ({ actionLink: r.actionLink })),
+    resolveFullName: staffDisplayNameForEmail,
+    sendPasswordResetEmail: sendStaffPasswordResetEmail,
+  });
 }
