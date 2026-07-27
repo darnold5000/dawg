@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 export default async function AdminDashboardPage() {
   const profile = await requireStaff();
   const metrics = await getDashboardMetrics();
+  const todaySorted = [...metrics.todaysSessions].sort((a, b) =>
+    a.start_time.localeCompare(b.start_time),
+  );
 
   const cards: Array<{
     label: string;
@@ -17,12 +20,6 @@ export default async function AdminDashboardPage() {
     href?: string;
     hint: string;
   }> = [
-    {
-      label: "Today's sessions",
-      value: metrics.todaysSessions.length,
-      href: "/admin/sessions",
-      hint: "View all sessions",
-    },
     {
       label: "This week's bookings",
       value: metrics.weekBookings,
@@ -58,10 +55,84 @@ export default async function AdminDashboardPage() {
   return (
     <AdminShell profile={profile}>
       <div className="space-y-8">
+        <section className="rounded-xl border border-brand/25 bg-brand/5 p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-brand">
+                Today
+              </p>
+              <h2 className="mt-1 font-heading text-3xl tracking-wide">
+                Today&apos;s schedule
+              </h2>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin/sessions">Full schedule</Link>
+            </Button>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {todaySorted.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border bg-card/80 p-6 text-sm text-muted-foreground">
+                No classes today.{" "}
+                <Link
+                  href="/admin/sessions"
+                  className="font-medium text-foreground underline-offset-2 hover:underline"
+                >
+                  View schedule
+                </Link>
+              </p>
+            ) : (
+              todaySorted.map((session) => {
+                const color = session.program?.calendar_color;
+                const name =
+                  session.program?.name ?? session.title;
+                return (
+                  <div
+                    key={session.id}
+                    className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {color ? (
+                          <span
+                            className="inline-block h-3 w-3 rounded-full"
+                            style={{ backgroundColor: color }}
+                            aria-hidden
+                          />
+                        ) : null}
+                        <span className="font-medium tabular-nums">
+                          {formatSessionTime(session.start_time)}
+                        </span>
+                        <span className="font-heading text-lg tracking-wide">
+                          {name}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {session.booked_count ?? 0}/{session.capacity} booked
+                        {session.trainer?.name
+                          ? ` · ${session.trainer.name}`
+                          : ""}
+                      </p>
+                    </div>
+                    <Button
+                      asChild
+                      className="bg-brand text-brand-foreground hover:bg-brand/90 shrink-0"
+                    >
+                      <Link href={`/admin/sessions/${session.id}/roster`}>
+                        View roster
+                      </Link>
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+
         <div>
-          <h2 className="font-heading text-3xl tracking-wide">Overview</h2>
+          <h3 className="font-heading text-xl tracking-wide">Overview</h3>
           <p className="text-sm text-muted-foreground">
-            Today&apos;s training and booking snapshot
+            Booking and capacity snapshot
           </p>
         </div>
 
@@ -102,63 +173,6 @@ export default async function AdminDashboardPage() {
             );
           })}
         </div>
-
-        <section>
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <h3 className="font-heading text-xl tracking-wide">Today</h3>
-            <Link
-              href="/admin/sessions"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              All sessions →
-            </Link>
-          </div>
-          <div className="mt-4 grid gap-3">
-            {metrics.todaysSessions.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                No sessions scheduled for today.{" "}
-                <Link
-                  href="/admin/sessions"
-                  className="font-medium text-foreground underline-offset-2 hover:underline"
-                >
-                  View sessions
-                </Link>
-              </p>
-            ) : (
-              metrics.todaysSessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-sm text-brand">
-                      {formatSessionTime(session.start_time)}
-                    </p>
-                    <p className="font-heading text-lg tracking-wide">
-                      {session.title}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {session.trainer?.name ?? "Unassigned"} ·{" "}
-                      {session.booked_count ?? 0}/{session.capacity} registered
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button asChild variant="outline">
-                      <Link href={`/admin/sessions/${session.id}/roster`}>
-                        View roster
-                      </Link>
-                    </Button>
-                    <Button asChild variant="outline">
-                      <Link href={`/admin/sessions/${session.id}/edit`}>
-                        Edit
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
       </div>
     </AdminShell>
   );

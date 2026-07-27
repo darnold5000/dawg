@@ -63,6 +63,9 @@ export default async function AdminSessionsPage() {
               <Link href="/admin/sessions/add">+ Add class</Link>
             </Button>
             <Button asChild variant="outline">
+              <Link href="/admin/sessions/manage">Manage schedules</Link>
+            </Button>
+            <Button asChild variant="outline">
               <Link href="/admin/sessions/new">Manual session</Link>
             </Button>
           </div>
