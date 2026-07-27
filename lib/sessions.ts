@@ -1,4 +1,4 @@
-import { addDays, format, parse } from "date-fns";
+import { addDays, differenceInCalendarDays, format, parse } from "date-fns";
 import { z } from "zod";
 import {
   createTrainingServiceClient,
@@ -61,14 +61,31 @@ export function buildOccurrenceDates(
   recurrence: "none" | "weekly" | "weekdays" | "custom",
   weeks: number,
   recurrenceDays: number[] = [],
+  endDate?: string | null,
 ): string[] {
   if (recurrence === "none") return [startDate];
 
   const dates: string[] = [];
   const start = parse(startDate, "yyyy-MM-dd", new Date());
   const daySet = new Set(recurrenceDays);
+  const end =
+    endDate?.trim()
+      ? parse(endDate.trim(), "yyyy-MM-dd", new Date())
+      : null;
+  const maxDayOffset =
+    end && end >= start
+      ? differenceInCalendarDays(end, start) + 1
+      : weeks * 7;
 
   if (recurrence === "weekly") {
+    if (end) {
+      let d = start;
+      while (d <= end) {
+        dates.push(format(d, "yyyy-MM-dd"));
+        d = addDays(d, 7);
+      }
+      return dates;
+    }
     for (let i = 0; i < weeks; i++) {
       dates.push(format(addDays(start, i * 7), "yyyy-MM-dd"));
     }
@@ -76,8 +93,9 @@ export function buildOccurrenceDates(
   }
 
   if (recurrence === "weekdays") {
-    for (let i = 0; i < weeks * 7; i++) {
+    for (let i = 0; i < maxDayOffset; i++) {
       const d = addDays(start, i);
+      if (end && d > end) break;
       const day = d.getDay();
       if (day !== 0 && day !== 6) {
         dates.push(format(d, "yyyy-MM-dd"));
@@ -86,9 +104,10 @@ export function buildOccurrenceDates(
     return dates;
   }
 
-  // custom: selected weekdays for N weeks from the start date
-  for (let i = 0; i < weeks * 7; i++) {
+  // custom: selected weekdays through range (end date or N weeks)
+  for (let i = 0; i < maxDayOffset; i++) {
     const d = addDays(start, i);
+    if (end && d > end) break;
     if (daySet.has(d.getDay())) {
       dates.push(format(d, "yyyy-MM-dd"));
     }

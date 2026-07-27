@@ -1,0 +1,275 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { addMonths, format } from "date-fns";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { classCardHeading, classTimeLabel } from "@/lib/class-display";
+import { formatSessionTime } from "@/lib/format";
+import { effectiveTemplateDefaults } from "@/lib/session-template-defaults";
+import type { SessionTemplateWithRelations } from "@/lib/types/database";
+
+type LinePreview = {
+  template_id: string;
+  template_name: string;
+  count: number;
+  conflicts: number;
+};
+
+type BulkPreview = {
+  total_count: number;
+  lines: LinePreview[];
+  errors: string[];
+};
+
+function defaultEndDate(): string {
+  return format(addMonths(new Date(), 4), "yyyy-MM-dd");
+}
+
+export function WeeklyScheduleWizard({
+  classes,
+}: {
+  classes: SessionTemplateWithRelations[];
+}) {
+  const router = useRouter();
+  const active = classes.filter((c) => c.is_active);
+  const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState<BulkPreview | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(active.map((c) => c.id)),
+  );
+  const [session_date, setSessionDate] = useState(
+    format(new Date(), "yyyy-MM-dd"),
+  );
+  const [end_date, setEndDate] = useState(defaultEndDate());
+
+  const payload = useMemo(
+    () => ({
+      template_ids: [...selected],
+      session_date,
+      end_date,
+      skip_duplicates: true,
+    }),
+    [selected, session_date, end_date],
+  );
+
+  useEffect(() => {
+    if (selected.size === 0 || !session_date || !end_date) {
+      setPreview(null);
+      setPreviewError(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/admin/schedule/bulk/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (cancelled) return;
+        if (res.ok) {
+          setPreview(data.preview);
+          setPreviewError(
+            data.preview.errors?.length
+              ? data.preview.errors.join(" ")
+              : null,
+          );
+        } else {
+          setPreview(null);
+          setPreviewError(data.error ?? "Could not preview schedule");
+        }
+      } catch {
+        if (!cancelled) {
+          setPreview(null);
+          setPreviewError("Could not preview schedule");
+        }
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [payload, selected.size, session_date, end_date]);
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function onCreate() {
+    if (selected.size === 0) {
+      toast.error("Select at least one class");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/schedule/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Could not create schedule");
+        return;
+      }
+      toast.success(`${data.count} session(s) added to your schedule`);
+      router.push("/admin/sessions");
+      router.refresh();
+    } catch {
+      toast.error("Could not create schedule");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const total = preview?.total_count ?? 0;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="font-heading text-xl tracking-wide">
+          Create standard weekly schedule
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Monday–Friday for every selected class. Skips dates that already have
+          the same class at the same time.
+        </p>
+      </div>
+
+      {active.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Add classes first under{" "}
+          <Link href="/admin/classes" className="text-brand underline">
+            Classes
+          </Link>
+          .
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {active.map((template) => {
+            const color = template.program?.calendar_color;
+            const checked = selected.has(template.id);
+            return (
+              <li key={template.id}>
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
+                    checked
+                      ? "border-brand bg-brand/5 ring-1 ring-brand/30"
+                      : "border-border bg-card hover:bg-muted/40"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(template.id)}
+                    className="size-4"
+                  />
+                  {color ? (
+                    <span
+                      className="inline-block h-3 w-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: color }}
+                      aria-hidden
+                    />
+                  ) : null}
+                  <span className="font-medium">
+                    {classCardHeading(template.program)}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {classTimeLabel(template)} ·{" "}
+                    {template.default_duration_minutes} min
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div className="rounded-lg border border-border bg-muted/30 p-4">
+        <p className="text-sm font-medium">Monday–Friday</p>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="bulk_start">Start date</Label>
+            <Input
+              id="bulk_start"
+              type="date"
+              value={session_date}
+              onChange={(e) => setSessionDate(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="bulk_end">End date</Label>
+            <Input
+              id="bulk_end"
+              type="date"
+              value={end_date}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {preview && total > 0 ? (
+        <div className="rounded-xl border border-brand/30 bg-brand/5 p-4 text-sm">
+          <p className="font-medium">
+            {total} session{total === 1 ? "" : "s"} ready to create
+          </p>
+          <ul className="mt-2 space-y-1 text-muted-foreground">
+            {preview.lines.map((line) => (
+              <li key={line.template_id}>
+                {line.template_name}: {line.count}
+                {line.conflicts > 0
+                  ? ` (${line.conflicts} skipped)`
+                  : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {previewError ? (
+        <p className="text-sm text-amber-800">{previewError}</p>
+      ) : null}
+
+      {preview && total === 0 && selected.size > 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No new sessions to add — these classes may already be on the schedule
+          for every weekday in this range. Try a different date range or turn off
+          skip-duplicates on a single class.
+        </p>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          disabled={loading || selected.size === 0}
+          className="bg-brand text-brand-foreground hover:bg-brand/90"
+          onClick={onCreate}
+        >
+          {loading
+            ? "Working…"
+            : total > 0
+              ? `Create ${total} sessions`
+              : "Create schedule"}
+        </Button>
+        <Button type="button" variant="ghost" asChild>
+          <Link href="/admin/sessions">Cancel</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}

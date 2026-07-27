@@ -1,16 +1,19 @@
 import { AdminShell } from "@/components/admin/admin-shell";
+import { ProgramsAdminPanel } from "@/components/admin/programs-admin-panel";
 import { ProgramsAdminSections } from "@/components/admin/programs-admin-sections";
 import { requireAdmin } from "@/lib/auth";
-import { getPrograms, getSessionTypes, getTrainers } from "@/lib/data";
-import { audienceLabelForProgram } from "@/lib/program-grades";
+import { getAdminPrograms } from "@/lib/admin-programs";
+import { getSessionTypes, getTrainers } from "@/lib/data";
 
 export default async function AdminProgramsPage() {
   const profile = await requireAdmin();
   const [programs, sessionTypes, trainers] = await Promise.all([
-    getPrograms(),
+    getAdminPrograms(),
     getSessionTypes(),
     getTrainers(),
   ]);
+
+  const activePrograms = programs.filter((p) => p.active);
 
   return (
     <AdminShell profile={profile}>
@@ -18,33 +21,16 @@ export default async function AdminProgramsPage() {
         <div>
           <h2 className="font-heading text-3xl tracking-wide">Programs</h2>
           <p className="text-sm text-muted-foreground">
-            Group training programs use package credits. Create paid private
-            lessons or one-off classes below when a Stripe price is needed.
+            Add and edit group programs (Little Dawgs, Big Dawgs, and any new
+            offerings). Package-credit programs book at $0 online; use the
+            sections below for paid private lessons or one-off classes.
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {programs.map((program) => (
-            <article
-              key={program.id}
-              className="rounded-xl border border-border bg-card p-5"
-            >
-              <h3 className="font-heading text-xl tracking-wide">
-                {program.name}
-              </h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {program.short_description}
-              </p>
-              <p className="mt-3 text-sm">
-                {audienceLabelForProgram(program)} ·{" "}
-                {program.default_duration_minutes} min · package credit booking
-              </p>
-            </article>
-          ))}
-        </div>
+        <ProgramsAdminPanel programs={programs} />
 
         <ProgramsAdminSections
-          programs={programs}
+          programs={activePrograms}
           sessionTypes={sessionTypes}
           trainers={trainers}
         />

@@ -19,3 +19,32 @@ export function endTimeFromStart(
 export function timeToHHMM(value: string): string {
   return value.slice(0, 5);
 }
+
+export type Meridiem = "AM" | "PM";
+
+/** 24h HH:MM → 12h clock parts for admin time pickers. */
+export function hhmmTo12Parts(hhmm: string): {
+  hour12: number;
+  minute: number;
+  meridiem: Meridiem;
+} {
+  const [h24, minute] = hhmm.slice(0, 5).split(":").map(Number);
+  const meridiem: Meridiem = h24 >= 12 ? "PM" : "AM";
+  let hour12 = h24 % 12;
+  if (hour12 === 0) hour12 = 12;
+  return { hour12, minute, meridiem };
+}
+
+export function parts12ToHHMM(
+  hour12: number,
+  minute: number,
+  meridiem: Meridiem,
+): string {
+  let h24: number;
+  if (hour12 === 12) {
+    h24 = meridiem === "AM" ? 0 : 12;
+  } else {
+    h24 = meridiem === "AM" ? hour12 : hour12 + 12;
+  }
+  return `${String(h24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}

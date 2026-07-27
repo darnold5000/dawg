@@ -13,6 +13,7 @@ import { SITE } from "@/lib/constants";
 import {
   templateDefaultsFromProgram,
 } from "@/lib/session-template-defaults";
+import { AdminTimeSelect } from "@/components/admin/admin-time-select";
 import { endTimeFromStart, timeToHHMM } from "@/lib/session-time";
 import type {
   Program,
@@ -195,14 +196,14 @@ export function SessionTemplateForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Could not save template");
+        toast.error(data.error ?? "Could not save class");
         return;
       }
-      toast.success(mode === "edit" ? "Template updated" : "Template created");
-      router.push("/admin/session-templates");
+      toast.success(mode === "edit" ? "Class updated" : "Class created");
+      router.push("/admin/classes");
       router.refresh();
     } catch {
-      toast.error("Could not save template");
+      toast.error("Could not save class");
     } finally {
       setLoading(false);
     }
@@ -217,13 +218,13 @@ export function SessionTemplateForm({
     <form onSubmit={onSubmit} className="space-y-6">
       {catalogPrograms.length === 0 ? (
         <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-950">
-          Programs are not loading from the database. Templates cannot be saved
+          Programs are not loading from the database. Classes cannot be saved
           until Supabase is connected and programs exist for this tenant.
         </p>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="name">Template name</Label>
+          <Label htmlFor="name">Time label (optional)</Label>
           <Input
             id="name"
             required
@@ -232,8 +233,8 @@ export function SessionTemplateForm({
             placeholder="4:00 PM"
           />
           <p className="text-xs text-muted-foreground">
-            Program name (e.g. Little Dawgs) comes from the program — use a
-            short label like a time slot.
+            Program name shows on the calendar — use this for internal notes or
+            leave blank to use the formatted time.
           </p>
         </div>
         <div className="space-y-1.5">
@@ -280,13 +281,11 @@ export function SessionTemplateForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="default_start_time">Default start time</Label>
-          <Input
+          <AdminTimeSelect
             id="default_start_time"
-            type="time"
             required
             value={form.default_start_time}
-            onChange={(e) => {
-              const t = e.target.value;
+            onChange={(t) => {
               setForm((prev) => ({
                 ...prev,
                 default_start_time: t,
@@ -444,7 +443,7 @@ export function SessionTemplateForm({
         disabled={loading}
         className="bg-brand text-brand-foreground hover:bg-brand/90"
       >
-        {loading ? "Saving…" : mode === "edit" ? "Update template" : "Create template"}
+        {loading ? "Saving…" : mode === "edit" ? "Update class" : "Create class"}
       </Button>
     </form>
   );

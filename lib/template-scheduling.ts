@@ -5,6 +5,7 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { SITE } from "@/lib/constants";
+import { classSessionTitle } from "@/lib/class-display";
 import { effectiveTemplateDefaults } from "@/lib/session-template-defaults";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { buildOccurrenceDates } from "@/lib/sessions";
@@ -23,7 +24,12 @@ export const templateScheduleSchema = z.object({
     .enum(["none", "weekly", "weekdays", "custom"])
     .optional()
     .default("none"),
-  recurrence_weeks: z.coerce.number().int().min(1).max(26).optional().default(1),
+  recurrence_weeks: z.coerce.number().int().min(1).max(52).optional().default(1),
+  end_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .nullable(),
   recurrence_days: z
     .array(z.coerce.number().int().min(0).max(6))
     .optional()
@@ -119,6 +125,7 @@ export async function buildTemplateOccurrencePlan(
     recurrence,
     weeks,
     days,
+    parsed.data.end_date,
   );
 
   if (dates.length === 0) {
@@ -182,12 +189,14 @@ export async function buildTemplateOccurrencePlan(
     ? dates.filter((d) => !conflictKeys.has(`${d}|${startTime}`))
     : dates;
 
+  const sessionTitle = classSessionTitle(template);
+
   const occurrences: TemplateOccurrencePreview[] = datesToCreate.map(
     (session_date) => ({
       session_date,
       start_time: startTime,
       end_time: endTime,
-      title: template.name,
+      title: sessionTitle,
     }),
   );
 
@@ -196,7 +205,7 @@ export async function buildTemplateOccurrencePlan(
 
   const rows = datesToCreate.map((session_date) => ({
     template_id: template.id,
-    title: template.name,
+    title: sessionTitle,
     program_id: template.program_id,
     session_type_id: sessionTypeId,
     trainer_id: trainerId,
