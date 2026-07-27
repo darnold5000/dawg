@@ -192,12 +192,10 @@ export async function findOrCreateParentByContact(
   }
 
   if (byEmail && byPhone && byEmail.id !== byPhone.id) {
-    return {
-      ok: false,
-      code: "CONTACT_MISMATCH",
-      error:
-        "This email and phone match different family records. Use the same email and phone you used before, or contact DAWG staff to merge accounts.",
-    };
+    console.warn(
+      "[parent-account] email and phone matched different parents; using email match",
+      { emailParent: byEmail.id, phoneParent: byPhone.id },
+    );
   }
 
   const supabase = createTrainingServiceClient();

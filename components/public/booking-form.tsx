@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toastError, toastSuccess } from "@/lib/toast-messages";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PolicyLinkButton } from "@/components/public/policy-dialog";
 import type { SessionWithRelations } from "@/lib/types/database";
 import { isMinorAthlete } from "@/lib/athlete-age";
-import { buildIntakePayloadFromBooking } from "@/lib/booking-intake-payload";
+import { buildIntakePayloadFromBooking, INTAKE_SHIRT_SIZES } from "@/lib/booking-intake-payload";
 import {
   fetchRememberedFamily,
   forgetRememberedFamily,
@@ -19,6 +19,20 @@ import {
   type SavedAthlete,
   type SavedFamily,
 } from "@/lib/returning-family";
+
+function persistRememberedBookingLocally(input: {
+  parentFirstName: string;
+  parentLastName: string;
+  parentEmail: string;
+  parentPhone: string;
+  athleteFirstName: string;
+  athleteLastName: string;
+  athleteDob: string;
+  athleteId?: string;
+  experienceLevel?: string;
+}) {
+  saveDemoFamily(input);
+}
 import {
   clearBookingDraft,
   loadBookingDraft,
@@ -55,11 +69,18 @@ const emptyForm = {
   athletePhone: "",
   schoolGrade: "",
   experienceLevel: "",
-  bookingNotes: "",
+  heightWeight: "",
+  sportPosition: "",
+  healthIssues: "",
+  emergencyContact1Name: "",
+  emergencyContact1Phone: "",
+  emergencyContact2Name: "",
+  emergencyContact2Phone: "",
+  shirtSize: "",
+  goal: "",
   acceptRequiredAgreements: false,
   mediaConsent: false,
   rememberFamily: false,
-  intakeAlreadyOnFile: false,
   waitlistParentName: "",
   waitlistAthleteName: "",
   waitlistEmail: "",
@@ -83,7 +104,6 @@ export function BookingForm({
   const [resolvedAthleteId, setResolvedAthleteId] = useState<string | null>(
     null,
   );
-  const [intakeOnFileVerified, setIntakeOnFileVerified] = useState(false);
 
   const rosterCredit = useMemo(
     () => isRosterCreditSession(session),
@@ -105,7 +125,6 @@ export function BookingForm({
   const athleteDob = form.athleteDob.trim().slice(0, 10);
   const hasValidDob = /^\d{4}-\d{2}-\d{2}$/.test(athleteDob);
   const minor = hasValidDob ? isMinorAthlete(athleteDob) : true;
-  const showIntakeSection = !form.intakeAlreadyOnFile;
   const agreementsNeeded = !savedFamily?.agreementsCurrent;
 
   useEffect(() => {
@@ -135,14 +154,24 @@ export function BookingForm({
           schoolGrade: draft?.schoolGrade || "",
           experienceLevel:
             draft?.experienceLevel || athlete.experienceLevel || "",
-          bookingNotes: draft?.bookingNotes || "",
+          heightWeight: draft?.heightWeight ?? "",
+          sportPosition: draft?.sportPosition ?? "",
+          healthIssues:
+            draft?.healthIssues ||
+            draft?.bookingNotes ||
+            "",
+          emergencyContact1Name: draft?.emergencyContact1Name ?? "",
+          emergencyContact1Phone: draft?.emergencyContact1Phone ?? "",
+          emergencyContact2Name: draft?.emergencyContact2Name ?? "",
+          emergencyContact2Phone: draft?.emergencyContact2Phone ?? "",
+          shirtSize: draft?.shirtSize ?? "",
+          goal: draft?.goal ?? "",
           rememberFamily: draft?.rememberFamily ?? true,
           mediaConsent:
             draft?.mediaConsent ?? family.mediaConsentPreference ?? false,
           acceptRequiredAgreements:
             draft?.acceptRequiredAgreements ??
             Boolean(family.agreementsCurrent),
-          intakeAlreadyOnFile: draft?.intakeAlreadyOnFile ?? false,
         }));
         if (draft?.paymentMethod) {
           const allowed = selectablePaymentMethods(session.payment_requirement);
@@ -164,13 +193,21 @@ export function BookingForm({
           athletePhone: draft.athletePhone ?? "",
           schoolGrade: draft.schoolGrade ?? "",
           experienceLevel: draft.experienceLevel,
-          bookingNotes:
+          heightWeight: draft.heightWeight ?? "",
+          sportPosition: draft.sportPosition ?? "",
+          healthIssues:
+            draft.healthIssues ||
             draft.bookingNotes ||
             [draft.medicalNotes, draft.customerNotes].filter(Boolean).join("\n"),
+          emergencyContact1Name: draft.emergencyContact1Name ?? "",
+          emergencyContact1Phone: draft.emergencyContact1Phone ?? "",
+          emergencyContact2Name: draft.emergencyContact2Name ?? "",
+          emergencyContact2Phone: draft.emergencyContact2Phone ?? "",
+          shirtSize: draft.shirtSize ?? "",
+          goal: draft.goal ?? "",
           rememberFamily: draft.rememberFamily,
           mediaConsent: draft.mediaConsent,
           acceptRequiredAgreements: draft.acceptRequiredAgreements,
-          intakeAlreadyOnFile: draft.intakeAlreadyOnFile ?? false,
         }));
         if (draft.paymentMethod) {
           const allowed = selectablePaymentMethods(session.payment_requirement);
@@ -209,12 +246,20 @@ export function BookingForm({
         athletePhone: form.athletePhone,
         schoolGrade: form.schoolGrade,
         experienceLevel: form.experienceLevel,
-        bookingNotes: form.bookingNotes,
+        heightWeight: form.heightWeight,
+        sportPosition: form.sportPosition,
+        healthIssues: form.healthIssues,
+        emergencyContact1Name: form.emergencyContact1Name,
+        emergencyContact1Phone: form.emergencyContact1Phone,
+        emergencyContact2Name: form.emergencyContact2Name,
+        emergencyContact2Phone: form.emergencyContact2Phone,
+        shirtSize: form.shirtSize,
+        goal: form.goal,
+        bookingNotes: form.healthIssues,
         paymentMethod,
         rememberFamily: form.rememberFamily,
         mediaConsent: form.mediaConsent,
         acceptRequiredAgreements: form.acceptRequiredAgreements,
-        intakeAlreadyOnFile: form.intakeAlreadyOnFile,
         selectedAthleteId,
         editingDetails: false,
         updatedAt: new Date().toISOString(),
@@ -259,7 +304,19 @@ export function BookingForm({
         const data = (await res.json()) as {
           athleteId?: string | null;
           intakeComplete?: boolean;
-          intakeRequired?: boolean;
+          parentOnFile?: {
+            firstName: string;
+            lastName: string;
+            email: string;
+            phone: string;
+          } | null;
+          athletesOnFile?: Array<{
+            id: string;
+            firstName: string;
+            lastName: string;
+            dob: string;
+            experienceLevel?: string;
+          }>;
         };
         if (cancelled) return;
         const athleteId = data.athleteId ?? null;
@@ -267,13 +324,33 @@ export function BookingForm({
         if (athleteId && /^[0-9a-f-]{36}$/i.test(athleteId)) {
           setSelectedAthleteId(athleteId);
         }
-        const intakeOk = Boolean(data.intakeComplete);
-        setIntakeOnFileVerified(intakeOk);
-      } catch {
-        if (!cancelled) {
-          setResolvedAthleteId(null);
-          setIntakeOnFileVerified(false);
+
+        if (data.parentOnFile) {
+          setForm((prev) => ({
+            ...prev,
+            parentFirstName:
+              prev.parentFirstName.trim() || data.parentOnFile!.firstName,
+            parentLastName:
+              prev.parentLastName.trim() || data.parentOnFile!.lastName,
+            parentEmail: prev.parentEmail.trim() || data.parentOnFile!.email,
+            parentPhone: prev.parentPhone.trim() || data.parentOnFile!.phone,
+          }));
         }
+
+        const athletes = data.athletesOnFile ?? [];
+        if (athletes.length === 1 && !form.athleteFirstName.trim()) {
+          const a = athletes[0];
+          setForm((prev) => ({
+            ...prev,
+            athleteFirstName: a.firstName,
+            athleteLastName: a.lastName,
+            athleteDob: a.dob,
+            experienceLevel: a.experienceLevel ?? prev.experienceLevel,
+          }));
+          setSelectedAthleteId(a.id);
+        }
+      } catch {
+        if (!cancelled) setResolvedAthleteId(null);
       }
     }
 
@@ -291,7 +368,6 @@ export function BookingForm({
     form.athleteLastName,
     athleteDob,
     hasValidDob,
-    form.intakeAlreadyOnFile,
     selectedAthleteId,
   ]);
 
@@ -308,7 +384,15 @@ export function BookingForm({
       athleteDob: athlete.dob,
       schoolGrade: "",
       experienceLevel: athlete.experienceLevel ?? "",
-      bookingNotes: "",
+      heightWeight: "",
+      sportPosition: "",
+      healthIssues: "",
+      emergencyContact1Name: "",
+      emergencyContact1Phone: "",
+      emergencyContact2Name: "",
+      emergencyContact2Phone: "",
+      shirtSize: "",
+      goal: "",
       rememberFamily: true,
       mediaConsent: family.mediaConsentPreference ?? prev.mediaConsent,
       acceptRequiredAgreements:
@@ -333,8 +417,7 @@ export function BookingForm({
         athletePhone: "",
         schoolGrade: "",
         experienceLevel: "",
-        bookingNotes: "",
-        intakeAlreadyOnFile: false,
+        healthIssues: "",
       }));
       return;
     }
@@ -369,6 +452,22 @@ export function BookingForm({
     };
   }
 
+  function rememberFromForm(athleteId?: string) {
+    if (!form.rememberFamily) return;
+    const contact = bookingContactFields();
+    persistRememberedBookingLocally({
+      parentFirstName: contact.parentFirstName,
+      parentLastName: contact.parentLastName,
+      parentEmail: contact.parentEmail,
+      parentPhone: contact.parentPhone,
+      athleteFirstName: form.athleteFirstName,
+      athleteLastName: form.athleteLastName,
+      athleteDob: athleteDob,
+      athleteId,
+      experienceLevel: form.experienceLevel || undefined,
+    });
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -388,27 +487,27 @@ export function BookingForm({
         });
         const data = await res.json();
         if (!res.ok) {
-          toast.error(data.error ?? "Could not join waitlist");
+        toastError(data.error ?? "Could not join waitlist");
           return;
         }
         clearBookingDraft(session.id);
-        toast.success("You're on the waitlist");
+        toastSuccess("You're on the waitlist");
         router.push(`/book/${session.id}/confirmation?waitlist=1`);
         return;
       }
 
       if (!rosterCredit && !paymentMethod) {
-        toast.error("Please select a payment method");
+        toastError("Please select a payment method");
         return;
       }
 
       if (!form.athleteFirstName.trim() || !form.athleteLastName.trim()) {
-        toast.error("Enter the athlete's name");
+        toastError("Enter the athlete's name");
         return;
       }
 
       if (!hasValidDob) {
-        toast.error("Enter the athlete's date of birth");
+        toastError("Enter the athlete's date of birth");
         return;
       }
 
@@ -419,33 +518,24 @@ export function BookingForm({
           !form.parentEmail.trim() ||
           form.parentPhone.trim().length < 7
         ) {
-          toast.error("Enter parent or guardian name, email, and phone");
+          toastError("Enter parent or guardian name, email, and phone");
           return;
         }
       } else if (
         !form.athleteEmail.trim() ||
         form.athletePhone.trim().length < 7
       ) {
-        toast.error("Enter your email and phone");
+        toastError("Enter your email and phone");
         return;
       }
 
-      if (showIntakeSection) {
-        if (!form.schoolGrade.trim()) {
-          toast.error("Select school grade");
-          return;
-        }
-        if (agreementsNeeded && !form.acceptRequiredAgreements) {
-          toast.error("Please accept the required agreements");
-          return;
-        }
-      } else if (form.intakeAlreadyOnFile && !intakeOnFileVerified) {
-        toast.error(
-          "We couldn't find intake on file for this athlete. Uncheck “Intake already completed” to complete intake and book in one step.",
-        );
+      if (!form.schoolGrade.trim()) {
+        toastError("Select school grade");
         return;
-      } else if (agreementsNeeded && !form.acceptRequiredAgreements) {
-        toast.error("Please accept the required agreements");
+      }
+
+      if (agreementsNeeded && !form.acceptRequiredAgreements) {
+        toastError("Please accept the required agreements");
         return;
       }
 
@@ -459,44 +549,50 @@ export function BookingForm({
             ? selectedAthleteId
             : undefined;
 
-      if (showIntakeSection) {
-        const intakeBody = buildIntakePayloadFromBooking({
-          parentFirstName: form.parentFirstName,
-          parentLastName: form.parentLastName,
-          parentEmail: form.parentEmail,
-          parentPhone: form.parentPhone,
-          athleteFirstName: form.athleteFirstName,
-          athleteLastName: form.athleteLastName,
-          athleteDob: athleteDob,
-          athleteEmail: form.athleteEmail,
-          athletePhone: form.athletePhone,
-          schoolGrade: form.schoolGrade,
-          experienceLevel: form.experienceLevel,
-          healthNotes: form.bookingNotes,
-          mediaConsent: form.mediaConsent,
-          rememberFamily: form.rememberFamily,
-        });
+      const intakeBody = buildIntakePayloadFromBooking({
+        parentFirstName: form.parentFirstName,
+        parentLastName: form.parentLastName,
+        parentEmail: form.parentEmail,
+        parentPhone: form.parentPhone,
+        athleteFirstName: form.athleteFirstName,
+        athleteLastName: form.athleteLastName,
+        athleteDob: athleteDob,
+        athleteEmail: form.athleteEmail,
+        athletePhone: form.athletePhone,
+        schoolGrade: form.schoolGrade,
+        experienceLevel: form.experienceLevel,
+        heightWeight: form.heightWeight,
+        sportPosition: form.sportPosition,
+        healthIssues: form.healthIssues,
+        emergencyContact1Name: form.emergencyContact1Name,
+        emergencyContact1Phone: form.emergencyContact1Phone,
+        emergencyContact2Name: form.emergencyContact2Name,
+        emergencyContact2Phone: form.emergencyContact2Phone,
+        shirtSize: form.shirtSize,
+        goal: form.goal,
+        mediaConsent: form.mediaConsent,
+        rememberFamily: form.rememberFamily,
+      });
 
-        const intakeRes = await fetch("/api/intake", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...intakeBody,
-            mode: "full",
-          }),
-        });
-        const intakeData = await intakeRes.json();
-        if (!intakeRes.ok) {
-          toast.error(intakeData.error ?? "Could not save intake");
-          return;
-        }
-        athleteId = intakeData.athleteId as string;
-        setResolvedAthleteId(athleteId);
-        setIntakeOnFileVerified(true);
+      const intakeRes = await fetch("/api/intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...intakeBody,
+          mode: "full",
+        }),
+      });
+      const intakeData = await intakeRes.json();
+      if (!intakeRes.ok) {
+        toastError(intakeData.error ?? "Could not save intake");
+        return;
       }
+      athleteId = intakeData.athleteId as string;
+      setResolvedAthleteId(athleteId);
+      rememberFromForm(athleteId);
 
       const contact = bookingContactFields();
-      const notesBody = form.bookingNotes.trim();
+      const notesBody = form.healthIssues.trim();
       const gradeLine = form.schoolGrade.trim()
         ? `School grade: ${form.schoolGrade.trim()}`
         : "";
@@ -524,35 +620,22 @@ export function BookingForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Booking failed");
+        toastError(data.error ?? "Booking failed");
         if (data.code === "SESSION_FULL") {
           router.push(`/book/${session.id}?waitlist=1`);
         }
         if (data.code === "INTAKE_REQUIRED" || data.code === "WAIVER_RENEWAL_REQUIRED") {
-          update("intakeAlreadyOnFile", false);
-          toast.error(
+          toastError(
             data.code === "WAIVER_RENEWAL_REQUIRED"
               ? "Please accept the updated waiver below and submit again."
-              : "Complete intake below and submit again.",
+              : "We could not verify intake — check the form and submit again.",
           );
         }
         return;
       }
 
       clearBookingDraft(session.id);
-
-      if (form.rememberFamily && data.demo) {
-        saveDemoFamily({
-          parentFirstName: contact.parentFirstName,
-          parentLastName: contact.parentLastName,
-          parentEmail: contact.parentEmail,
-          parentPhone: contact.parentPhone,
-          athleteFirstName: form.athleteFirstName,
-          athleteLastName: form.athleteLastName,
-          athleteDob: athleteDob,
-          experienceLevel: form.experienceLevel || undefined,
-        });
-      }
+      rememberFromForm(athleteId);
 
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
@@ -572,7 +655,7 @@ export function BookingForm({
       if (data.demo) q.set("demo", "1");
       router.push(`/book/${session.id}/confirmation?${q.toString()}`);
     } catch {
-      toast.error("Something went wrong. Please try again.");
+      toastError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -580,15 +663,20 @@ export function BookingForm({
 
   if (waitlistMode) {
     return (
-      <form onSubmit={onSubmit} className="space-y-6">
-        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
-          <h2 className="font-heading text-xl tracking-wide">Join Waitlist</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {session.title} · {formatSessionDate(session.session_date)} ·{" "}
+      <form onSubmit={onSubmit} className="booking-form-shell">
+        <div className="booking-form-session">
+          <p className="text-xs font-medium uppercase tracking-widest text-gold">
+            Waitlist
+          </p>
+          <h2 className="mt-1 font-heading text-2xl tracking-wide">
+            {session.title}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {formatSessionDate(session.session_date)} ·{" "}
             {formatSessionTime(session.start_time)}
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="booking-form-section grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="waitlistParentName" required>Parent name</Label>
             <Input
@@ -628,6 +716,7 @@ export function BookingForm({
             />
           </div>
         </div>
+        <div className="booking-form-footer">
         <Button
           type="submit"
           disabled={submitting}
@@ -635,237 +724,225 @@ export function BookingForm({
         >
           {submitting ? "Submitting…" : "Join Waitlist"}
         </Button>
+        </div>
       </form>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5 sm:space-y-6">
-      <div className="rounded-xl border border-border bg-card px-4 py-3 sm:p-5">
-        <h2 className="font-heading text-lg tracking-wide sm:text-xl">
+    <form onSubmit={onSubmit} className="booking-form-shell">
+      <div className="booking-form-session">
+        <p className="text-xs font-medium uppercase tracking-widest text-gold">
+          Session
+        </p>
+        <h2 className="mt-1 font-heading text-2xl tracking-wide sm:text-3xl">
           {session.title}
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-muted-foreground">
           {formatSessionDate(session.session_date)} ·{" "}
           {formatSessionTime(session.start_time)}
         </p>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Fields marked with <span className="text-destructive">*</span> are
-          required.
+        <p className="mt-3 text-xs text-muted-foreground">
+          Required fields are marked with{" "}
+          <span className="text-destructive">*</span>.
         </p>
       </div>
 
-      <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-        <label className="checkbox-plain flex cursor-pointer items-start gap-3 text-sm">
-          <Checkbox
-            checked={form.intakeAlreadyOnFile}
-            onCheckedChange={(v) => update("intakeAlreadyOnFile", Boolean(v))}
-          />
-          <span>
-            <span className="font-medium text-foreground">
-              Intake already completed
+      <div className="booking-form-body">
+        <div className="booking-form-section">
+          <label className="checkbox-plain flex cursor-pointer items-start gap-3 rounded-lg border border-white/5 bg-surface/40 p-3 text-sm">
+            <Checkbox
+              checked={form.rememberFamily}
+              onCheckedChange={(v) => update("rememberFamily", Boolean(v))}
+            />
+            <span>
+              <span className="font-medium text-foreground">
+                Save on this device
+              </span>
+              <span className="mt-1 block text-muted-foreground">
+                Contact info only — not medical notes.
+              </span>
             </span>
-            <span className="mt-1 block text-muted-foreground">
-              Check if this athlete is already in our system — use the same name
-              and date of birth as on file.
-            </span>
-          </span>
-        </label>
-        <label className="checkbox-plain flex cursor-pointer items-start gap-3 text-sm">
-          <Checkbox
-            checked={form.rememberFamily}
-            onCheckedChange={(v) => update("rememberFamily", Boolean(v))}
-          />
-          <span>
-            <span className="font-medium text-foreground">
-              Save info on this device
-            </span>
-            <span className="mt-1 block text-muted-foreground">
-              Faster next time — contact info only, not medical notes.
-            </span>
-          </span>
-        </label>
-        {form.intakeAlreadyOnFile && intakeOnFileVerified ? (
-          <p className="text-sm text-emerald-700 dark:text-emerald-300">
-            Intake found for this athlete.
-          </p>
-        ) : null}
-        {form.intakeAlreadyOnFile &&
-        hasValidDob &&
-        form.athleteFirstName.trim() &&
-        !intakeOnFileVerified ? (
-          <p className="text-sm text-amber-200">
-            No matching intake yet — uncheck the box above to complete intake
-            with this booking.
-          </p>
-        ) : null}
-      </div>
+          </label>
 
-      {savedFamily ? (
-        <div className="rounded-xl border border-brand/40 bg-brand/10 p-4">
-          <p className="text-sm font-semibold">
-            Welcome back, {savedFamily.parentFirstName}
-          </p>
-          <div className="mt-3 space-y-1.5">
-            <Label htmlFor="savedAthlete">Athlete on this device</Label>
-            <select
-              id="savedAthlete"
-              className="form-select"
-              value={selectedAthleteId}
-              onChange={(e) => onSelectAthlete(e.target.value)}
-            >
-              {savedFamily.athletes.map((athlete) => (
-                <option key={athlete.id} value={athlete.id}>
-                  {athlete.firstName} {athlete.lastName}
-                </option>
-              ))}
-              <option value="__new__">Another athlete</option>
-            </select>
-          </div>
-          <button
-            type="button"
-            className="mt-3 text-sm underline underline-offset-2"
-            onClick={() => void bookAsDifferentFamily()}
-          >
-            Not your family? Clear saved info
-          </button>
+          {savedFamily ? (
+            <div className="rounded-lg border border-brand/30 bg-brand/10 p-4">
+              <p className="text-sm font-semibold text-foreground">
+                Welcome back, {savedFamily.parentFirstName}
+              </p>
+              <div className="mt-3 space-y-1.5">
+                <Label htmlFor="savedAthlete">Athlete on this device</Label>
+                <select
+                  id="savedAthlete"
+                  className="form-select"
+                  value={selectedAthleteId}
+                  onChange={(e) => onSelectAthlete(e.target.value)}
+                >
+                  {savedFamily.athletes.map((athlete) => (
+                    <option key={athlete.id} value={athlete.id}>
+                      {athlete.firstName} {athlete.lastName}
+                    </option>
+                  ))}
+                  <option value="__new__">Another athlete</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                className="mt-3 text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                onClick={() => void bookAsDifferentFamily()}
+              >
+                Clear saved info
+              </button>
+            </div>
+          ) : null}
         </div>
-      ) : null}
 
-      <fieldset className="space-y-3 rounded-xl border border-border p-4">
-        <legend className="px-1 font-heading text-lg tracking-wide">
-          Athlete
-        </legend>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="athleteFirstName" required>First name</Label>
-            <Input
-              id="athleteFirstName"
-              required
-              value={form.athleteFirstName}
-              onChange={(e) => update("athleteFirstName", e.target.value)}
-              autoComplete="given-name"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="athleteLastName" required>Last name</Label>
-            <Input
-              id="athleteLastName"
-              required
-              value={form.athleteLastName}
-              onChange={(e) => update("athleteLastName", e.target.value)}
-              autoComplete="family-name"
-            />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="athleteDob" required>Date of birth</Label>
-            <Input
-              id="athleteDob"
-              type="date"
-              required
-              value={form.athleteDob}
-              onChange={(e) => update("athleteDob", e.target.value)}
-            />
-          </div>
-        </div>
-      </fieldset>
-
-      {minor ? (
-        <fieldset className="space-y-3 rounded-xl border border-border p-4">
-          <legend className="px-1 font-heading text-lg tracking-wide">
-            Parent or guardian
-          </legend>
-          <p className="text-sm text-muted-foreground">
-            Primary contact and emergency contact for athletes under 18.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="booking-form-section">
+          <h3 className="booking-form-section-title">Athlete</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="parentFirstName" required>First name</Label>
+              <Label htmlFor="athleteFirstName" required>
+                First name
+              </Label>
               <Input
-                id="parentFirstName"
+                id="athleteFirstName"
                 required
-                value={form.parentFirstName}
-                onChange={(e) => update("parentFirstName", e.target.value)}
+                value={form.athleteFirstName}
+                onChange={(e) => update("athleteFirstName", e.target.value)}
                 autoComplete="given-name"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="parentLastName" required>Last name</Label>
+              <Label htmlFor="athleteLastName" required>
+                Last name
+              </Label>
               <Input
-                id="parentLastName"
+                id="athleteLastName"
                 required
-                value={form.parentLastName}
-                onChange={(e) => update("parentLastName", e.target.value)}
+                value={form.athleteLastName}
+                onChange={(e) => update("athleteLastName", e.target.value)}
                 autoComplete="family-name"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="parentEmail" required>Email</Label>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="athleteDob" required>
+                Date of birth
+              </Label>
               <Input
-                id="parentEmail"
-                type="email"
+                id="athleteDob"
+                type="date"
                 required
-                value={form.parentEmail}
-                onChange={(e) => update("parentEmail", e.target.value)}
-                autoComplete="email"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="parentPhone" required>Phone</Label>
-              <Input
-                id="parentPhone"
-                type="tel"
-                required
-                value={form.parentPhone}
-                onChange={(e) => update("parentPhone", e.target.value)}
-                autoComplete="tel"
+                value={form.athleteDob}
+                onChange={(e) => update("athleteDob", e.target.value)}
               />
             </div>
           </div>
-        </fieldset>
-      ) : (
-        <fieldset className="space-y-3 rounded-xl border border-border p-4">
-          <legend className="px-1 font-heading text-lg tracking-wide">
-            Your contact
-          </legend>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="athleteEmail" required>Email</Label>
-              <Input
-                id="athleteEmail"
-                type="email"
-                required
-                value={form.athleteEmail}
-                onChange={(e) => update("athleteEmail", e.target.value)}
-                autoComplete="email"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="athletePhone" required>Phone</Label>
-              <Input
-                id="athletePhone"
-                type="tel"
-                required
-                value={form.athletePhone}
-                onChange={(e) => update("athletePhone", e.target.value)}
-                autoComplete="tel"
-              />
-            </div>
-          </div>
-        </fieldset>
-      )}
+        </div>
 
-      {showIntakeSection ? (
-        <fieldset className="space-y-3 rounded-xl border border-border p-4">
-          <legend className="px-1 font-heading text-lg tracking-wide">
-            Athlete intake
-          </legend>
-          <p className="text-sm text-muted-foreground">
-            One-time details — saved with this booking, no extra step.
+        {minor ? (
+          <div className="booking-form-section">
+            <h3 className="booking-form-section-title">Parent or guardian</h3>
+            <p className="booking-form-section-hint">
+              Primary and emergency contact for athletes under 18.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="parentFirstName" required>
+                  First name
+                </Label>
+                <Input
+                  id="parentFirstName"
+                  required
+                  value={form.parentFirstName}
+                  onChange={(e) => update("parentFirstName", e.target.value)}
+                  autoComplete="given-name"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="parentLastName" required>
+                  Last name
+                </Label>
+                <Input
+                  id="parentLastName"
+                  required
+                  value={form.parentLastName}
+                  onChange={(e) => update("parentLastName", e.target.value)}
+                  autoComplete="family-name"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="parentEmail" required>
+                  Email
+                </Label>
+                <Input
+                  id="parentEmail"
+                  type="email"
+                  required
+                  value={form.parentEmail}
+                  onChange={(e) => update("parentEmail", e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="parentPhone" required>
+                  Phone
+                </Label>
+                <Input
+                  id="parentPhone"
+                  type="tel"
+                  required
+                  value={form.parentPhone}
+                  onChange={(e) => update("parentPhone", e.target.value)}
+                  autoComplete="tel"
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="booking-form-section">
+            <h3 className="booking-form-section-title">Your contact</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="athleteEmail" required>
+                  Email
+                </Label>
+                <Input
+                  id="athleteEmail"
+                  type="email"
+                  required
+                  value={form.athleteEmail}
+                  onChange={(e) => update("athleteEmail", e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="athletePhone" required>
+                  Phone
+                </Label>
+                <Input
+                  id="athletePhone"
+                  type="tel"
+                  required
+                  value={form.athletePhone}
+                  onChange={(e) => update("athletePhone", e.target.value)}
+                  autoComplete="tel"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="booking-form-section">
+          <h3 className="booking-form-section-title">Athlete intake</h3>
+          <p className="booking-form-section-hint">
+            One-time athlete profile — saved with this booking. If you&apos;re
+            already in our system, we&apos;ll update your record.
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="schoolGrade" required>School grade</Label>
+              <Label htmlFor="schoolGrade" required>
+                School grade
+              </Label>
               <select
                 id="schoolGrade"
                 className="form-select"
@@ -897,160 +974,245 @@ export function BookingForm({
                 ))}
               </select>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="heightWeight">Height / weight</Label>
+              <Input
+                id="heightWeight"
+                value={form.heightWeight}
+                onChange={(e) => update("heightWeight", e.target.value)}
+                placeholder="e.g. 5 ft 2 in / 95 lbs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sportPosition">Sport / position</Label>
+              <Input
+                id="sportPosition"
+                value={form.sportPosition}
+                onChange={(e) => update("sportPosition", e.target.value)}
+              />
+            </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="bookingNotes">Health / notes (optional)</Label>
+              <Label htmlFor="healthIssues">Health issues / allergies</Label>
               <Textarea
-                id="bookingNotes"
-                value={form.bookingNotes}
-                onChange={(e) => update("bookingNotes", e.target.value)}
+                id="healthIssues"
+                value={form.healthIssues}
+                onChange={(e) => update("healthIssues", e.target.value)}
                 rows={3}
                 placeholder="Allergies, injuries, or anything coaches should know"
               />
             </div>
           </div>
-        </fieldset>
-      ) : (
-        <div className="space-y-1.5 rounded-xl border border-border p-4">
-          <Label htmlFor="bookingNotesShort">Notes for coaches (optional)</Label>
-          <Textarea
-            id="bookingNotesShort"
-            value={form.bookingNotes}
-            onChange={(e) => update("bookingNotes", e.target.value)}
-            rows={2}
-            placeholder="Anything we should know for this session"
-          />
         </div>
-      )}
 
-      {!rosterCredit ? (
-        <fieldset className="space-y-3 rounded-xl border border-border p-4">
-          <legend className="px-1 font-heading text-lg tracking-wide">
-            Payment
-          </legend>
-          <p className="text-sm text-muted-foreground">
-            {formatPrice(session.price_cents)} due for this session
+        <div className="booking-form-section">
+          <h3 className="booking-form-section-title">Emergency contacts</h3>
+          <p className="booking-form-section-hint">
+            {minor
+              ? "Defaults to parent/guardian if left blank."
+              : "Who we call if we can&apos;t reach you."}
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {showDisabledPayOnline ? (
-              <div
-                className="flex h-full items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3 text-sm opacity-80"
-                aria-disabled
-              >
-                <input type="radio" className="mt-1" disabled readOnly />
-                <span>
-                  <span className="font-medium text-muted-foreground">
-                    {paymentMethodLabel("stripe")}
-                  </span>
-                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Coming soon
-                  </span>
-                </span>
-              </div>
-            ) : null}
-            {paymentOptions.map((method) => (
-              <label
-                key={method}
-                className={`flex h-full cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
-                  paymentMethod === method
-                    ? "border-brand bg-brand/10"
-                    : "border-border"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  className="mt-1"
-                  required
-                  checked={paymentMethod === method}
-                  onChange={() => setPaymentMethod(method)}
-                  value={method}
-                />
-                <span>
-                  <span className="font-medium">
-                    {paymentMethodLabel(method)}
-                  </span>
-                  <span className="mt-0.5 block text-muted-foreground">
-                    {method === "stripe"
-                      ? "Secure card payment via Stripe."
-                      : "Join the roster — pay at the facility."}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ) : null}
-
-      <fieldset className="space-y-3 rounded-xl border border-border p-4">
-        <legend className="px-1 font-heading text-lg tracking-wide">
-          Agreements
-        </legend>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {agreementsNeeded || showIntakeSection ? (
-            <label className="checkbox-plain flex items-start gap-3 text-sm sm:col-span-2">
-              <Checkbox
-                checked={form.acceptRequiredAgreements}
-                onCheckedChange={(v) =>
-                  update("acceptRequiredAgreements", Boolean(v))
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="emergencyContact1Name">Contact 1 name</Label>
+              <Input
+                id="emergencyContact1Name"
+                value={form.emergencyContact1Name}
+                onChange={(e) =>
+                  update("emergencyContact1Name", e.target.value)
+                }
+                placeholder={
+                  minor ? "Same as parent/guardian if blank" : undefined
                 }
               />
-              <span>
-                {minor ? (
-                  <>
-                    I&apos;m the parent or guardian and accept the{" "}
-                  </>
-                ) : (
-                  <>I accept the </>
-                )}
-                <PolicyLinkButton docId="booking">booking</PolicyLinkButton>,{" "}
-                <PolicyLinkButton
-                  docId="cancellation"
-                  cancellationText={session.cancellation_policy}
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="emergencyContact1Phone">Contact 1 phone</Label>
+              <Input
+                id="emergencyContact1Phone"
+                type="tel"
+                value={form.emergencyContact1Phone}
+                onChange={(e) =>
+                  update("emergencyContact1Phone", e.target.value)
+                }
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="emergencyContact2Name">
+                Contact 2 name (optional)
+              </Label>
+              <Input
+                id="emergencyContact2Name"
+                value={form.emergencyContact2Name}
+                onChange={(e) =>
+                  update("emergencyContact2Name", e.target.value)
+                }
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="emergencyContact2Phone">
+                Contact 2 phone (optional)
+              </Label>
+              <Input
+                id="emergencyContact2Phone"
+                type="tel"
+                value={form.emergencyContact2Phone}
+                onChange={(e) =>
+                  update("emergencyContact2Phone", e.target.value)
+                }
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="booking-form-section">
+          <h3 className="booking-form-section-title">Additional info</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="shirtSize">Shirt size</Label>
+              <select
+                id="shirtSize"
+                className="form-select"
+                value={form.shirtSize}
+                onChange={(e) => update("shirtSize", e.target.value)}
+              >
+                <option value="">Select</option>
+                {INTAKE_SHIRT_SIZES.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="goal">Training goals (optional)</Label>
+              <Textarea
+                id="goal"
+                value={form.goal}
+                onChange={(e) => update("goal", e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+        </div>
+
+        {!rosterCredit ? (
+          <div className="booking-form-section">
+            <h3 className="booking-form-section-title">Payment</h3>
+            <p className="booking-form-section-hint">
+              {formatPrice(session.price_cents)} due for this session
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {showDisabledPayOnline ? (
+                <div
+                  className="flex h-full items-start gap-3 rounded-lg border border-dashed border-white/15 bg-surface/30 p-3 text-sm opacity-80"
+                  aria-disabled
                 >
-                  cancellation
-                </PolicyLinkButton>,{" "}
-                <PolicyLinkButton docId="privacy">privacy</PolicyLinkButton>, and{" "}
-                <PolicyLinkButton docId="waiver">waiver</PolicyLinkButton>.
+                  <input type="radio" className="mt-1" disabled readOnly />
+                  <span>
+                    <span className="font-medium text-muted-foreground">
+                      {paymentMethodLabel("stripe")}
+                    </span>
+                    <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Coming soon
+                    </span>
+                  </span>
+                </div>
+              ) : null}
+              {paymentOptions.map((method) => (
+                <label
+                  key={method}
+                  className={`flex h-full cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition-colors ${
+                    paymentMethod === method
+                      ? "border-brand bg-brand/15"
+                      : "border-white/10 bg-surface/30 hover:border-white/20"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    className="mt-1"
+                    required
+                    checked={paymentMethod === method}
+                    onChange={() => setPaymentMethod(method)}
+                    value={method}
+                  />
+                  <span>
+                    <span className="font-medium">
+                      {paymentMethodLabel(method)}
+                    </span>
+                    <span className="mt-0.5 block text-muted-foreground">
+                      {method === "stripe"
+                        ? "Secure card payment via Stripe."
+                        : "Join the roster — pay at the facility."}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="booking-form-section">
+          <h3 className="booking-form-section-title">Agreements</h3>
+          <div className="space-y-4">
+            {agreementsNeeded ? (
+              <label className="checkbox-plain flex items-start gap-3 text-sm">
+                <Checkbox
+                  checked={form.acceptRequiredAgreements}
+                  onCheckedChange={(v) =>
+                    update("acceptRequiredAgreements", Boolean(v))
+                  }
+                />
+                <span className="text-muted-foreground">
+                  {minor ? (
+                    <>I&apos;m the parent or guardian and accept the </>
+                  ) : (
+                    <>I accept the </>
+                  )}
+                  <PolicyLinkButton docId="booking">booking</PolicyLinkButton>,{" "}
+                  <PolicyLinkButton
+                    docId="cancellation"
+                    cancellationText={session.cancellation_policy}
+                  >
+                    cancellation
+                  </PolicyLinkButton>,{" "}
+                  <PolicyLinkButton docId="privacy">privacy</PolicyLinkButton>, and{" "}
+                  <PolicyLinkButton docId="waiver">waiver</PolicyLinkButton>.
+                </span>
+              </label>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Policies were already accepted on this device.{" "}
+                <PolicyLinkButton docId="booking">Review policies</PolicyLinkButton>
+              </p>
+            )}
+            <label className="checkbox-plain flex items-start gap-3 text-sm">
+              <Checkbox
+                checked={form.mediaConsent}
+                onCheckedChange={(v) => update("mediaConsent", Boolean(v))}
+              />
+              <span className="text-muted-foreground">
+                Optional photo/media consent.{" "}
+                <PolicyLinkButton docId="media">Details</PolicyLinkButton>
               </span>
             </label>
-          ) : (
-            <p className="text-sm text-muted-foreground sm:col-span-2">
-              Policies were already accepted on this device.{" "}
-              <PolicyLinkButton docId="booking">Review policies</PolicyLinkButton>
-            </p>
-          )}
-          <label className="checkbox-plain flex items-start gap-3 text-sm sm:col-span-2">
-            <Checkbox
-              checked={form.mediaConsent}
-              onCheckedChange={(v) => update("mediaConsent", Boolean(v))}
-            />
-            <span>
-              Optional photo/media consent.{" "}
-              <PolicyLinkButton docId="media">Details</PolicyLinkButton>
-            </span>
-          </label>
+          </div>
         </div>
-      </fieldset>
+      </div>
 
-      <div className="sm:pt-2">
+      <div className="booking-form-footer">
         <Button
           type="submit"
           disabled={submitting || (!rosterCredit && !paymentMethod)}
-          className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:px-8"
+          className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:min-w-[220px] sm:px-8"
         >
           {submitting
-            ? showIntakeSection
-              ? "Saving & reserving…"
-              : rosterCredit
-                ? "Booking…"
-                : "Reserving…"
-            : showIntakeSection
-              ? "Complete intake & join roster"
-              : rosterCredit
-                ? "Book session"
-                : paymentMethod === "stripe"
-                  ? "Continue to payment"
-                  : "Join roster"}
+            ? "Saving & reserving…"
+            : rosterCredit
+              ? "Complete intake & book"
+              : paymentMethod === "stripe"
+                ? "Complete intake & pay"
+                : "Complete intake & join roster"}
         </Button>
       </div>
     </form>

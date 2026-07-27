@@ -126,6 +126,7 @@ export function saveDemoFamily(input: {
   athleteFirstName: string;
   athleteLastName: string;
   athleteDob: string;
+  athleteId?: string;
   primarySport?: string;
   experienceLevel?: string;
 }) {
@@ -136,7 +137,7 @@ export function saveDemoFamily(input: {
     existing &&
     existing.parentEmail.toLowerCase() === input.parentEmail.toLowerCase();
 
-  const athleteId = [
+  const syntheticId = [
     input.athleteFirstName,
     input.athleteLastName,
     input.athleteDob,
@@ -145,8 +146,13 @@ export function saveDemoFamily(input: {
     .toLowerCase()
     .replace(/\s+/g, "-");
 
+  const athleteKey =
+    input.athleteId && /^[0-9a-f-]{36}$/i.test(input.athleteId)
+      ? input.athleteId
+      : syntheticId;
+
   const nextAthlete: SavedAthlete = {
-    id: athleteId,
+    id: athleteKey,
     firstName: input.athleteFirstName,
     lastName: input.athleteLastName,
     dob: input.athleteDob,
@@ -155,7 +161,7 @@ export function saveDemoFamily(input: {
   };
 
   const athletes = sameParent ? [...existing.athletes] : [];
-  const idx = athletes.findIndex((a) => a.id === athleteId);
+  const idx = athletes.findIndex((a) => a.id === athleteKey);
   if (idx >= 0) athletes[idx] = nextAthlete;
   else athletes.push(nextAthlete);
 

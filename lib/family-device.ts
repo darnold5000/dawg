@@ -6,6 +6,7 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { CURRENT_AGREEMENTS_VERSION } from "@/lib/agreements";
+import { withTenantInsert } from "@/lib/supabase/training-scope";
 
 export const FAMILY_DEVICE_COOKIE = "dawg_family_device";
 const COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 365; // 1 year
@@ -175,14 +176,18 @@ export async function rememberFamilyOnDevice(input: {
   }
 
   const token = newToken();
-  const { error } = await supabase.from(DAWG_TABLES.deviceFamilies).insert({
-    token_hash: hashToken(token),
-    guardian_id: input.parentId,
-    accepted_agreements_version: input.agreementsVersion,
-    accepted_agreements_at: now,
-    media_consent_preference: input.mediaConsent,
-    last_used_at: now,
-  });
+  const { error } = await supabase.from(DAWG_TABLES.deviceFamilies).insert(
+    withTenantInsert({
+      token_hash: hashToken(token),
+      guardian_id: input.parentId,
+      payload: {},
+      agreements_version: input.agreementsVersion,
+      accepted_agreements_version: input.agreementsVersion,
+      accepted_agreements_at: now,
+      media_consent_preference: input.mediaConsent,
+      last_used_at: now,
+    }),
+  );
 
   if (error) {
     console.error("[family-device] remember", error);

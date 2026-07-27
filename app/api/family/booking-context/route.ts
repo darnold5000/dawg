@@ -37,10 +37,53 @@ export async function GET(request: Request) {
       const supabase = createTrainingServiceClient();
       const { data } = await supabase
         .from(DAWG_TABLES.parents)
-        .select("id")
+        .select("id, first_name, last_name, email, phone")
         .ilike("email", email)
         .maybeSingle();
       parentId = data?.id ?? null;
+    }
+
+    let parentOnFile: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+    } | null = null;
+    let athletesOnFile: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      dob: string;
+      experienceLevel?: string;
+    }> = [];
+
+    if (parentId && isSupabaseConfigured() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const supabase = createTrainingServiceClient();
+      const { data: parentRow } = await supabase
+        .from(DAWG_TABLES.parents)
+        .select("first_name, last_name, email, phone")
+        .eq("id", parentId)
+        .maybeSingle();
+      if (parentRow) {
+        parentOnFile = {
+          firstName: parentRow.first_name ?? "",
+          lastName: parentRow.last_name ?? "",
+          email: parentRow.email ?? "",
+          phone: parentRow.phone ?? "",
+        };
+      }
+      const { data: athleteRows } = await supabase
+        .from(DAWG_TABLES.athletes)
+        .select("id, first_name, last_name, date_of_birth, experience_level")
+        .eq("guardian_id", parentId)
+        .order("first_name", { ascending: true });
+      athletesOnFile = (athleteRows ?? []).map((a) => ({
+        id: a.id,
+        firstName: a.first_name,
+        lastName: a.last_name,
+        dob: String(a.date_of_birth ?? "").slice(0, 10),
+        experienceLevel: a.experience_level ?? undefined,
+      }));
     }
 
     let resolvedAthleteId = athleteId;
@@ -101,6 +144,8 @@ export async function GET(request: Request) {
       intakeRequired,
       creditsRemaining,
       purchases,
+      parentOnFile,
+      athletesOnFile,
     });
   } catch (error) {
     console.error("[api/family/booking-context]", error);

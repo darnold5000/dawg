@@ -186,29 +186,40 @@
   @apply outline-brand/50;
 }
 
-/* Booking flow — dark page, light form cards */
+/* Booking flow — single dark card, matches site chrome */
 .booking-flow {
-  --foreground: #0f172a;
-  --muted-foreground: #475569;
-  --card-foreground: #0f172a;
-  color: #f4f7ff;
+  color: inherit;
 }
 
-.booking-flow fieldset label,
-.booking-flow fieldset legend {
-  color: #0f172a;
+.booking-form-shell {
+  @apply overflow-hidden rounded-2xl border border-white/10 bg-card/90 shadow-[0_24px_80px_rgb(0_0_0/0.45)] backdrop-blur-sm;
 }
 
-.booking-flow fieldset.rounded-xl,
-.booking-flow .rounded-xl.border-border.bg-card {
-  @apply border-slate-200 bg-white text-slate-900 shadow-sm;
+.booking-form-session {
+  @apply border-b border-white/10 bg-gradient-to-br from-brand/15 via-transparent to-transparent px-5 py-5 sm:px-8 sm:py-6;
+}
+
+.booking-form-body {
+  @apply divide-y divide-white/10;
+}
+
+.booking-form-section {
+  @apply space-y-4 px-5 py-5 sm:px-8 sm:py-6;
+}
+
+.booking-form-section-title {
+  @apply font-heading text-base tracking-wide text-foreground sm:text-lg;
+}
+
+.booking-form-section-hint {
+  @apply text-sm text-muted-foreground;
 }
 
 .booking-flow [data-slot="input"],
 .booking-flow [data-slot="textarea"],
 .booking-flow .form-select {
-  @apply border-input bg-white text-slate-900;
-  color-scheme: light;
+  @apply border-border bg-surface text-foreground;
+  color-scheme: dark;
 }
 
 .booking-flow [data-slot="input"]:-webkit-autofill,
@@ -217,21 +228,25 @@
 .booking-flow [data-slot="textarea"]:-webkit-autofill,
 .booking-flow [data-slot="textarea"]:-webkit-autofill:hover,
 .booking-flow [data-slot="textarea"]:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
-  -webkit-text-fill-color: #0f172a !important;
-  caret-color: #0f172a;
-}
-
-.booking-flow .text-muted-foreground {
-  color: #64748b;
+  -webkit-box-shadow: 0 0 0 1000px #0c1220 inset !important;
+  -webkit-text-fill-color: #f4f7ff !important;
+  caret-color: #f4f7ff;
 }
 
 .booking-flow .text-amber-200 {
-  @apply text-amber-900;
+  @apply text-amber-200/90;
 }
 
 .booking-flow .checkbox-plain {
   @apply rounded-md px-0 py-0;
+}
+
+.booking-flow .booking-form-options {
+  @apply grid gap-4 sm:grid-cols-2;
+}
+
+.booking-flow .booking-form-footer {
+  @apply border-t border-white/10 bg-black/20 px-5 py-5 sm:px-8 sm:py-6;
 }
 
 .admin-app .form-panel,

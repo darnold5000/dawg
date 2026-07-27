@@ -24,9 +24,17 @@ export type BookingDraft = {
   acceptRequiredAgreements: boolean;
   selectedAthleteId: string;
   editingDetails: boolean;
-  intakeAlreadyOnFile?: boolean;
   athleteEmail?: string;
   athletePhone?: string;
+  heightWeight?: string;
+  sportPosition?: string;
+  healthIssues?: string;
+  emergencyContact1Name?: string;
+  emergencyContact1Phone?: string;
+  emergencyContact2Name?: string;
+  emergencyContact2Phone?: string;
+  shirtSize?: string;
+  goal?: string;
   updatedAt: string;
 };
 

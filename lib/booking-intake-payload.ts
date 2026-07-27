@@ -1,6 +1,15 @@
 import { isMinorAthlete } from "@/lib/athlete-age";
 import type { IntakeInput } from "@/lib/intake";
 
+export const INTAKE_SHIRT_SIZES = [
+  "Small",
+  "Medium",
+  "Large",
+  "XL",
+  "XXL",
+  "3XL",
+] as const;
+
 export type BookingIntakeFields = {
   parentFirstName: string;
   parentLastName: string;
@@ -13,12 +22,20 @@ export type BookingIntakeFields = {
   athletePhone: string;
   schoolGrade: string;
   experienceLevel: string;
-  healthNotes: string;
+  heightWeight: string;
+  sportPosition: string;
+  healthIssues: string;
+  emergencyContact1Name: string;
+  emergencyContact1Phone: string;
+  emergencyContact2Name: string;
+  emergencyContact2Phone: string;
+  shirtSize: string;
+  goal: string;
   mediaConsent: boolean;
   rememberFamily: boolean;
 };
 
-/** Build intake API body from unified booking form (null if intake step skipped). */
+/** Build intake API body from unified booking form. */
 export function buildIntakePayloadFromBooking(
   fields: BookingIntakeFields,
 ): IntakeInput {
@@ -38,10 +55,21 @@ export function buildIntakePayloadFromBooking(
     ? fields.parentPhone.trim()
     : fields.athletePhone.trim();
 
-  const emergencyName = minor ? `${fields.parentFirstName.trim()} ${fields.parentLastName.trim()}`.trim() : athleteName;
-  const emergencyPhone = minor
-    ? fields.parentPhone.trim()
-    : fields.athletePhone.trim();
+  const parentFullName = minor
+    ? `${fields.parentFirstName.trim()} ${fields.parentLastName.trim()}`.trim()
+    : athleteName;
+  const parentPhoneForEc = minor ? fields.parentPhone.trim() : fields.athletePhone.trim();
+
+  const ec1Name =
+    fields.emergencyContact1Name.trim() || parentFullName;
+  const ec1Phone =
+    fields.emergencyContact1Phone.trim() || parentPhoneForEc;
+
+  const shirt =
+    fields.shirtSize &&
+    (INTAKE_SHIRT_SIZES as readonly string[]).includes(fields.shirtSize)
+      ? (fields.shirtSize as (typeof INTAKE_SHIRT_SIZES)[number])
+      : null;
 
   return {
     parentFirstName,
@@ -52,16 +80,16 @@ export function buildIntakePayloadFromBooking(
     athleteLastName: fields.athleteLastName.trim(),
     athleteDob: fields.athleteDob.trim().slice(0, 10),
     schoolGrade: fields.schoolGrade.trim(),
-    heightWeight: "",
-    sportPosition: "",
-    healthIssues: fields.healthNotes.trim(),
-    emergencyContact1Name: emergencyName,
-    emergencyContact1Phone: emergencyPhone,
-    emergencyContact2Name: "",
-    emergencyContact2Phone: "",
+    heightWeight: fields.heightWeight.trim(),
+    sportPosition: fields.sportPosition.trim(),
+    healthIssues: fields.healthIssues.trim(),
+    emergencyContact1Name: ec1Name,
+    emergencyContact1Phone: ec1Phone,
+    emergencyContact2Name: fields.emergencyContact2Name.trim(),
+    emergencyContact2Phone: fields.emergencyContact2Phone.trim(),
     packageInterest: "single",
-    shirtSize: null,
-    goal: "",
+    shirtSize: shirt,
+    goal: fields.goal.trim(),
     acceptWaiver: true,
     mediaConsent: fields.mediaConsent,
     rememberFamily: fields.rememberFamily,
