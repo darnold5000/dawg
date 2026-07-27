@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 function roleLabel(role: UserRole): string {
   if (role === "owner") return "Owner";
   if (role === "admin") return "Admin";
+  if (role === "developer") return "Developer";
   return "Trainer";
 }
 
@@ -234,14 +235,14 @@ export function StaffSettingsPanel({
                       {member.email ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide",
-                          isOwner
-                            ? "bg-brand/15 text-brand"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide",
+                            isOwner || member.role === "developer"
+                              ? "bg-brand/15 text-brand"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
                         {roleLabel(member.role)}
                       </span>
                     </td>

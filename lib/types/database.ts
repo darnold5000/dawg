@@ -1,6 +1,6 @@
 import type { TrainingVisibility } from "@/lib/training-visibility";
 
-export type UserRole = "owner" | "admin" | "trainer";
+export type UserRole = "owner" | "admin" | "trainer" | "developer";
 
 export type SessionStatus =
   | "draft"

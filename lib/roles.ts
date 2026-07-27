@@ -1,7 +1,7 @@
 import type { UserRole } from "@/lib/types/database";
 
-const STAFF_ROLES: UserRole[] = ["owner", "admin", "trainer"];
-const ADMIN_ROLES: UserRole[] = ["owner", "admin"];
+const STAFF_ROLES: UserRole[] = ["owner", "admin", "trainer", "developer"];
+const ADMIN_ROLES: UserRole[] = ["owner", "admin", "developer"];
 
 export function isStaffRole(role: UserRole): boolean {
   return STAFF_ROLES.includes(role);
