@@ -3,10 +3,7 @@
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const LIGHT_PATH_PREFIXES = [
-  "/my/intake",
-  "/packages",
-];
+const LIGHT_PATH_PREFIXES = ["/my/intake"];
 
 function usesLightSurface(pathname: string): boolean {
   return LIGHT_PATH_PREFIXES.some(

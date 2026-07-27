@@ -24,6 +24,9 @@ export type BookingDraft = {
   acceptRequiredAgreements: boolean;
   selectedAthleteId: string;
   editingDetails: boolean;
+  intakeAlreadyOnFile?: boolean;
+  athleteEmail?: string;
+  athletePhone?: string;
   updatedAt: string;
 };
 

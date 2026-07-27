@@ -61,7 +61,7 @@ export default async function PackageSuccessPage({
           </p>
           <p className="mt-2 text-muted-foreground">
             {pendingFacility
-              ? "Session credits activate after staff confirms payment at the facility."
+              ? "Credits activate after you pay at the facility."
               : `${purchase.sessions_remaining} of ${purchase.sessions_total} sessions remaining`}
           </p>
           {pendingFacility || payAtFacility ? (

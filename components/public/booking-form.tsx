@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -11,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PolicyLinkButton } from "@/components/public/policy-dialog";
 import type { SessionWithRelations } from "@/lib/types/database";
+import { isMinorAthlete } from "@/lib/athlete-age";
+import { buildIntakePayloadFromBooking } from "@/lib/booking-intake-payload";
 import {
   fetchRememberedFamily,
   forgetRememberedFamily,
@@ -50,12 +51,15 @@ const emptyForm = {
   athleteFirstName: "",
   athleteLastName: "",
   athleteDob: "",
+  athleteEmail: "",
+  athletePhone: "",
   schoolGrade: "",
   experienceLevel: "",
   bookingNotes: "",
   acceptRequiredAgreements: false,
   mediaConsent: false,
   rememberFamily: false,
+  intakeAlreadyOnFile: false,
   waitlistParentName: "",
   waitlistAthleteName: "",
   waitlistEmail: "",
@@ -73,13 +77,13 @@ export function BookingForm({
   const [submitting, setSubmitting] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [savedFamily, setSavedFamily] = useState<SavedFamily | null>(null);
-  const [useSaved, setUseSaved] = useState(false);
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>("");
-  const [editingDetails, setEditingDetails] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [intakeRequired, setIntakeRequired] = useState(false);
-  const [contextLoading, setContextLoading] = useState(false);
+  const [resolvedAthleteId, setResolvedAthleteId] = useState<string | null>(
+    null,
+  );
+  const [intakeOnFileVerified, setIntakeOnFileVerified] = useState(false);
 
   const rosterCredit = useMemo(
     () => isRosterCreditSession(session),
@@ -98,9 +102,11 @@ export function BookingForm({
     () => defaultPaymentMethod(session.payment_requirement) ?? "",
   );
 
+  const athleteDob = form.athleteDob.trim().slice(0, 10);
+  const hasValidDob = /^\d{4}-\d{2}-\d{2}$/.test(athleteDob);
+  const minor = hasValidDob ? isMinorAthlete(athleteDob) : true;
+  const showIntakeSection = !form.intakeAlreadyOnFile;
   const agreementsNeeded = !savedFamily?.agreementsCurrent;
-  const bookReturn = `/book/${session.id}${waitlistMode ? "?waitlist=1" : ""}`;
-  const intakeReturn = `/my/intake?return=${encodeURIComponent(bookReturn)}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -113,14 +119,10 @@ export function BookingForm({
 
       if (family && family.athletes.length > 0) {
         setSavedFamily(family);
-        setUseSaved(true);
         const athlete =
           family.athletes.find((a) => a.id === draft?.selectedAthleteId) ??
           family.athletes[0];
-        setSelectedAthleteId(
-          draft?.editingDetails ? "__new__" : athlete.id,
-        );
-        setEditingDetails(Boolean(draft?.editingDetails));
+        setSelectedAthleteId(athlete.id);
         setForm((prev) => ({
           ...prev,
           parentFirstName: draft?.parentFirstName || family.parentFirstName,
@@ -133,18 +135,14 @@ export function BookingForm({
           schoolGrade: draft?.schoolGrade || "",
           experienceLevel:
             draft?.experienceLevel || athlete.experienceLevel || "",
-          bookingNotes:
-            draft?.bookingNotes ||
-            [draft?.medicalNotes, draft?.customerNotes]
-              .filter(Boolean)
-              .join("\n") ||
-            "",
-          rememberFamily: true,
+          bookingNotes: draft?.bookingNotes || "",
+          rememberFamily: draft?.rememberFamily ?? true,
           mediaConsent:
             draft?.mediaConsent ?? family.mediaConsentPreference ?? false,
           acceptRequiredAgreements:
             draft?.acceptRequiredAgreements ??
             Boolean(family.agreementsCurrent),
+          intakeAlreadyOnFile: draft?.intakeAlreadyOnFile ?? false,
         }));
         if (draft?.paymentMethod) {
           const allowed = selectablePaymentMethods(session.payment_requirement);
@@ -162,6 +160,8 @@ export function BookingForm({
           athleteFirstName: draft.athleteFirstName,
           athleteLastName: draft.athleteLastName,
           athleteDob: draft.athleteDob,
+          athleteEmail: draft.athleteEmail ?? "",
+          athletePhone: draft.athletePhone ?? "",
           schoolGrade: draft.schoolGrade ?? "",
           experienceLevel: draft.experienceLevel,
           bookingNotes:
@@ -170,6 +170,7 @@ export function BookingForm({
           rememberFamily: draft.rememberFamily,
           mediaConsent: draft.mediaConsent,
           acceptRequiredAgreements: draft.acceptRequiredAgreements,
+          intakeAlreadyOnFile: draft.intakeAlreadyOnFile ?? false,
         }));
         if (draft.paymentMethod) {
           const allowed = selectablePaymentMethods(session.payment_requirement);
@@ -180,7 +181,6 @@ export function BookingForm({
         if (draft.selectedAthleteId) {
           setSelectedAthleteId(draft.selectedAthleteId);
         }
-        setEditingDetails(draft.editingDetails);
       }
 
       setHydrated(true);
@@ -205,6 +205,8 @@ export function BookingForm({
         athleteFirstName: form.athleteFirstName,
         athleteLastName: form.athleteLastName,
         athleteDob: form.athleteDob,
+        athleteEmail: form.athleteEmail,
+        athletePhone: form.athletePhone,
         schoolGrade: form.schoolGrade,
         experienceLevel: form.experienceLevel,
         bookingNotes: form.bookingNotes,
@@ -212,40 +214,43 @@ export function BookingForm({
         rememberFamily: form.rememberFamily,
         mediaConsent: form.mediaConsent,
         acceptRequiredAgreements: form.acceptRequiredAgreements,
+        intakeAlreadyOnFile: form.intakeAlreadyOnFile,
         selectedAthleteId,
-        editingDetails,
+        editingDetails: false,
         updatedAt: new Date().toISOString(),
       });
     }, 350);
     return () => {
       if (draftTimer.current) clearTimeout(draftTimer.current);
     };
-  }, [
-    hydrated,
-    waitlistMode,
-    session.id,
-    form,
-    paymentMethod,
-    selectedAthleteId,
-    editingDetails,
-  ]);
+  }, [hydrated, waitlistMode, session.id, form, paymentMethod, selectedAthleteId]);
 
   useEffect(() => {
     if (!hydrated || waitlistMode) return;
     let cancelled = false;
 
     async function loadContext() {
-      setContextLoading(true);
+      const params = new URLSearchParams();
+      const contactEmail = minor
+        ? form.parentEmail.trim()
+        : form.athleteEmail.trim();
+      if (contactEmail) params.set("email", contactEmail);
+      if (
+        selectedAthleteId &&
+        selectedAthleteId !== "__new__" &&
+        /^[0-9a-f-]{36}$/i.test(selectedAthleteId)
+      ) {
+        params.set("athleteId", selectedAthleteId);
+      }
+      if (form.athleteFirstName.trim()) {
+        params.set("athleteFirstName", form.athleteFirstName.trim());
+      }
+      if (form.athleteLastName.trim()) {
+        params.set("athleteLastName", form.athleteLastName.trim());
+      }
+      if (hasValidDob) params.set("athleteDob", athleteDob);
+
       try {
-        const params = new URLSearchParams();
-        if (form.parentEmail) params.set("email", form.parentEmail);
-        if (
-          selectedAthleteId &&
-          selectedAthleteId !== "__new__" &&
-          /^[0-9a-f-]{36}$/i.test(selectedAthleteId)
-        ) {
-          params.set("athleteId", selectedAthleteId);
-        }
         const res = await fetch(
           `/api/family/booking-context?${params.toString()}`,
           { credentials: "same-origin" },
@@ -253,17 +258,22 @@ export function BookingForm({
         if (!res.ok || cancelled) return;
         const data = (await res.json()) as {
           athleteId?: string | null;
+          intakeComplete?: boolean;
           intakeRequired?: boolean;
         };
         if (cancelled) return;
-        setIntakeRequired(Boolean(data.intakeRequired));
-        setPaymentMethod((prev) => {
-          const next = selectablePaymentMethods(session.payment_requirement);
-          if (prev && next.includes(prev)) return prev;
-          return defaultPaymentMethod(session.payment_requirement) ?? "";
-        });
-      } finally {
-        if (!cancelled) setContextLoading(false);
+        const athleteId = data.athleteId ?? null;
+        setResolvedAthleteId(athleteId);
+        if (athleteId && /^[0-9a-f-]{36}$/i.test(athleteId)) {
+          setSelectedAthleteId(athleteId);
+        }
+        const intakeOk = Boolean(data.intakeComplete);
+        setIntakeOnFileVerified(intakeOk);
+      } catch {
+        if (!cancelled) {
+          setResolvedAthleteId(null);
+          setIntakeOnFileVerified(false);
+        }
       }
     }
 
@@ -274,14 +284,19 @@ export function BookingForm({
   }, [
     hydrated,
     waitlistMode,
+    minor,
     form.parentEmail,
+    form.athleteEmail,
+    form.athleteFirstName,
+    form.athleteLastName,
+    athleteDob,
+    hasValidDob,
+    form.intakeAlreadyOnFile,
     selectedAthleteId,
-    session.payment_requirement,
   ]);
 
   function applyFamily(family: SavedFamily, athlete: SavedAthlete) {
     setSelectedAthleteId(athlete.id);
-    setEditingDetails(false);
     setForm((prev) => ({
       ...prev,
       parentFirstName: family.parentFirstName,
@@ -309,15 +324,17 @@ export function BookingForm({
     if (!savedFamily) return;
     if (athleteId === "__new__") {
       setSelectedAthleteId("__new__");
-      setEditingDetails(true);
       setForm((prev) => ({
         ...prev,
         athleteFirstName: "",
         athleteLastName: "",
         athleteDob: "",
+        athleteEmail: "",
+        athletePhone: "",
         schoolGrade: "",
         experienceLevel: "",
         bookingNotes: "",
+        intakeAlreadyOnFile: false,
       }));
       return;
     }
@@ -329,23 +346,28 @@ export function BookingForm({
   async function bookAsDifferentFamily() {
     await forgetRememberedFamily();
     setSavedFamily(null);
-    setUseSaved(false);
     setSelectedAthleteId("");
-    setEditingDetails(false);
     setForm(emptyForm);
     setPaymentMethod(defaultPaymentMethod(session.payment_requirement) ?? "");
     clearBookingDraft(session.id);
   }
 
-  const compactReturning =
-    useSaved &&
-    savedFamily &&
-    selectedAthleteId !== "__new__" &&
-    !editingDetails;
-
-  const selectedAthlete = savedFamily?.athletes.find(
-    (a) => a.id === selectedAthleteId,
-  );
+  function bookingContactFields() {
+    if (minor) {
+      return {
+        parentFirstName: form.parentFirstName.trim(),
+        parentLastName: form.parentLastName.trim(),
+        parentEmail: form.parentEmail.trim(),
+        parentPhone: form.parentPhone.trim(),
+      };
+    }
+    return {
+      parentFirstName: form.athleteFirstName.trim(),
+      parentLastName: form.athleteLastName.trim(),
+      parentEmail: form.athleteEmail.trim(),
+      parentPhone: form.athletePhone.trim(),
+    };
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -380,51 +402,100 @@ export function BookingForm({
         return;
       }
 
-      if (intakeRequired) {
-        toast.error("Complete athlete intake before booking");
-        router.push(intakeReturn);
+      if (!form.athleteFirstName.trim() || !form.athleteLastName.trim()) {
+        toast.error("Enter the athlete's name");
         return;
       }
 
-      if (agreementsNeeded && !form.acceptRequiredAgreements) {
+      if (!hasValidDob) {
+        toast.error("Enter the athlete's date of birth");
+        return;
+      }
+
+      if (minor) {
+        if (
+          !form.parentFirstName.trim() ||
+          !form.parentLastName.trim() ||
+          !form.parentEmail.trim() ||
+          form.parentPhone.trim().length < 7
+        ) {
+          toast.error("Enter parent or guardian name, email, and phone");
+          return;
+        }
+      } else if (
+        !form.athleteEmail.trim() ||
+        form.athletePhone.trim().length < 7
+      ) {
+        toast.error("Enter your email and phone");
+        return;
+      }
+
+      if (showIntakeSection) {
+        if (!form.schoolGrade.trim()) {
+          toast.error("Select school grade");
+          return;
+        }
+        if (agreementsNeeded && !form.acceptRequiredAgreements) {
+          toast.error("Please accept the required agreements");
+          return;
+        }
+      } else if (form.intakeAlreadyOnFile && !intakeOnFileVerified) {
+        toast.error(
+          "We couldn't find intake on file for this athlete. Uncheck “Intake already completed” to complete intake and book in one step.",
+        );
+        return;
+      } else if (agreementsNeeded && !form.acceptRequiredAgreements) {
         toast.error("Please accept the required agreements");
         return;
       }
 
-      const athleteId =
-        selectedAthleteId &&
-        selectedAthleteId !== "__new__" &&
-        /^[0-9a-f-]{36}$/i.test(selectedAthleteId)
-          ? selectedAthleteId
-          : undefined;
+      let athleteId =
+        resolvedAthleteId &&
+        /^[0-9a-f-]{36}$/i.test(resolvedAthleteId)
+          ? resolvedAthleteId
+          : selectedAthleteId &&
+              selectedAthleteId !== "__new__" &&
+              /^[0-9a-f-]{36}$/i.test(selectedAthleteId)
+            ? selectedAthleteId
+            : undefined;
 
-      const athleteDob = form.athleteDob.trim().slice(0, 10);
-      const hasValidDob = /^\d{4}-\d{2}-\d{2}$/.test(athleteDob);
+      if (showIntakeSection) {
+        const intakeBody = buildIntakePayloadFromBooking({
+          parentFirstName: form.parentFirstName,
+          parentLastName: form.parentLastName,
+          parentEmail: form.parentEmail,
+          parentPhone: form.parentPhone,
+          athleteFirstName: form.athleteFirstName,
+          athleteLastName: form.athleteLastName,
+          athleteDob: athleteDob,
+          athleteEmail: form.athleteEmail,
+          athletePhone: form.athletePhone,
+          schoolGrade: form.schoolGrade,
+          experienceLevel: form.experienceLevel,
+          healthNotes: form.bookingNotes,
+          mediaConsent: form.mediaConsent,
+          rememberFamily: form.rememberFamily,
+        });
 
-      if (
-        !form.parentFirstName.trim() ||
-        !form.parentLastName.trim() ||
-        !form.parentEmail.trim() ||
-        form.parentPhone.trim().length < 7 ||
-        !form.athleteFirstName.trim() ||
-        !form.athleteLastName.trim() ||
-        !form.schoolGrade.trim()
-      ) {
-        toast.error(
-          "Missing parent or athlete details. Tap Edit details and complete the form.",
-        );
-        setEditingDetails(true);
-        return;
+        const intakeRes = await fetch("/api/intake", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...intakeBody,
+            mode: "full",
+          }),
+        });
+        const intakeData = await intakeRes.json();
+        if (!intakeRes.ok) {
+          toast.error(intakeData.error ?? "Could not save intake");
+          return;
+        }
+        athleteId = intakeData.athleteId as string;
+        setResolvedAthleteId(athleteId);
+        setIntakeOnFileVerified(true);
       }
 
-      if (!athleteId && !hasValidDob) {
-        toast.error(
-          "Complete athlete intake first so we can match your athlete, or select a remembered athlete.",
-        );
-        router.push(intakeReturn);
-        return;
-      }
-
+      const contact = bookingContactFields();
       const notesBody = form.bookingNotes.trim();
       const gradeLine = form.schoolGrade.trim()
         ? `School grade: ${form.schoolGrade.trim()}`
@@ -436,13 +507,10 @@ export function BookingForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: session.id,
-          parentFirstName: form.parentFirstName.trim(),
-          parentLastName: form.parentLastName.trim(),
-          parentEmail: form.parentEmail.trim(),
-          parentPhone: form.parentPhone.trim(),
+          ...contact,
           athleteFirstName: form.athleteFirstName.trim(),
           athleteLastName: form.athleteLastName.trim(),
-          athleteDob: hasValidDob ? athleteDob : form.athleteDob,
+          athleteDob,
           athleteId,
           experienceLevel: form.experienceLevel || undefined,
           medicalNotes: medicalNotes || undefined,
@@ -460,11 +528,13 @@ export function BookingForm({
         if (data.code === "SESSION_FULL") {
           router.push(`/book/${session.id}?waitlist=1`);
         }
-        if (
-          data.code === "INTAKE_REQUIRED" ||
-          data.code === "WAIVER_RENEWAL_REQUIRED"
-        ) {
-          router.push(data.intakeUrl ?? intakeReturn);
+        if (data.code === "INTAKE_REQUIRED" || data.code === "WAIVER_RENEWAL_REQUIRED") {
+          update("intakeAlreadyOnFile", false);
+          toast.error(
+            data.code === "WAIVER_RENEWAL_REQUIRED"
+              ? "Please accept the updated waiver below and submit again."
+              : "Complete intake below and submit again.",
+          );
         }
         return;
       }
@@ -473,13 +543,13 @@ export function BookingForm({
 
       if (form.rememberFamily && data.demo) {
         saveDemoFamily({
-          parentFirstName: form.parentFirstName,
-          parentLastName: form.parentLastName,
-          parentEmail: form.parentEmail,
-          parentPhone: form.parentPhone,
+          parentFirstName: contact.parentFirstName,
+          parentLastName: contact.parentLastName,
+          parentEmail: contact.parentEmail,
+          parentPhone: contact.parentPhone,
           athleteFirstName: form.athleteFirstName,
           athleteLastName: form.athleteLastName,
-          athleteDob: form.athleteDob,
+          athleteDob: athleteDob,
           experienceLevel: form.experienceLevel || undefined,
         });
       }
@@ -581,225 +651,271 @@ export function BookingForm({
         </p>
       </div>
 
+      <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <label className="checkbox-plain flex cursor-pointer items-start gap-3 text-sm">
+          <Checkbox
+            checked={form.intakeAlreadyOnFile}
+            onCheckedChange={(v) => update("intakeAlreadyOnFile", Boolean(v))}
+          />
+          <span>
+            <span className="font-medium text-foreground">
+              Intake already completed
+            </span>
+            <span className="mt-1 block text-muted-foreground">
+              Check if this athlete is already in our system — use the same name
+              and date of birth as on file.
+            </span>
+          </span>
+        </label>
+        <label className="checkbox-plain flex cursor-pointer items-start gap-3 text-sm">
+          <Checkbox
+            checked={form.rememberFamily}
+            onCheckedChange={(v) => update("rememberFamily", Boolean(v))}
+          />
+          <span>
+            <span className="font-medium text-foreground">
+              Save info on this device
+            </span>
+            <span className="mt-1 block text-muted-foreground">
+              Faster next time — contact info only, not medical notes.
+            </span>
+          </span>
+        </label>
+        {form.intakeAlreadyOnFile && intakeOnFileVerified ? (
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+            Intake found for this athlete.
+          </p>
+        ) : null}
+        {form.intakeAlreadyOnFile &&
+        hasValidDob &&
+        form.athleteFirstName.trim() &&
+        !intakeOnFileVerified ? (
+          <p className="text-sm text-amber-200">
+            No matching intake yet — uncheck the box above to complete intake
+            with this booking.
+          </p>
+        ) : null}
+      </div>
+
       {savedFamily ? (
         <div className="rounded-xl border border-brand/40 bg-brand/10 p-4">
           <p className="text-sm font-semibold">
             Welcome back, {savedFamily.parentFirstName}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            We recognized this family on this device. Choose an athlete to
-            continue — no account needed.
-          </p>
-          {useSaved ? (
-            <div className="mt-4 space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="savedAthlete">Athlete</Label>
-                <select
-                  id="savedAthlete"
-                  className="form-select"
-                  value={selectedAthleteId}
-                  onChange={(e) => onSelectAthlete(e.target.value)}
-                >
-                  {savedFamily.athletes.map((athlete) => (
-                    <option key={athlete.id} value={athlete.id}>
-                      {athlete.firstName} {athlete.lastName}
-                    </option>
-                  ))}
-                  <option value="__new__">Add another athlete</option>
-                </select>
-              </div>
-              <button
-                type="button"
-                className="text-sm underline underline-offset-2"
-                onClick={() => void bookAsDifferentFamily()}
-              >
-                Not your family? Forget this device
-              </button>
-            </div>
-          ) : null}
+          <div className="mt-3 space-y-1.5">
+            <Label htmlFor="savedAthlete">Athlete on this device</Label>
+            <select
+              id="savedAthlete"
+              className="form-select"
+              value={selectedAthleteId}
+              onChange={(e) => onSelectAthlete(e.target.value)}
+            >
+              {savedFamily.athletes.map((athlete) => (
+                <option key={athlete.id} value={athlete.id}>
+                  {athlete.firstName} {athlete.lastName}
+                </option>
+              ))}
+              <option value="__new__">Another athlete</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            className="mt-3 text-sm underline underline-offset-2"
+            onClick={() => void bookAsDifferentFamily()}
+          >
+            Not your family? Clear saved info
+          </button>
         </div>
       ) : null}
 
-      {compactReturning && selectedAthlete && savedFamily ? (
-        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="font-heading text-lg tracking-wide">Your booking</h3>
-            <button
-              type="button"
-              className="shrink-0 text-sm underline underline-offset-2"
-              onClick={() => setEditingDetails(true)}
-            >
-              Edit details
-            </button>
-          </div>
-          <dl className="grid gap-2 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground">Parent</dt>
-              <dd className="font-medium">
-                {form.parentFirstName} {form.parentLastName}
-              </dd>
-              <dd className="text-muted-foreground">{form.parentEmail}</dd>
-              <dd className="text-muted-foreground">{form.parentPhone}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Athlete</dt>
-              <dd className="font-medium">
-                {form.athleteFirstName} {form.athleteLastName}
-              </dd>
-              <dd className="text-muted-foreground">
-                {form.schoolGrade || "Grade on file"}
-              </dd>
-            </div>
-          </dl>
+      <fieldset className="space-y-3 rounded-xl border border-border p-4">
+        <legend className="px-1 font-heading text-lg tracking-wide">
+          Athlete
+        </legend>
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="bookingNotesCompact">Notes (optional)</Label>
-            <Textarea
-              id="bookingNotesCompact"
-              value={form.bookingNotes}
-              onChange={(e) => update("bookingNotes", e.target.value)}
-              rows={2}
-              placeholder="Medical info, questions, or anything coaches should know"
+            <Label htmlFor="athleteFirstName">First name</Label>
+            <Input
+              id="athleteFirstName"
+              required
+              value={form.athleteFirstName}
+              onChange={(e) => update("athleteFirstName", e.target.value)}
+              autoComplete="given-name"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="athleteLastName">Last name</Label>
+            <Input
+              id="athleteLastName"
+              required
+              value={form.athleteLastName}
+              onChange={(e) => update("athleteLastName", e.target.value)}
+              autoComplete="family-name"
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="athleteDob">Date of birth</Label>
+            <Input
+              id="athleteDob"
+              type="date"
+              required
+              value={form.athleteDob}
+              onChange={(e) => update("athleteDob", e.target.value)}
             />
           </div>
         </div>
-      ) : (
-        <>
-          <fieldset className="space-y-3 rounded-xl border border-border p-4">
-            <legend className="px-1 font-heading text-lg tracking-wide">
-              Parent or guardian
-            </legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="parentFirstName">First name</Label>
-                <Input
-                  id="parentFirstName"
-                  required
-                  value={form.parentFirstName}
-                  onChange={(e) => update("parentFirstName", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="parentLastName">Last name</Label>
-                <Input
-                  id="parentLastName"
-                  required
-                  value={form.parentLastName}
-                  onChange={(e) => update("parentLastName", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="parentEmail">Email</Label>
-                <Input
-                  id="parentEmail"
-                  type="email"
-                  required
-                  value={form.parentEmail}
-                  onChange={(e) => update("parentEmail", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="parentPhone">Phone</Label>
-                <Input
-                  id="parentPhone"
-                  type="tel"
-                  required
-                  value={form.parentPhone}
-                  onChange={(e) => update("parentPhone", e.target.value)}
-                />
-              </div>
-            </div>
-            {savedFamily ? (
-              <button
-                type="button"
-                className="text-sm underline underline-offset-2"
-                onClick={() => {
-                  setEditingDetails(false);
-                  if (selectedAthlete) applyFamily(savedFamily, selectedAthlete);
-                }}
-              >
-                Done editing parent details
-              </button>
-            ) : null}
-          </fieldset>
+      </fieldset>
 
-          <fieldset className="space-y-3 rounded-xl border border-border p-4">
-            <legend className="px-1 font-heading text-lg tracking-wide">
-              Athlete
-            </legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="athleteFirstName">First name</Label>
-                <Input
-                  id="athleteFirstName"
-                  required
-                  value={form.athleteFirstName}
-                  onChange={(e) => update("athleteFirstName", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="athleteLastName">Last name</Label>
-                <Input
-                  id="athleteLastName"
-                  required
-                  value={form.athleteLastName}
-                  onChange={(e) => update("athleteLastName", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="schoolGrade">School grade</Label>
-                <select
-                  id="schoolGrade"
-                  className="form-select"
-                  required
-                  value={form.schoolGrade}
-                  onChange={(e) => update("schoolGrade", e.target.value)}
-                >
-                  <option value="">Select grade</option>
-                  {BOOKING_SCHOOL_GRADES.map((grade) => (
-                    <option key={grade} value={grade}>
-                      {grade}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="experienceLevel">Experience level</Label>
-                <select
-                  id="experienceLevel"
-                  className="form-select"
-                  value={form.experienceLevel}
-                  onChange={(e) => update("experienceLevel", e.target.value)}
-                >
-                  <option value="">Select level</option>
-                  {BOOKING_EXPERIENCE_LEVELS.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="bookingNotes">Notes (optional)</Label>
-                <Textarea
-                  id="bookingNotes"
-                  value={form.bookingNotes}
-                  onChange={(e) => update("bookingNotes", e.target.value)}
-                  rows={3}
-                  placeholder="Medical info, allergies, or anything coaches should know"
-                />
-              </div>
+      {minor ? (
+        <fieldset className="space-y-3 rounded-xl border border-border p-4">
+          <legend className="px-1 font-heading text-lg tracking-wide">
+            Parent or guardian
+          </legend>
+          <p className="text-sm text-muted-foreground">
+            Primary contact and emergency contact for athletes under 18.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="parentFirstName">First name</Label>
+              <Input
+                id="parentFirstName"
+                required
+                value={form.parentFirstName}
+                onChange={(e) => update("parentFirstName", e.target.value)}
+                autoComplete="given-name"
+              />
             </div>
-            {savedFamily && editingDetails ? (
-              <button
-                type="button"
-                className="text-sm underline underline-offset-2"
-                onClick={() => setEditingDetails(false)}
+            <div className="space-y-1.5">
+              <Label htmlFor="parentLastName">Last name</Label>
+              <Input
+                id="parentLastName"
+                required
+                value={form.parentLastName}
+                onChange={(e) => update("parentLastName", e.target.value)}
+                autoComplete="family-name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="parentEmail">Email</Label>
+              <Input
+                id="parentEmail"
+                type="email"
+                required
+                value={form.parentEmail}
+                onChange={(e) => update("parentEmail", e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="parentPhone">Phone</Label>
+              <Input
+                id="parentPhone"
+                type="tel"
+                required
+                value={form.parentPhone}
+                onChange={(e) => update("parentPhone", e.target.value)}
+                autoComplete="tel"
+              />
+            </div>
+          </div>
+        </fieldset>
+      ) : (
+        <fieldset className="space-y-3 rounded-xl border border-border p-4">
+          <legend className="px-1 font-heading text-lg tracking-wide">
+            Your contact
+          </legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="athleteEmail">Email</Label>
+              <Input
+                id="athleteEmail"
+                type="email"
+                required
+                value={form.athleteEmail}
+                onChange={(e) => update("athleteEmail", e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="athletePhone">Phone</Label>
+              <Input
+                id="athletePhone"
+                type="tel"
+                required
+                value={form.athletePhone}
+                onChange={(e) => update("athletePhone", e.target.value)}
+                autoComplete="tel"
+              />
+            </div>
+          </div>
+        </fieldset>
+      )}
+
+      {showIntakeSection ? (
+        <fieldset className="space-y-3 rounded-xl border border-border p-4">
+          <legend className="px-1 font-heading text-lg tracking-wide">
+            Athlete intake
+          </legend>
+          <p className="text-sm text-muted-foreground">
+            One-time details — saved with this booking, no extra step.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="schoolGrade">School grade</Label>
+              <select
+                id="schoolGrade"
+                className="form-select"
+                required
+                value={form.schoolGrade}
+                onChange={(e) => update("schoolGrade", e.target.value)}
               >
-                Collapse athlete details
-              </button>
-            ) : null}
-          </fieldset>
-        </>
+                <option value="">Select grade</option>
+                {BOOKING_SCHOOL_GRADES.map((grade) => (
+                  <option key={grade} value={grade}>
+                    {grade}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="experienceLevel">Experience level</Label>
+              <select
+                id="experienceLevel"
+                className="form-select"
+                value={form.experienceLevel}
+                onChange={(e) => update("experienceLevel", e.target.value)}
+              >
+                <option value="">Select level</option>
+                {BOOKING_EXPERIENCE_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="bookingNotes">Health / notes (optional)</Label>
+              <Textarea
+                id="bookingNotes"
+                value={form.bookingNotes}
+                onChange={(e) => update("bookingNotes", e.target.value)}
+                rows={3}
+                placeholder="Allergies, injuries, or anything coaches should know"
+              />
+            </div>
+          </div>
+        </fieldset>
+      ) : (
+        <div className="space-y-1.5 rounded-xl border border-border p-4">
+          <Label htmlFor="bookingNotesShort">Notes for coaches (optional)</Label>
+          <Textarea
+            id="bookingNotesShort"
+            value={form.bookingNotes}
+            onChange={(e) => update("bookingNotes", e.target.value)}
+            rows={2}
+            placeholder="Anything we should know for this session"
+          />
+        </div>
       )}
 
       {!rosterCredit ? (
@@ -816,22 +932,13 @@ export function BookingForm({
                 className="flex h-full items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3 text-sm opacity-80"
                 aria-disabled
               >
-                <input
-                  type="radio"
-                  className="mt-1"
-                  disabled
-                  checked={false}
-                  readOnly
-                />
+                <input type="radio" className="mt-1" disabled readOnly />
                 <span>
                   <span className="font-medium text-muted-foreground">
                     {paymentMethodLabel("stripe")}
                   </span>
                   <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     Coming soon
-                  </span>
-                  <span className="mt-0.5 block text-muted-foreground">
-                    Card checkout will be available here soon.
                   </span>
                 </span>
               </div>
@@ -855,23 +962,18 @@ export function BookingForm({
                   value={method}
                 />
                 <span>
-                  <span className="font-medium">{paymentMethodLabel(method)}</span>
+                  <span className="font-medium">
+                    {paymentMethodLabel(method)}
+                  </span>
                   <span className="mt-0.5 block text-muted-foreground">
                     {method === "stripe"
-                      ? "Secure card payment via Stripe. Spot is held for 15 minutes while you pay."
-                      : "Join the roster now — payment is collected at the facility."}
+                      ? "Secure card payment via Stripe."
+                      : "Join the roster — pay at the facility."}
                   </span>
                 </span>
               </label>
             ))}
           </div>
-          {session.payment_requirement === "online_or_facility" &&
-          !paymentMethod &&
-          paymentOptions.length > 1 ? (
-            <p className="text-sm text-amber-200">
-              Choose pay at facility to complete your booking.
-            </p>
-          ) : null}
         </fieldset>
       ) : null}
 
@@ -880,17 +982,22 @@ export function BookingForm({
           Agreements
         </legend>
         <div className="grid gap-4 sm:grid-cols-2">
-          {agreementsNeeded ? (
-            <label className="checkbox-plain flex items-start gap-3 text-sm">
+          {agreementsNeeded || showIntakeSection ? (
+            <label className="checkbox-plain flex items-start gap-3 text-sm sm:col-span-2">
               <Checkbox
                 checked={form.acceptRequiredAgreements}
                 onCheckedChange={(v) =>
                   update("acceptRequiredAgreements", Boolean(v))
                 }
-                required
               />
               <span>
-                I&apos;m the parent or guardian and accept the{" "}
+                {minor ? (
+                  <>
+                    I&apos;m the parent or guardian and accept the{" "}
+                  </>
+                ) : (
+                  <>I accept the </>
+                )}
                 <PolicyLinkButton docId="booking">booking</PolicyLinkButton>,{" "}
                 <PolicyLinkButton
                   docId="cancellation"
@@ -908,24 +1015,14 @@ export function BookingForm({
               <PolicyLinkButton docId="booking">Review policies</PolicyLinkButton>
             </p>
           )}
-          <label className="checkbox-plain flex items-start gap-3 text-sm">
+          <label className="checkbox-plain flex items-start gap-3 text-sm sm:col-span-2">
             <Checkbox
               checked={form.mediaConsent}
               onCheckedChange={(v) => update("mediaConsent", Boolean(v))}
             />
             <span>
-              Optional photo/media consent for this athlete.{" "}
+              Optional photo/media consent.{" "}
               <PolicyLinkButton docId="media">Details</PolicyLinkButton>
-            </span>
-          </label>
-          <label className="checkbox-plain flex items-start gap-3 text-sm sm:col-span-2">
-            <Checkbox
-              checked={form.rememberFamily}
-              onCheckedChange={(v) => update("rememberFamily", Boolean(v))}
-            />
-            <span>
-              Remember this family on this device for faster bookings (contact
-              info only — not medical notes).
             </span>
           </label>
         </div>
@@ -938,16 +1035,18 @@ export function BookingForm({
           className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:px-8"
         >
           {submitting
-            ? rosterCredit
-              ? "Booking…"
-              : paymentMethod === "stripe"
-                ? "Starting checkout…"
+            ? showIntakeSection
+              ? "Saving & reserving…"
+              : rosterCredit
+                ? "Booking…"
                 : "Reserving…"
-            : rosterCredit
-              ? "Book session"
-              : paymentMethod === "stripe"
-                ? "Continue to payment"
-                : "Join roster"}
+            : showIntakeSection
+              ? "Complete intake & join roster"
+              : rosterCredit
+                ? "Book session"
+                : paymentMethod === "stripe"
+                  ? "Continue to payment"
+                  : "Join roster"}
         </Button>
       </div>
     </form>
