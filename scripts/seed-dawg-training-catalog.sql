@@ -186,6 +186,62 @@ begin
     name = excluded.name,
     active = excluded.active;
 
+  -- Training packages (public /packages checkout)
+  insert into public.training_packages (
+    tenant_id,
+    slug,
+    name,
+    description,
+    session_count,
+    price_cents,
+    currency,
+    active,
+    display_order
+  )
+  values
+    (
+      v_tenant_id,
+      'single',
+      'Single session',
+      'One training session credit.',
+      1,
+      2500,
+      'usd',
+      true,
+      1
+    ),
+    (
+      v_tenant_id,
+      'pack-10',
+      '10 sessions',
+      'Ten training session credits.',
+      10,
+      20000,
+      'usd',
+      true,
+      2
+    ),
+    (
+      v_tenant_id,
+      'pack-20',
+      '20 sessions',
+      'Twenty training session credits.',
+      20,
+      30000,
+      'usd',
+      true,
+      3
+    )
+  on conflict (tenant_id, slug) do update set
+    name = excluded.name,
+    description = excluded.description,
+    session_count = excluded.session_count,
+    price_cents = excluded.price_cents,
+    currency = excluded.currency,
+    active = excluded.active,
+    display_order = excluded.display_order,
+    updated_at = now();
+
   raise notice 'DAWG catalog seeded for tenant %', v_tenant_id;
 end $$;
 
@@ -203,4 +259,9 @@ union all
 select 'session_types', count(*)::text
 from public.training_session_types st
 join public.tenants t on t.id = st.tenant_id
+where t.slug = 'dawg-youth-training'
+union all
+select 'packages', count(*)::text
+from public.training_packages pk
+join public.tenants t on t.id = pk.tenant_id
 where t.slug = 'dawg-youth-training';

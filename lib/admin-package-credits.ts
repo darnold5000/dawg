@@ -4,6 +4,7 @@ import {
   createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
+import { withTenantInsert } from "@/lib/supabase/training-scope";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import type {
   PackageCreditAdjustment,
@@ -81,18 +82,20 @@ export async function applyPackageCreditAdjustment(input: {
     const sessionCount = input.body.sessionCount ?? pkg.session_count;
     const { data: purchase, error } = await supabase
       .from(DAWG_TABLES.packagePurchases)
-      .insert({
-        guardian_id: input.parentId,
-        package_id: pkg.id,
-        athlete_id: input.body.athleteId ?? null,
-        status: "paid",
-        sessions_total: sessionCount,
-        sessions_remaining: sessionCount,
-        amount_paid_cents: 0,
-        currency: pkg.currency,
-        paid_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .insert(
+        withTenantInsert({
+          guardian_id: input.parentId,
+          package_id: pkg.id,
+          athlete_id: input.body.athleteId ?? null,
+          status: "paid",
+          sessions_total: sessionCount,
+          sessions_remaining: sessionCount,
+          amount_paid_cents: 0,
+          currency: pkg.currency,
+          paid_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }),
+      )
       .select(`*, package:training_packages (*)`)
       .single();
 

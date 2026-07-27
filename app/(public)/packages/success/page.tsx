@@ -17,13 +17,18 @@ export default async function PackageSuccessPage({
   searchParams: Promise<{
     purchase_id?: string;
     session_id?: string;
+    payment?: string;
   }>;
 }) {
   const q = await searchParams;
-  if (q.session_id && q.session_id !== "{CHECKOUT_SESSION_ID}") {
-    await reconcilePackageCheckout({ checkoutSessionId: q.session_id });
-  } else if (q.purchase_id) {
-    await reconcilePackageCheckout({ purchaseId: q.purchase_id });
+  const payAtFacility = q.payment === "pay_at_facility";
+
+  if (!payAtFacility) {
+    if (q.session_id && q.session_id !== "{CHECKOUT_SESSION_ID}") {
+      await reconcilePackageCheckout({ checkoutSessionId: q.session_id });
+    } else if (q.purchase_id) {
+      await reconcilePackageCheckout({ purchaseId: q.purchase_id });
+    }
   }
 
   const purchase = q.purchase_id
@@ -31,16 +36,23 @@ export default async function PackageSuccessPage({
     : null;
 
   const confirmed = purchase?.status === "paid";
+  const pendingFacility = payAtFacility && purchase?.status === "pending";
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
       <h1 className="font-heading text-4xl tracking-wide">
-        {confirmed ? "Package ready" : "Payment received"}
+        {pendingFacility
+          ? "Order saved"
+          : confirmed
+            ? "Package ready"
+            : "Payment received"}
       </h1>
       <p className="mt-3 text-muted-foreground">
-        {confirmed
-          ? "Your session credits are on file. Check your email for a secure link to view your balance — no login required to have purchased."
-          : "We're confirming your purchase — this usually takes a few seconds. Refresh if needed."}
+        {pendingFacility
+          ? "Your package order is on file. Pay at the facility when you arrive — session credits activate after staff confirms payment."
+          : confirmed
+            ? "Your session credits are on file. Check your email for a secure link to view your balance — no login required to have purchased."
+            : "We're confirming your purchase — this usually takes a few seconds. Refresh if needed."}
       </p>
       {purchase?.package ? (
         <div className="mx-auto mt-8 max-w-md rounded-xl border border-border bg-card p-5 text-left text-sm">
