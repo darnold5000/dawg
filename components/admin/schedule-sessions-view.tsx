@@ -8,7 +8,7 @@ import {
   parseISO,
   startOfWeek,
 } from "date-fns";
-import { CalendarDays, List, Pencil, Plus } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, List, Pencil, Plus } from "lucide-react";
 import { DeleteSessionButton } from "@/components/admin/delete-session-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,7 +60,7 @@ export function ScheduleSessionsView({
   const listDates = [...byDate.keys()].slice(0, displayDayLimit);
 
   const weekStart = useMemo(() => {
-    const base = startOfWeek(parseISO(today), { weekStartsOn: 1 });
+    const base = startOfWeek(parseISO(today), { weekStartsOn: 0 });
     return addDays(base, weekOffset * 7);
   }, [today, weekOffset]);
 
@@ -152,30 +152,40 @@ export function ScheduleSessionsView({
             <p className="text-sm font-medium text-muted-foreground">
               Week of {format(weekStart, "MMM d, yyyy")}
             </p>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
               <Button
                 type="button"
-                size="sm"
+                size="icon-sm"
                 variant="outline"
+                className="size-9 shrink-0 border-border bg-background text-foreground shadow-sm hover:bg-muted"
+                aria-label="Previous week"
                 onClick={() => setWeekOffset((w) => w - 1)}
               >
-                Previous
+                <ChevronLeft className="size-5 stroke-[2.5]" />
               </Button>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
+                className={
+                  weekOffset === 0
+                    ? "bg-brand/15 text-foreground"
+                    : "bg-background shadow-sm"
+                }
+                disabled={weekOffset === 0}
                 onClick={() => setWeekOffset(0)}
               >
                 This week
               </Button>
               <Button
                 type="button"
-                size="sm"
+                size="icon-sm"
                 variant="outline"
+                className="size-9 shrink-0 border-border bg-background text-foreground shadow-sm hover:bg-muted"
+                aria-label="Next week"
                 onClick={() => setWeekOffset((w) => w + 1)}
               >
-                Next
+                <ChevronRight className="size-5 stroke-[2.5]" />
               </Button>
             </div>
           </div>

@@ -343,6 +343,100 @@ export async function createClientFamily(input: {
   return { ok: true, parentId: parent.id, athleteId };
 }
 
+export async function deleteClientFamily(
+  parentId: string,
+): Promise<
+  | { ok: true; bookingCount: number }
+  | { ok: false; error: string; code?: string }
+> {
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { ok: true, bookingCount: 0 };
+  }
+
+  const supabase = createTrainingServiceClient();
+
+  const { data: parent } = await supabase
+    .from(DAWG_TABLES.parents)
+    .select("id")
+    .eq("id", parentId)
+    .maybeSingle();
+
+  if (!parent) {
+    return { ok: false, error: "Client not found.", code: "NOT_FOUND" };
+  }
+
+  const { data: bookingRows, error: bookingListError } = await supabase
+    .from(DAWG_TABLES.bookings)
+    .select("id")
+    .eq("guardian_id", parentId);
+
+  if (bookingListError) {
+    return {
+      ok: false,
+      error: bookingListError.message,
+      code: "DELETE_FAILED",
+    };
+  }
+
+  const bookingIds = (bookingRows ?? []).map((row) => row.id as string);
+
+  if (bookingIds.length > 0) {
+    const { error: redemptionError } = await supabase
+      .from(DAWG_TABLES.packageRedemptions)
+      .delete()
+      .in("booking_id", bookingIds);
+
+    if (redemptionError) {
+      return {
+        ok: false,
+        error: redemptionError.message,
+        code: "DELETE_FAILED",
+      };
+    }
+
+    const { error: bookingError } = await supabase
+      .from(DAWG_TABLES.bookings)
+      .delete()
+      .eq("guardian_id", parentId);
+
+    if (bookingError) {
+      return {
+        ok: false,
+        error: bookingError.message,
+        code: "DELETE_FAILED",
+      };
+    }
+  }
+
+  const { error: purchaseError } = await supabase
+    .from(DAWG_TABLES.packagePurchases)
+    .delete()
+    .eq("guardian_id", parentId);
+
+  if (purchaseError) {
+    return {
+      ok: false,
+      error: purchaseError.message,
+      code: "DELETE_FAILED",
+    };
+  }
+
+  const { error: guardianError } = await supabase
+    .from(DAWG_TABLES.parents)
+    .delete()
+    .eq("id", parentId);
+
+  if (guardianError) {
+    return {
+      ok: false,
+      error: guardianError.message,
+      code: "DELETE_FAILED",
+    };
+  }
+
+  return { ok: true, bookingCount: bookingIds.length };
+}
+
 export function clientsToCsv(families: ClientFamily[]): string {
   const header = [
     "Parent first name",

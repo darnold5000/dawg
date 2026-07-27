@@ -6,6 +6,7 @@ const SUCCESS_DURATION_MS = 5_000;
 export function toastError(message: string) {
   toast.error(message, {
     duration: ERROR_DURATION_MS,
+    closeButton: true,
   });
 }
 

@@ -4,6 +4,7 @@ import { Mail, Phone } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AgreementsSummary } from "@/components/admin/agreements-summary";
 import { ClientEmailForm } from "@/components/admin/client-email-form";
+import { DeleteClientButton } from "@/components/admin/delete-client-button";
 import { MergeParentForm } from "@/components/admin/merge-parent-form";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,14 @@ export default async function AdminClientDetailPage({
                     Call
                   </a>
                 </Button>
+              ) : null}
+              {isAdminRole(profile.role) ? (
+                <DeleteClientButton
+                  parentId={parent.id}
+                  parentName={`${parent.first_name} ${parent.last_name}`}
+                  bookingCount={family.bookingCount}
+                  athleteCount={athletes.length}
+                />
               ) : null}
             </div>
           </div>

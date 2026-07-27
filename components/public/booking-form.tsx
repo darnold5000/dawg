@@ -104,6 +104,34 @@ export function BookingForm({
   const [resolvedAthleteId, setResolvedAthleteId] = useState<string | null>(
     null,
   );
+  const [intakeCompleteOnFile, setIntakeCompleteOnFile] = useState(false);
+  const [bookingContextChecked, setBookingContextChecked] = useState(false);
+
+  const isDbAthleteId = (id: string) => /^[0-9a-f-]{36}$/i.test(id);
+
+  const addingNewAthlete = selectedAthleteId === "__new__";
+  const savedAthleteSelected =
+    Boolean(savedFamily) &&
+    Boolean(selectedAthleteId) &&
+    !addingNewAthlete &&
+    isDbAthleteId(selectedAthleteId);
+
+  const compactBooking = savedAthleteSelected && intakeCompleteOnFile;
+
+  const awaitingSavedAthleteContext =
+    savedAthleteSelected && !bookingContextChecked;
+
+  const showFullRegistration =
+    !savedFamily ||
+    addingNewAthlete ||
+    (savedAthleteSelected &&
+      bookingContextChecked &&
+      !intakeCompleteOnFile);
+
+  const showCheckoutSections =
+    !savedFamily ||
+    addingNewAthlete ||
+    (savedAthleteSelected && bookingContextChecked);
 
   const rosterCredit = useMemo(
     () => isRosterCreditSession(session),
@@ -138,22 +166,28 @@ export function BookingForm({
 
       if (family && family.athletes.length > 0) {
         setSavedFamily(family);
-        const athlete =
-          family.athletes.find((a) => a.id === draft?.selectedAthleteId) ??
-          family.athletes[0];
-        setSelectedAthleteId(athlete.id);
+        const initialAthleteId =
+          draft?.selectedAthleteId &&
+          family.athletes.some((a) => a.id === draft.selectedAthleteId)
+            ? draft.selectedAthleteId
+            : "";
+        setSelectedAthleteId(initialAthleteId);
+        const athlete = initialAthleteId
+          ? family.athletes.find((a) => a.id === initialAthleteId)
+          : undefined;
         setForm((prev) => ({
           ...prev,
           parentFirstName: draft?.parentFirstName || family.parentFirstName,
           parentLastName: draft?.parentLastName || family.parentLastName,
           parentEmail: draft?.parentEmail || family.parentEmail,
           parentPhone: draft?.parentPhone || family.parentPhone,
-          athleteFirstName: draft?.athleteFirstName || athlete.firstName,
-          athleteLastName: draft?.athleteLastName || athlete.lastName,
-          athleteDob: draft?.athleteDob || athlete.dob,
+          athleteFirstName:
+            draft?.athleteFirstName || athlete?.firstName || "",
+          athleteLastName: draft?.athleteLastName || athlete?.lastName || "",
+          athleteDob: draft?.athleteDob || athlete?.dob || "",
           schoolGrade: draft?.schoolGrade || "",
           experienceLevel:
-            draft?.experienceLevel || athlete.experienceLevel || "",
+            draft?.experienceLevel || athlete?.experienceLevel || "",
           heightWeight: draft?.heightWeight ?? "",
           sportPosition: draft?.sportPosition ?? "",
           healthIssues:
@@ -321,7 +355,13 @@ export function BookingForm({
         if (cancelled) return;
         const athleteId = data.athleteId ?? null;
         setResolvedAthleteId(athleteId);
-        if (athleteId && /^[0-9a-f-]{36}$/i.test(athleteId)) {
+        setIntakeCompleteOnFile(Boolean(data.intakeComplete));
+        setBookingContextChecked(true);
+        if (
+          athleteId &&
+          /^[0-9a-f-]{36}$/i.test(athleteId) &&
+          selectedAthleteId !== "__new__"
+        ) {
           setSelectedAthleteId(athleteId);
         }
 
@@ -338,7 +378,12 @@ export function BookingForm({
         }
 
         const athletes = data.athletesOnFile ?? [];
-        if (athletes.length === 1 && !form.athleteFirstName.trim()) {
+        if (
+          athletes.length === 1 &&
+          !form.athleteFirstName.trim() &&
+          selectedAthleteId !== "__new__" &&
+          !savedFamily
+        ) {
           const a = athletes[0];
           setForm((prev) => ({
             ...prev,
@@ -350,7 +395,10 @@ export function BookingForm({
           setSelectedAthleteId(a.id);
         }
       } catch {
-        if (!cancelled) setResolvedAthleteId(null);
+        if (!cancelled) {
+          setResolvedAthleteId(null);
+          setBookingContextChecked(true);
+        }
       }
     }
 
@@ -369,6 +417,7 @@ export function BookingForm({
     athleteDob,
     hasValidDob,
     selectedAthleteId,
+    savedFamily,
   ]);
 
   function applyFamily(family: SavedFamily, athlete: SavedAthlete) {
@@ -406,6 +455,12 @@ export function BookingForm({
 
   function onSelectAthlete(athleteId: string) {
     if (!savedFamily) return;
+    if (athleteId === "__select__") {
+      setSelectedAthleteId("");
+      return;
+    }
+    setBookingContextChecked(false);
+    setIntakeCompleteOnFile(false);
     if (athleteId === "__new__") {
       setSelectedAthleteId("__new__");
       setForm((prev) => ({
@@ -498,6 +553,94 @@ export function BookingForm({
 
       if (!rosterCredit && !paymentMethod) {
         toastError("Please select a payment method");
+        return;
+      }
+
+      if (
+        savedFamily &&
+        (!selectedAthleteId ||
+          selectedAthleteId === "__select__")
+      ) {
+        toastError("Select an athlete");
+        return;
+      }
+
+      if (agreementsNeeded && !form.acceptRequiredAgreements) {
+        toastError("Please accept the required agreements");
+        return;
+      }
+
+      if (compactBooking) {
+        const athleteId = selectedAthleteId;
+        if (!isDbAthleteId(athleteId)) {
+          toastError("Select an athlete or complete intake for a new athlete");
+          return;
+        }
+
+        const contact = bookingContactFields();
+        const notesBody = form.healthIssues.trim();
+        const medicalNotes = notesBody || undefined;
+
+        const res = await fetch("/api/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: session.id,
+            ...contact,
+            athleteFirstName: form.athleteFirstName.trim(),
+            athleteLastName: form.athleteLastName.trim(),
+            athleteDob,
+            athleteId,
+            experienceLevel: form.experienceLevel || undefined,
+            medicalNotes,
+            ...(rosterCredit ? {} : { paymentMethod }),
+            acceptRequiredAgreements: agreementsNeeded
+              ? form.acceptRequiredAgreements
+              : true,
+            mediaConsent: form.mediaConsent,
+            rememberFamily: form.rememberFamily,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          toastError(data.error ?? "Booking failed");
+          if (data.code === "SESSION_FULL") {
+            router.push(`/book/${session.id}?waitlist=1`);
+          }
+          if (
+            data.code === "INTAKE_REQUIRED" ||
+            data.code === "WAIVER_RENEWAL_REQUIRED"
+          ) {
+            setIntakeCompleteOnFile(false);
+            toastError(
+              data.code === "WAIVER_RENEWAL_REQUIRED"
+                ? "Please accept the updated waiver below and submit again."
+                : "We need updated intake info — complete the form below.",
+            );
+          }
+          return;
+        }
+
+        clearBookingDraft(session.id);
+        rememberFromForm(athleteId);
+
+        if (data.checkoutUrl) {
+          window.location.href = data.checkoutUrl;
+          return;
+        }
+
+        const q = new URLSearchParams({
+          confirmation: data.confirmationNumber,
+          athlete: `${form.athleteFirstName} ${form.athleteLastName}`,
+          token: data.confirmationToken ?? "",
+        });
+        if (rosterCredit) {
+          q.set("roster", "1");
+        } else if (paymentMethod) {
+          q.set("payment", paymentMethod);
+        }
+        if (data.demo) q.set("demo", "1");
+        router.push(`/book/${session.id}/confirmation?${q.toString()}`);
         return;
       }
 
@@ -663,7 +806,7 @@ export function BookingForm({
 
   if (waitlistMode) {
     return (
-      <form onSubmit={onSubmit} className="booking-form-shell">
+      <form onSubmit={onSubmit} className="booking-form-shell" noValidate>
         <div className="booking-form-session">
           <p className="text-xs font-medium uppercase tracking-widest text-gold">
             Waitlist
@@ -730,7 +873,7 @@ export function BookingForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="booking-form-shell">
+    <form onSubmit={onSubmit} className="booking-form-shell" noValidate>
       <div className="booking-form-session">
         <p className="text-xs font-medium uppercase tracking-widest text-gold">
           Session
@@ -771,21 +914,41 @@ export function BookingForm({
                 Welcome back, {savedFamily.parentFirstName}
               </p>
               <div className="mt-3 space-y-1.5">
-                <Label htmlFor="savedAthlete">Athlete on this device</Label>
+                <Label htmlFor="savedAthlete" required>
+                  Select athlete
+                </Label>
                 <select
                   id="savedAthlete"
                   className="form-select"
-                  value={selectedAthleteId}
+                  required
+                  value={selectedAthleteId || "__select__"}
                   onChange={(e) => onSelectAthlete(e.target.value)}
                 >
+                  <option value="__select__" disabled>
+                    --select athlete--
+                  </option>
                   {savedFamily.athletes.map((athlete) => (
                     <option key={athlete.id} value={athlete.id}>
                       {athlete.firstName} {athlete.lastName}
                     </option>
                   ))}
-                  <option value="__new__">Another athlete</option>
+                  <option value="__new__">New athlete — complete intake</option>
                 </select>
               </div>
+              {awaitingSavedAthleteContext ? (
+                <p className="mt-3 text-sm text-muted-foreground" aria-live="polite">
+                  Loading athlete profile…
+                </p>
+              ) : null}
+              {savedAthleteSelected &&
+              bookingContextChecked &&
+              !intakeCompleteOnFile ? (
+                <p className="mt-3 text-sm text-amber-200/90">
+                  Intake isn&apos;t on file for this athlete yet. Complete the
+                  sections below, or choose &ldquo;New athlete&rdquo; for someone
+                  else.
+                </p>
+              ) : null}
               <button
                 type="button"
                 className="mt-3 text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
@@ -797,6 +960,8 @@ export function BookingForm({
           ) : null}
         </div>
 
+        {showFullRegistration ? (
+          <>
         <div className="booking-form-section">
           <h3 className="booking-form-section-title">Athlete</h3>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -1094,7 +1259,11 @@ export function BookingForm({
             </div>
           </div>
         </div>
+          </>
+        ) : null}
 
+        {showCheckoutSections ? (
+          <>
         {!rosterCredit ? (
           <div className="booking-form-section">
             <h3 className="booking-form-section-title">Payment</h3>
@@ -1198,8 +1367,11 @@ export function BookingForm({
             </label>
           </div>
         </div>
+          </>
+        ) : null}
       </div>
 
+      {showCheckoutSections ? (
       <div className="booking-form-footer">
         <Button
           type="submit"
@@ -1207,14 +1379,23 @@ export function BookingForm({
           className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:min-w-[220px] sm:px-8"
         >
           {submitting
-            ? "Saving & reserving…"
-            : rosterCredit
-              ? "Complete intake & book"
-              : paymentMethod === "stripe"
-                ? "Complete intake & pay"
-                : "Complete intake & join roster"}
+            ? compactBooking
+              ? "Reserving…"
+              : "Saving & reserving…"
+            : compactBooking
+              ? rosterCredit
+                ? "Book session"
+                : paymentMethod === "stripe"
+                  ? "Pay & book"
+                  : "Book session"
+              : rosterCredit
+                ? "Complete intake & book"
+                : paymentMethod === "stripe"
+                  ? "Complete intake & pay"
+                  : "Complete intake & join roster"}
         </Button>
       </div>
+      ) : null}
     </form>
   );
 }
