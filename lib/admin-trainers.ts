@@ -1,12 +1,14 @@
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { TRAINING_STORAGE } from "@/lib/supabase/training-constants";
+import { getTrainingTenantIdOrNull } from "@/lib/tenant/deployment";
 import { FALLBACK_TRAINERS } from "@/lib/fallback-data";
 import type { Trainer } from "@/lib/types/database";
 
-export const TRAINER_PHOTOS_BUCKET = "trainer-photos";
+export const TRAINER_PHOTOS_BUCKET = TRAINING_STORAGE.coachPhotosBucket;
 
 export async function getAdminTrainers(): Promise<Trainer[]> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -14,7 +16,7 @@ export async function getAdminTrainers(): Promise<Trainer[]> {
   }
 
   try {
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const { data, error } = await supabase
       .from(DAWG_TABLES.trainers)
       .select("*")
@@ -55,8 +57,11 @@ export async function uploadTrainerPhoto(
   }
 
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${trainerId}/${Date.now()}.${ext}`;
-  const supabase = createServiceClient();
+  const tenantId = getTrainingTenantIdOrNull();
+  const path = tenantId
+    ? TRAINING_STORAGE.coachPhotoPath(tenantId, trainerId, `${Date.now()}.${ext}`)
+    : `${trainerId}/${Date.now()}.${ext}`;
+  const supabase = createTrainingServiceClient();
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error } = await supabase.storage
@@ -92,7 +97,7 @@ export async function createTrainer(input: {
     return { ok: false, error: "Database unavailable" };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   let displayOrder = input.displayOrder;
   if (displayOrder == null) {
     const { data: existing } = await supabase
@@ -142,7 +147,7 @@ export async function updateTrainer(
     return { ok: false, error: "Database unavailable" };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data, error } = await supabase
     .from(DAWG_TABLES.trainers)
     .update({
@@ -172,7 +177,7 @@ export async function deleteTrainer(
     return { ok: false, error: "Database unavailable" };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { error } = await supabase
     .from(DAWG_TABLES.trainers)
     .delete()

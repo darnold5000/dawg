@@ -10,7 +10,7 @@ import {
   requireFamilySessionApi,
 } from "@/lib/family-auth";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   try {
     if (!(family instanceof NextResponse)) {
       const parsed = loggedInPackageCheckoutSchema.parse(body);
-      const supabase = createServiceClient();
+      const supabase = createTrainingServiceClient();
       const { data: parent } = await supabase
         .from(DAWG_TABLES.parents)
         .select("id, first_name, last_name, email, phone")
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
         const { data: athletes } = await supabase
           .from(DAWG_TABLES.athletes)
           .select("id")
-          .eq("parent_id", family.parentId)
+          .eq("guardian_id", family.parentId)
           .limit(1);
         athleteId = athletes?.[0]?.id ?? null;
       }

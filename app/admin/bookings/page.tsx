@@ -7,7 +7,7 @@ import { getPackageRedemptionsForBookings } from "@/lib/admin-package-redemption
 import { getAdminSessions } from "@/lib/admin-data";
 import { billingTableClassNames, formatMoney } from "@/lib/billing/format";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -27,14 +27,14 @@ export default async function AdminBookingsPage() {
   let bookings: BookingListRow[] = [];
   if (isSupabaseConfigured() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
-      const supabase = createServiceClient();
+      const supabase = createTrainingServiceClient();
       const { data } = await supabase
         .from(DAWG_TABLES.bookings)
         .select(
           `
           *,
-          parent:dawg_parents ( first_name, last_name ),
-          athlete:dawg_athletes ( first_name, last_name )
+          parent:training_guardians ( first_name, last_name ),
+          athlete:training_athletes ( first_name, last_name )
         `,
         )
         .order("booked_at", { ascending: false })

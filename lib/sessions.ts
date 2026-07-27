@@ -1,7 +1,7 @@
 import { addDays, format, parse } from "date-fns";
 import { z } from "zod";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -110,7 +110,7 @@ export async function createSessionsFromForm(
     return { ok: true, ids: [`demo-${crypto.randomUUID()}`] };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const dates = buildOccurrenceDates(
     parsed.session_date,
     parsed.recurrence ?? "none",
@@ -173,7 +173,7 @@ export async function deleteSession(
     return { ok: true, bookingCount: 0 };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { count } = await supabase
     .from(DAWG_TABLES.bookings)
     .select("id", { count: "exact", head: true })
@@ -196,7 +196,7 @@ export async function updateSessionStatus(
     return { ok: true };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { error } = await supabase
     .from(DAWG_TABLES.sessions)
     .update({

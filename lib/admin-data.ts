@@ -1,7 +1,7 @@
 import { addDays, format, parseISO } from "date-fns";
 import {
   createClient,
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -28,7 +28,7 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
 
     if (error || !data) return FALLBACK_SESSIONS;
 
-    const supabaseService = createServiceClient();
+    const supabaseService = createTrainingServiceClient();
     const ids = data.map((s) => s.id);
     const { data: bookings } = await supabaseService
       .from(DAWG_TABLES.bookings)
@@ -116,7 +116,7 @@ export async function getDashboardMetrics() {
 
   if (isSupabaseConfigured() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
-      const supabase = createServiceClient();
+      const supabase = createTrainingServiceClient();
       const [{ data: paidRows }, { count: waitlistCount }] = await Promise.all([
         supabase
           .from(DAWG_TABLES.bookings)
@@ -162,7 +162,7 @@ export async function getSessionRoster(
   }
 
   try {
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const { data } = await supabase
       .from(DAWG_TABLES.bookings)
       .select("*")

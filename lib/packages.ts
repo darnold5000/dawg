@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -110,7 +110,7 @@ export async function listActivePackages(): Promise<TrainingPackage[]> {
     return FALLBACK_PACKAGES;
   }
   try {
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const { data, error } = await supabase
       .from(DAWG_TABLES.packages)
       .select("*")
@@ -137,11 +137,11 @@ export async function listActiveCreditsForParent(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return [];
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.packagePurchases)
-    .select(`*, package:dawg_packages (*)`)
-    .eq("parent_id", parentId)
+    .select(`*, package:training_packages (*)`)
+    .eq("guardian_id", parentId)
     .eq("status", "paid")
     .gt("sessions_remaining", 0)
     .order("paid_at", { ascending: true });
@@ -178,7 +178,7 @@ export async function confirmPackagePurchasePaid(input: {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return { ok: false, error: "Database unavailable" };
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data: existing } = await supabase
     .from(DAWG_TABLES.packagePurchases)
     .select("*")
@@ -219,10 +219,10 @@ export async function getPurchaseById(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.packagePurchases)
-    .select(`*, package:dawg_packages (*)`)
+    .select(`*, package:training_packages (*)`)
     .eq("id", purchaseId)
     .maybeSingle();
   return (data as PackagePurchaseWithPackage) ?? null;
@@ -234,10 +234,10 @@ export async function getPurchaseByCheckoutSession(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.packagePurchases)
-    .select(`*, package:dawg_packages (*)`)
+    .select(`*, package:training_packages (*)`)
     .eq("stripe_checkout_session_id", checkoutSessionId)
     .maybeSingle();
   return (data as PackagePurchaseWithPackage) ?? null;
@@ -249,11 +249,11 @@ export async function listPurchasesForParent(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return [];
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.packagePurchases)
-    .select(`*, package:dawg_packages (*)`)
-    .eq("parent_id", parentId)
+    .select(`*, package:training_packages (*)`)
+    .eq("guardian_id", parentId)
     .order("created_at", { ascending: false });
   return (data as PackagePurchaseWithPackage[]) ?? [];
 }
@@ -289,7 +289,7 @@ export async function redeemPackageCreditOnAttendance(
     return { ok: false, error: "Database unavailable", code: "NO_DB" };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
 
   const { data: booking } = await supabase
     .from(DAWG_TABLES.bookings)
@@ -346,11 +346,11 @@ export async function redeemPackageCreditOnAttendance(
   }
 
   const { data: remaining, error } = await supabase.rpc(
-    "dawg_redeem_package_credit",
+    "training_redeem_package_credit",
     {
       p_purchase_id: purchase.id,
       p_booking_id: bookingId,
-      p_parent_id: booking.parent_id,
+      p_guardian_id: booking.parent_id,
     },
   );
 
@@ -359,7 +359,7 @@ export async function redeemPackageCreditOnAttendance(
     if (message.includes("NO_CREDIT_AVAILABLE")) {
       return { ok: true, redeemed: false, reason: "no_credits" };
     }
-    if (message.includes("unique") || message.includes("dawg_package_redemptions")) {
+    if (message.includes("unique") || message.includes("training_package_redemptions")) {
       return { ok: true, redeemed: false, reason: "already_redeemed" };
     }
     return { ok: false, error: message, code: "REDEEM_FAILED" };
@@ -398,11 +398,11 @@ export async function syncAttendedBookingCredits(parentId: string): Promise<{
     return { ok: true, redeemed: 0, skipped: 0, failed: 0 };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data: bookings } = await supabase
     .from(DAWG_TABLES.bookings)
     .select("id")
-    .eq("parent_id", parentId)
+    .eq("guardian_id", parentId)
     .eq("attendance_status", "attended")
     .order("booked_at", { ascending: true });
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminApi } from "@/lib/auth";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -36,7 +36,7 @@ export async function PATCH(request: Request) {
     }
 
     const { id, ...rest } = body;
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const { error } = await supabase
       .from(DAWG_TABLES.businessSettings)
       .update(rest)

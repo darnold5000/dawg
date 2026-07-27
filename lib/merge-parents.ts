@@ -1,5 +1,5 @@
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -33,8 +33,8 @@ export async function mergeParents(input: {
     };
   }
 
-  const supabase = createServiceClient();
-  const { data, error } = await supabase.rpc("dawg_merge_parents", {
+  const supabase = createTrainingServiceClient();
+  const { data, error } = await supabase.rpc("training_merge_guardians", {
     p_canonical_id: input.canonicalParentId,
     p_duplicate_id: input.duplicateParentId,
   });

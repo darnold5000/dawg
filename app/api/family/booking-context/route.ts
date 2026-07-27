@@ -6,7 +6,7 @@ import {
   totalCreditsRemaining,
 } from "@/lib/packages";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       isSupabaseConfigured() &&
       process.env.SUPABASE_SERVICE_ROLE_KEY
     ) {
-      const supabase = createServiceClient();
+      const supabase = createTrainingServiceClient();
       const { data } = await supabase
         .from(DAWG_TABLES.parents)
         .select("id")

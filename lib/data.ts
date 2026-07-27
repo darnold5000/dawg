@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import {
   createClient,
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -32,7 +32,7 @@ async function bookingCounts(
 ): Promise<Record<string, number>> {
   if (!sessionIds.length || !isSupabaseConfigured()) return {};
   try {
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const { data } = await supabase
       .from(DAWG_TABLES.bookings)
       .select("session_id, status, booking_expires_at")

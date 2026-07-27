@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdminApi } from "@/lib/auth";
 import { generatePrivateSlots } from "@/lib/sessions";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ count: slots.length, demo: true });
     }
 
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const { data: privateType } = await supabase
       .from(DAWG_TABLES.sessionTypes)
       .select("id")

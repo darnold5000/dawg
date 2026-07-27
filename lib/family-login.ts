@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "crypto";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -78,10 +78,10 @@ export async function createFamilyAccessToken(input: {
   const expiresAt = new Date(
     Date.now() + TOKEN_TTL_MINUTES * 60_000,
   ).toISOString();
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
 
   const { error } = await supabase.from(DAWG_TABLES.familyLoginTokens).insert({
-    parent_id: input.parentId,
+    guardian_id: input.parentId,
     token_hash: hashToken(token),
     email: input.email,
     expires_at: expiresAt,
@@ -237,7 +237,7 @@ export async function peekFamilyLoginToken(token: string): Promise<
     return { ok: false, error: "Service unavailable.", code: "NO_DB" };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data: row } = await supabase
     .from(DAWG_TABLES.familyLoginTokens)
     .select("expires_at, used_at, purpose")
@@ -288,13 +288,13 @@ export async function verifyFamilyLoginToken(token: string): Promise<
     return { ok: false, error: "Service unavailable.", code: "NO_DB" };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const tokenHash = hashToken(normalized);
   const now = new Date().toISOString();
 
   const { data: row } = await supabase
     .from(DAWG_TABLES.familyLoginTokens)
-    .select("id, parent_id, expires_at, used_at, purpose")
+    .select("id, parent_id:guardian_id, expires_at, used_at, purpose")
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
@@ -315,7 +315,7 @@ export async function verifyFamilyLoginToken(token: string): Promise<
     .eq("id", row!.id)
     .is("used_at", null)
     .gt("expires_at", now)
-    .select("parent_id")
+    .select("parent_id:guardian_id")
     .maybeSingle();
 
   if (claimError || !claimed) {

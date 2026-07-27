@@ -13,7 +13,7 @@ import {
   sendStaffBookingNotification,
 } from "@/lib/email";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -30,7 +30,7 @@ async function loadBooking(bookingId: string): Promise<Booking | null> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.bookings)
     .select("*")
@@ -41,17 +41,17 @@ async function loadBooking(bookingId: string): Promise<Booking | null> {
 
 async function sendConfirmationOnce(bookingId: string): Promise<void> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) return;
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.bookings)
     .select(
       `
       *,
-      session:dawg_sessions (
+      session:training_sessions (
         title, session_date, start_time, end_time, location_address, trainer_id
       ),
-      parent:dawg_parents ( first_name, last_name, email, phone ),
-      athlete:dawg_athletes ( first_name, last_name )
+      parent:training_guardians ( first_name, last_name, email, phone ),
+      athlete:training_athletes ( first_name, last_name )
     `,
     )
     .eq("id", bookingId)

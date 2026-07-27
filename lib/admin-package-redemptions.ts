@@ -1,5 +1,5 @@
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -18,14 +18,14 @@ export async function getPackageRedemptionsForBookings(
     return map;
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.packageRedemptions)
     .select(
       `
       booking_id,
-      purchase:dawg_package_purchases (
-        package:dawg_packages ( name )
+      purchase:training_package_purchases (
+        package:training_packages ( name )
       )
     `,
     )

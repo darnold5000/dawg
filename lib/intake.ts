@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CURRENT_AGREEMENTS_VERSION } from "@/lib/agreements";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -111,7 +111,7 @@ export async function getAthleteBookingReadinessMap(
     return result;
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.intakeSubmissions)
     .select("athlete_id, agreements_version")
@@ -164,11 +164,11 @@ export async function parentHasAnyIntake(parentId: string): Promise<boolean> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return false;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { count } = await supabase
     .from(DAWG_TABLES.intakeSubmissions)
     .select("id", { count: "exact", head: true })
-    .eq("parent_id", parentId);
+    .eq("guardian_id", parentId);
   return (count ?? 0) > 0;
 }
 
@@ -186,7 +186,7 @@ export async function getIntakeForAthlete(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.intakeSubmissions)
     .select("*")
@@ -204,7 +204,7 @@ export async function getParentEmergencyContacts(parentId: string): Promise<{
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return null;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data: parent } = await supabase
     .from(DAWG_TABLES.parents)
     .select(
@@ -230,7 +230,7 @@ export async function getParentEmergencyContacts(parentId: string): Promise<{
     .select(
       "emergency_contact_1_name, emergency_contact_1_phone, emergency_contact_2_name, emergency_contact_2_phone",
     )
-    .eq("parent_id", parentId)
+    .eq("guardian_id", parentId)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -263,7 +263,7 @@ async function syncParentEmergencyContacts(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return;
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   await supabase
     .from(DAWG_TABLES.parents)
     .update({
@@ -299,7 +299,7 @@ export async function getIntakeFormContext(input: {
     return empty;
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   let parentId = input.parentId ?? null;
 
   if (!parentId && input.email?.trim()) {
@@ -338,7 +338,7 @@ export async function getIntakeFormContext(input: {
       .from(DAWG_TABLES.athletes)
       .select("id, first_name, last_name, date_of_birth, medical_notes")
       .eq("id", athleteId)
-      .eq("parent_id", parentId)
+      .eq("guardian_id", parentId)
       .maybeSingle();
     athleteRow = data;
   } else if (
@@ -349,7 +349,7 @@ export async function getIntakeFormContext(input: {
     const { data: siblings } = await supabase
       .from(DAWG_TABLES.athletes)
       .select("id, first_name, last_name, date_of_birth, medical_notes")
-      .eq("parent_id", parentId);
+      .eq("guardian_id", parentId);
 
     athleteRow =
       (siblings ?? []).find(
@@ -419,11 +419,11 @@ export async function listIntakesForParent(
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return [];
   }
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data } = await supabase
     .from(DAWG_TABLES.intakeSubmissions)
     .select("*")
-    .eq("parent_id", parentId)
+    .eq("guardian_id", parentId)
     .order("created_at", { ascending: false });
   return (data as IntakeSubmission[]) ?? [];
 }
@@ -446,7 +446,7 @@ export async function submitIntake(
     return { ok: false, error: "Database not configured", code: "NO_DB" };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const now = new Date().toISOString();
   const mode = options?.mode ?? "full";
 
@@ -519,7 +519,7 @@ export async function submitIntake(
   const { data: siblings } = await supabase
     .from(DAWG_TABLES.athletes)
     .select("id, first_name, last_name, date_of_birth")
-    .eq("parent_id", parentId);
+    .eq("guardian_id", parentId);
 
   const match = (siblings ?? []).find(
     (a) =>
@@ -556,7 +556,7 @@ export async function submitIntake(
   } else {
     const { data: created, error } = await supabase
       .from(DAWG_TABLES.athletes)
-      .insert({ parent_id: parentId, ...athletePatch })
+      .insert({ guardian_id: parentId, ...athletePatch })
       .select("id")
       .single();
     if (error || !created) {
@@ -581,7 +581,7 @@ export async function submitIntake(
     mode === "waiver-only" && existingIntake
       ? null
       : {
-          parent_id: parentId,
+          guardian_id: parentId,
           athlete_id: athleteId,
           school_grade: input.schoolGrade || null,
           height_weight: input.heightWeight || null,

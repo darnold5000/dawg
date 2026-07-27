@@ -1,9 +1,10 @@
 import { z } from "zod";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { mapBookingRow } from "@/lib/supabase/booking-map";
 import { generateConfirmationNumber } from "@/lib/format";
 import type { Booking, PaymentMethod } from "@/lib/types/database";
 import { markConfirmationEmailSent } from "@/lib/billing/adapter";
@@ -158,7 +159,7 @@ function emptyBookingFields(
 }
 
 async function upsertAthleteForParent(
-  supabase: ReturnType<typeof createServiceClient>,
+  supabase: ReturnType<typeof createTrainingServiceClient>,
   parentId: string,
   input: BookingInput,
 ): Promise<{ athlete: { id: string } | null; error: Error | null }> {
@@ -176,7 +177,7 @@ async function upsertAthleteForParent(
       .from(DAWG_TABLES.athletes)
       .select("id")
       .eq("id", input.athleteId)
-      .eq("parent_id", parentId)
+      .eq("guardian_id", parentId)
       .maybeSingle();
 
     if (owned) {
@@ -193,7 +194,7 @@ async function upsertAthleteForParent(
   const { data: siblings } = await supabase
     .from(DAWG_TABLES.athletes)
     .select("id, first_name, last_name, date_of_birth")
-    .eq("parent_id", parentId);
+    .eq("guardian_id", parentId);
 
   const match = (siblings ?? []).find(
     (a) =>
@@ -217,7 +218,7 @@ async function upsertAthleteForParent(
 
   const { data: created, error } = await supabase
     .from(DAWG_TABLES.athletes)
-    .insert({ parent_id: parentId, ...athletePatch })
+    .insert({ guardian_id: parentId, ...athletePatch })
     .select("id")
     .single();
 
@@ -275,11 +276,11 @@ export async function createPublicBooking(
     };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
 
   const { data: session, error: sessionError } = await supabase
     .from(DAWG_TABLES.sessions)
-    .select("*, program:dawg_programs ( slug )")
+    .select("*, program:training_programs ( slug )")
     .eq("id", input.sessionId)
     .maybeSingle();
 
@@ -411,10 +412,10 @@ export async function createPublicBooking(
   const amountDueCents = rosterCredit ? 0 : Number(session.price_cents);
 
   const { data: booking, error: bookingError } = await supabase.rpc(
-    "dawg_try_create_booking",
+    "training_try_create_session_booking",
     {
       p_session_id: input.sessionId,
-      p_parent_id: parentId,
+      p_guardian_id: parentId,
       p_athlete_id: athlete.id,
       p_confirmation_number: confirmation,
       p_amount_due_cents: amountDueCents,
@@ -438,7 +439,7 @@ export async function createPublicBooking(
     }
     if (
       message.includes("unique") ||
-      message.includes("dawg_bookings_unique_athlete_session") ||
+      message.includes("training_session_bookings_unique_athlete_session") ||
       message.includes("duplicate key")
     ) {
       return {
@@ -462,7 +463,7 @@ export async function createPublicBooking(
         code: "FACILITY_PAYMENT_NOT_ALLOWED",
       };
     }
-    console.error("[bookings] dawg_try_create_booking failed:", bookingError);
+    console.error("[bookings] training_try_create_session_booking failed:", bookingError);
     return {
       ok: false,
       error: "Could not complete booking. Please try again.",
@@ -470,7 +471,10 @@ export async function createPublicBooking(
     };
   }
 
-  const created = booking as Booking;
+  const created = mapBookingRow(booking as Record<string, unknown>);
+  if (!created) {
+    return { ok: false, error: "Could not complete booking. Please try again.", code: "BOOKING_FAILED" };
+  }
 
   await supabase
     .from(DAWG_TABLES.bookings)
@@ -574,7 +578,7 @@ export async function joinWaitlist(
     return { ok: true };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data: existing } = await supabase
     .from(DAWG_TABLES.waitlistEntries)
     .select("position")

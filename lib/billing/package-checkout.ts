@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import { getStripe, isStripeConfigured } from "@/lib/billing/stripe/server";
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
@@ -48,7 +48,7 @@ export async function createPackageCheckout(
     return { ok: false, error: "Package not found", code: "PACKAGE_NOT_FOUND" };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const checkoutEmail = normalizeEmail(input.parentEmail);
 
   let parentId: string | null = input.parentId ?? null;
@@ -82,7 +82,7 @@ export async function createPackageCheckout(
   const { data: purchase, error: purchaseError } = await supabase
     .from(DAWG_TABLES.packagePurchases)
     .insert({
-      parent_id: parentId,
+      guardian_id: parentId,
       package_id: pkg.id,
       athlete_id: athleteId,
       status: "pending",

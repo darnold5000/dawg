@@ -1,10 +1,11 @@
 import {
-  createServiceClient,
+  createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { athleteAgeFromDob } from "@/lib/format";
 import { normalizeEmail } from "@/lib/billing/verified-checkout-email";
+import { parentIdFromRow, mapAthleteRow } from "@/lib/supabase/tenant-row-map";
 import type { Athlete, Booking, Parent } from "@/lib/types/database";
 
 export type ClientAthleteSummary = Pick<
@@ -67,7 +68,7 @@ export async function getClientFamilies(): Promise<ClientFamily[]> {
   }
 
   try {
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const [{ data: parents }, { data: athletes }, { data: bookings }, { data: purchases }] =
       await Promise.all([
         supabase
@@ -78,21 +79,22 @@ export async function getClientFamilies(): Promise<ClientFamily[]> {
         supabase.from(DAWG_TABLES.athletes).select("*"),
         supabase
           .from(DAWG_TABLES.bookings)
-          .select("parent_id, booked_at, status, session:dawg_sessions ( session_date )")
+          .select("guardian_id, booked_at, status, session:training_sessions ( session_date )")
           .in("status", ["pending", "confirmed", "attended", "waitlisted"]),
         supabase
           .from(DAWG_TABLES.packagePurchases)
           .select(
-            "parent_id, sessions_remaining, status, package:dawg_packages ( name )",
+            "guardian_id, sessions_remaining, status, package:training_packages ( name )",
           )
           .eq("status", "paid"),
       ]);
 
     const athletesByParent = new Map<string, ClientAthleteSummary[]>();
-    for (const raw of (athletes ?? []) as Athlete[]) {
-      const list = athletesByParent.get(raw.parent_id) ?? [];
-      list.push(mapAthlete(raw));
-      athletesByParent.set(raw.parent_id, list);
+    for (const raw of (athletes ?? []) as Record<string, unknown>[]) {
+      const athlete = mapAthleteRow(raw);
+      const list = athletesByParent.get(athlete.parent_id) ?? [];
+      list.push(mapAthlete(athlete));
+      athletesByParent.set(athlete.parent_id, list);
     }
 
     const bookingStats = new Map<
@@ -100,7 +102,9 @@ export async function getClientFamilies(): Promise<ClientFamily[]> {
       { count: number; lastBookedAt: string | null; lastSessionDate: string | null }
     >();
     for (const row of bookings ?? []) {
-      const prev = bookingStats.get(row.parent_id) ?? {
+      const pid = parentIdFromRow(row as { guardian_id?: string });
+      if (!pid) continue;
+      const prev = bookingStats.get(pid) ?? {
         count: 0,
         lastBookedAt: null,
         lastSessionDate: null,
@@ -120,7 +124,7 @@ export async function getClientFamilies(): Promise<ClientFamily[]> {
       ) {
         prev.lastSessionDate = sessionDate;
       }
-      bookingStats.set(row.parent_id, prev);
+      bookingStats.set(pid, prev);
     }
 
     const packageStats = new Map<
@@ -128,8 +132,9 @@ export async function getClientFamilies(): Promise<ClientFamily[]> {
       { sessionsRemaining: number; names: string[] }
     >();
     for (const row of purchases ?? []) {
-      if (!row.parent_id) continue;
-      const prev = packageStats.get(row.parent_id) ?? {
+      const pid = parentIdFromRow(row as { guardian_id?: string });
+      if (!pid) continue;
+      const prev = packageStats.get(pid) ?? {
         sessionsRemaining: 0,
         names: [],
       };
@@ -139,7 +144,7 @@ export async function getClientFamilies(): Promise<ClientFamily[]> {
       if (name && remaining > 0 && !prev.names.includes(name)) {
         prev.names.push(name);
       }
-      packageStats.set(row.parent_id, prev);
+      packageStats.set(pid, prev);
     }
 
     return ((parents ?? []) as Parent[]).map((parent) => {
@@ -174,7 +179,7 @@ export async function getClientFamily(
   }
 
   try {
-    const supabase = createServiceClient();
+    const supabase = createTrainingServiceClient();
     const { data: parent } = await supabase
       .from(DAWG_TABLES.parents)
       .select("*")
@@ -188,26 +193,26 @@ export async function getClientFamily(
       supabase
         .from(DAWG_TABLES.athletes)
         .select("*")
-        .eq("parent_id", parentId)
+        .eq("guardian_id", parentId)
         .order("first_name", { ascending: true }),
       supabase
         .from(DAWG_TABLES.bookings)
         .select(
           `
           *,
-          session:dawg_sessions ( id, title, session_date, start_time ),
-          athlete:dawg_athletes ( first_name, last_name )
+          session:training_sessions ( id, title, session_date, start_time ),
+          athlete:training_athletes ( first_name, last_name )
         `,
         )
-        .eq("parent_id", parentId)
+        .eq("guardian_id", parentId)
         .order("booked_at", { ascending: false })
         .limit(50),
       supabase
         .from(DAWG_TABLES.packagePurchases)
         .select(
-          "sessions_remaining, status, package:dawg_packages ( name )",
+          "sessions_remaining, status, package:training_packages ( name )",
         )
-        .eq("parent_id", parentId)
+        .eq("guardian_id", parentId)
         .eq("status", "paid"),
     ]);
 
@@ -273,7 +278,7 @@ export async function createClientFamily(input: {
     return { ok: false, error: "Enter a valid email address.", code: "INVALID_EMAIL" };
   }
 
-  const supabase = createServiceClient();
+  const supabase = createTrainingServiceClient();
   const { data: existing } = await supabase
     .from(DAWG_TABLES.parents)
     .select("id")
@@ -317,7 +322,7 @@ export async function createClientFamily(input: {
     const { data: athlete, error: athleteError } = await supabase
       .from(DAWG_TABLES.athletes)
       .insert({
-        parent_id: parent.id,
+        guardian_id: parent.id,
         first_name: athleteFirst,
         last_name: athleteLast,
         date_of_birth: athleteDob,
