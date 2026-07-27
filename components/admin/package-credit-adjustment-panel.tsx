@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/billing/format";
-import { PACKAGE_CATALOG_SEED_HINT } from "@/lib/packages";
+import { PACKAGE_CATALOG_SEED_HINT } from "@/lib/package-catalog-hints";
 import type {
   PackageCreditAdjustment,
   PackagePurchaseWithPackage,

@@ -6,6 +6,9 @@ import {
 import {
   isTrainingDeploymentConfigured,
 } from "@/lib/tenant/deployment";
+import { PACKAGE_CATALOG_SEED_HINT } from "@/lib/package-catalog-hints";
+
+export { PACKAGE_CATALOG_SEED_HINT } from "@/lib/package-catalog-hints";
 import {
   withTenantInsert,
   withTenantScope,
@@ -74,9 +77,6 @@ const UUID_RE =
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
 }
-
-export const PACKAGE_CATALOG_SEED_HINT =
-  "Run scripts/seed-dawg-training-catalog.sql in the Signal Works Pro SQL editor.";
 
 /** Pro / tenant writes need service role + TRAINING_TENANT_ID — never hobby fallback IDs. */
 function canQueryTrainingPackageCatalog(): boolean {

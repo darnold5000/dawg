@@ -5,7 +5,8 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
-import { getPackageBySlug, PACKAGE_CATALOG_SEED_HINT } from "@/lib/packages";
+import { getPackageBySlug } from "@/lib/packages";
+import { PACKAGE_CATALOG_SEED_HINT } from "@/lib/package-catalog-hints";
 import type { AdapterResult } from "@/lib/billing/types";
 import { getSiteUrl } from "@/lib/billing/site-url";
 import {
