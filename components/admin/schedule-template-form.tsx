@@ -17,6 +17,7 @@ import {
 } from "@/lib/class-display";
 import { formatSessionTime } from "@/lib/format";
 import { timeToHHMM } from "@/lib/session-time";
+import { isUuid } from "@/lib/uuid";
 import type { SessionTemplateWithRelations, Trainer } from "@/lib/types/database";
 import { effectiveTemplateDefaults } from "@/lib/session-template-defaults";
 
@@ -143,7 +144,9 @@ export function ScheduleTemplateForm({
       capacity_override: form.capacity_override
         ? Number(form.capacity_override)
         : null,
-      trainer_id_override: form.trainer_id_override || null,
+      trainer_id_override: isUuid(form.trainer_id_override)
+        ? form.trainer_id_override
+        : null,
       notes_override: form.notes_override || null,
       status: "published" as const,
       skip_duplicates: form.skip_duplicates,
@@ -183,12 +186,12 @@ export function ScheduleTemplateForm({
           );
         } else {
           setPreview(null);
-          setPreviewError(data.error ?? "Could not preview sessions");
+          setPreviewError(data.error ?? null);
         }
       } catch {
         if (!cancelled) {
           setPreview(null);
-          setPreviewError("Could not preview sessions");
+          setPreviewError(null);
         }
       }
     }, 400);

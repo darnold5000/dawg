@@ -9,22 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { classCardHeading, classTimeLabel } from "@/lib/class-display";
-import { formatSessionTime } from "@/lib/format";
-import { effectiveTemplateDefaults } from "@/lib/session-template-defaults";
 import type { SessionTemplateWithRelations } from "@/lib/types/database";
-
-type LinePreview = {
-  template_id: string;
-  template_name: string;
-  count: number;
-  conflicts: number;
-};
-
-type BulkPreview = {
-  total_count: number;
-  lines: LinePreview[];
-  errors: string[];
-};
 
 function defaultEndDate(): string {
   return format(addMonths(new Date(), 4), "yyyy-MM-dd");
@@ -38,8 +23,6 @@ export function WeeklyScheduleWizard({
   const router = useRouter();
   const active = classes.filter((c) => c.is_active);
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<BulkPreview | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(active.map((c) => c.id)),
   );
@@ -58,48 +41,6 @@ export function WeeklyScheduleWizard({
     [selected, session_date, end_date],
   );
 
-  useEffect(() => {
-    if (selected.size === 0 || !session_date || !end_date) {
-      setPreview(null);
-      setPreviewError(null);
-      return;
-    }
-
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch("/api/admin/schedule/bulk/preview", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (cancelled) return;
-        if (res.ok) {
-          setPreview(data.preview);
-          setPreviewError(
-            data.preview.errors?.length
-              ? data.preview.errors.join(" ")
-              : null,
-          );
-        } else {
-          setPreview(null);
-          setPreviewError(data.error ?? "Could not preview schedule");
-        }
-      } catch {
-        if (!cancelled) {
-          setPreview(null);
-          setPreviewError("Could not preview schedule");
-        }
-      }
-    }, 400);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [payload, selected.size, session_date, end_date]);
-
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -112,6 +53,10 @@ export function WeeklyScheduleWizard({
   async function onCreate() {
     if (selected.size === 0) {
       toast.error("Select at least one class");
+      return;
+    }
+    if (!session_date || !end_date) {
+      toast.error("Choose start and end dates");
       return;
     }
     setLoading(true);
@@ -136,8 +81,6 @@ export function WeeklyScheduleWizard({
     }
   }
 
-  const total = preview?.total_count ?? 0;
-
   return (
     <div className="space-y-6">
       <div>
@@ -145,8 +88,8 @@ export function WeeklyScheduleWizard({
           Create standard weekly schedule
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Monday–Friday for every selected class. Skips dates that already have
-          the same class at the same time.
+          Monday–Friday for each selected class. Existing sessions at the same
+          time are skipped — nothing is overwritten.
         </p>
       </div>
 
@@ -223,36 +166,6 @@ export function WeeklyScheduleWizard({
         </div>
       </div>
 
-      {preview && total > 0 ? (
-        <div className="rounded-xl border border-brand/30 bg-brand/5 p-4 text-sm">
-          <p className="font-medium">
-            {total} session{total === 1 ? "" : "s"} ready to create
-          </p>
-          <ul className="mt-2 space-y-1 text-muted-foreground">
-            {preview.lines.map((line) => (
-              <li key={line.template_id}>
-                {line.template_name}: {line.count}
-                {line.conflicts > 0
-                  ? ` (${line.conflicts} skipped)`
-                  : ""}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {previewError ? (
-        <p className="text-sm text-amber-800">{previewError}</p>
-      ) : null}
-
-      {preview && total === 0 && selected.size > 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No new sessions to add — these classes may already be on the schedule
-          for every weekday in this range. Try a different date range or turn off
-          skip-duplicates on a single class.
-        </p>
-      ) : null}
-
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -260,11 +173,7 @@ export function WeeklyScheduleWizard({
           className="bg-brand text-brand-foreground hover:bg-brand/90"
           onClick={onCreate}
         >
-          {loading
-            ? "Working…"
-            : total > 0
-              ? `Create ${total} sessions`
-              : "Create schedule"}
+          {loading ? "Working…" : "Create schedule"}
         </Button>
         <Button type="button" variant="ghost" asChild>
           <Link href="/admin/sessions">Cancel</Link>

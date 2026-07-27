@@ -14,6 +14,7 @@ import {
   getSessionTemplate,
   resolveGroupSessionTypeId,
 } from "@/lib/session-templates";
+import { toUuidOrNull } from "@/lib/uuid";
 import { requireTrainingTenantId } from "@/lib/tenant/deployment";
 import type { PaymentRequirement, SessionStatus } from "@/lib/types/database";
 
@@ -35,8 +36,15 @@ export const templateScheduleSchema = z.object({
     .optional()
     .default([]),
   start_time_override: z.string().min(4).optional().nullable(),
-  trainer_id_override: z.string().uuid().optional().nullable(),
-  capacity_override: z.coerce.number().int().positive().optional().nullable(),
+  trainer_id_override: z.preprocess(
+    toUuidOrNull,
+    z.string().uuid().nullable().optional(),
+  ),
+  capacity_override: z.preprocess(
+    (v) =>
+      v === "" || v === null || v === undefined ? null : v,
+    z.coerce.number().int().positive().optional().nullable(),
+  ),
   price_cents_override: z.coerce.number().int().nonnegative().optional().nullable(),
   notes_override: z.string().max(2000).optional().nullable(),
   status: z

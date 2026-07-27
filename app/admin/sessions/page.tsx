@@ -1,42 +1,43 @@
 import Link from "next/link";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { DeleteSessionButton } from "@/components/admin/delete-session-button";
+import {
+  ScheduleSessionsView,
+  type ScheduleSessionItem,
+} from "@/components/admin/schedule-sessions-view";
 import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { getAdminSessions } from "@/lib/admin-data";
-import {
-  formatScheduleDaySubdate,
-  formatScheduleWeekday,
-  formatSessionTime,
-} from "@/lib/format";
 
-function groupSessionsByDate(
+function toScheduleItems(
   sessions: Awaited<ReturnType<typeof getAdminSessions>>,
-) {
+): ScheduleSessionItem[] {
   const today = new Date().toISOString().slice(0, 10);
-  const upcoming = sessions
+  return sessions
     .filter((s) => s.session_date >= today && s.status !== "cancelled")
     .sort((a, b) => {
       if (a.session_date !== b.session_date) {
         return a.session_date.localeCompare(b.session_date);
       }
       return a.start_time.localeCompare(b.start_time);
-    });
-
-  const byDate = new Map<string, typeof upcoming>();
-  for (const session of upcoming) {
-    const list = byDate.get(session.session_date) ?? [];
-    list.push(session);
-    byDate.set(session.session_date, list);
-  }
-  return { today, upcoming, byDate };
+    })
+    .map((s) => ({
+      id: s.id,
+      session_date: s.session_date,
+      start_time: s.start_time,
+      title: s.title,
+      program_name: s.program?.name ?? null,
+      calendar_color: s.program?.calendar_color ?? null,
+      capacity: s.capacity,
+      booked_count: s.booked_count ?? 0,
+      trainer_name: s.trainer?.name ?? null,
+    }));
 }
 
 export default async function AdminSessionsPage() {
   const profile = await requireStaff();
   const sessions = await getAdminSessions();
-  const { today, upcoming, byDate } = groupSessionsByDate(sessions);
-  const displayDates = [...byDate.keys()].slice(0, 14);
+  const today = new Date().toISOString().slice(0, 10);
+  const items = toScheduleItems(sessions);
 
   return (
     <AdminShell profile={profile}>
@@ -49,7 +50,8 @@ export default async function AdminSessionsPage() {
               <Link href="/admin/classes" className="text-brand underline">
                 classes
               </Link>{ " "}
-              for parents to book.
+              for parents to book. Standard weekly setup skips duplicate times
+              (does not override existing sessions).
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -60,18 +62,12 @@ export default async function AdminSessionsPage() {
               <Link href="/admin/sessions/weekly">Standard weekly setup</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/admin/sessions/add">+ Add class</Link>
-            </Button>
-            <Button asChild variant="outline">
               <Link href="/admin/sessions/manage">Manage schedules</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/admin/sessions/new">Manual session</Link>
             </Button>
           </div>
         </div>
 
-        {upcoming.length === 0 ? (
+        {items.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-muted/20 p-10 text-center">
             <p className="font-medium">No classes on your schedule yet</p>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -94,88 +90,18 @@ export default async function AdminSessionsPage() {
               <Link href="/admin/classes/new" className="text-brand underline">
                 Create a class
               </Link>{ " "}
-              first.
+              first. Private lessons:{" "}
+              <Link
+                href="/admin/programs#private-lessons"
+                className="text-brand underline"
+              >
+                Programs
+              </Link>
+              .
             </p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {displayDates.map((dateKey) => {
-              const daySessions = byDate.get(dateKey) ?? [];
-              const isToday = dateKey === today;
-              return (
-                <section key={dateKey} className="space-y-3">
-                  <div>
-                    <h3 className="font-heading text-lg tracking-widest">
-                      {formatScheduleWeekday(dateKey)}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {formatScheduleDaySubdate(dateKey)}
-                      {isToday ? " · Today" : ""}
-                    </p>
-                  </div>
-                  <div className="grid gap-2">
-                    {daySessions.map((session) => {
-                      const color = session.program?.calendar_color;
-                      return (
-                        <div
-                          key={session.id}
-                          className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                        >
-                          <div className="min-w-0 space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              {color ? (
-                                <span
-                                  className="inline-block h-3 w-3 rounded-full"
-                                  style={{ backgroundColor: color }}
-                                  aria-hidden
-                                />
-                              ) : null}
-                              <span className="font-medium tabular-nums">
-                                {formatSessionTime(session.start_time)}
-                              </span>
-                              <span className="font-heading tracking-wide">
-                                {session.program?.name ?? session.title}
-                              </span>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {session.booked_count ?? 0}/{session.capacity}{" "}
-                              booked
-                              {session.trainer?.name
-                                ? ` · ${session.trainer.name}`
-                                : ""}
-                            </p>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <Button asChild variant="outline" size="sm">
-                              <Link href={`/admin/sessions/${session.id}/roster`}>
-                                Roster
-                              </Link>
-                            </Button>
-                            <Button asChild variant="outline" size="sm">
-                              <Link href={`/admin/sessions/${session.id}/edit`}>
-                                Edit
-                              </Link>
-                            </Button>
-                            <DeleteSessionButton
-                              sessionId={session.id}
-                              title={session.title}
-                              bookedCount={session.booked_count ?? 0}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
-            {byDate.size > displayDates.length ? (
-              <p className="text-sm text-muted-foreground">
-                Showing the next {displayDates.length} days with sessions. Older
-                or later dates are still on the public schedule.
-              </p>
-            ) : null}
-          </div>
+          <ScheduleSessionsView sessions={items} today={today} />
         )}
       </div>
     </AdminShell>
