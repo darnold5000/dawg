@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { createPackageCheckout } from "@/lib/billing/package-checkout";
 import {
+  createPackagePayAtFacilityPurchase,
   loggedInPackageCheckoutSchema,
   publicPackageCheckoutSchema,
 } from "@/lib/packages";
@@ -67,6 +68,28 @@ export async function POST(request: Request) {
         athleteId = athletes?.[0]?.id ?? null;
       }
 
+      if (parsed.paymentMethod === "pay_at_facility") {
+        const facility = await createPackagePayAtFacilityPurchase({
+          packageSlug: parsed.packageSlug,
+          parentId: family.parentId,
+          athleteId,
+          parentFirstName: parent.first_name ?? family.parentFirstName,
+          parentLastName: parent.last_name ?? family.parentLastName,
+          parentEmail: parent.email,
+          parentPhone: parent.phone ?? family.parentPhone,
+        });
+        if (!facility.ok) {
+          return NextResponse.json(
+            { error: facility.error, code: facility.code },
+            { status: 400 },
+          );
+        }
+        return NextResponse.json({
+          purchaseId: facility.purchaseId,
+          payAtFacility: true,
+        });
+      }
+
       const result = await createPackageCheckout({
         packageSlug: parsed.packageSlug,
         parentId: family.parentId,
@@ -93,6 +116,27 @@ export async function POST(request: Request) {
     }
 
     const parsed = publicPackageCheckoutSchema.parse(body);
+
+    if (parsed.paymentMethod === "pay_at_facility") {
+      const facility = await createPackagePayAtFacilityPurchase({
+        packageSlug: parsed.packageSlug,
+        parentFirstName: parsed.parentFirstName,
+        parentLastName: parsed.parentLastName,
+        parentEmail: parsed.parentEmail,
+        parentPhone: parsed.parentPhone,
+      });
+      if (!facility.ok) {
+        return NextResponse.json(
+          { error: facility.error, code: facility.code },
+          { status: 400 },
+        );
+      }
+      return NextResponse.json({
+        purchaseId: facility.purchaseId,
+        payAtFacility: true,
+      });
+    }
+
     const result = await createPackageCheckout({
       packageSlug: parsed.packageSlug,
       parentFirstName: parsed.parentFirstName,

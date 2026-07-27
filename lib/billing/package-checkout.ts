@@ -12,6 +12,7 @@ import {
   findOrCreateParentByEmail,
   normalizeEmail,
 } from "@/lib/parent-account";
+import { withTenantInsert } from "@/lib/supabase/training-scope";
 
 export type CreatePackageCheckoutInput = {
   packageSlug: "single" | "pack-10" | "pack-20";
@@ -45,7 +46,12 @@ export async function createPackageCheckout(
 
   const pkg = await getPackageBySlug(input.packageSlug);
   if (!pkg || !pkg.active) {
-    return { ok: false, error: "Package not found", code: "PACKAGE_NOT_FOUND" };
+    return {
+      ok: false,
+      error:
+        "Package not found in the catalog. Run scripts/seed-dawg-training-catalog.sql on Pro.",
+      code: "PACKAGE_NOT_FOUND",
+    };
   }
 
   const supabase = createTrainingServiceClient();
@@ -81,16 +87,18 @@ export async function createPackageCheckout(
 
   const { data: purchase, error: purchaseError } = await supabase
     .from(DAWG_TABLES.packagePurchases)
-    .insert({
-      guardian_id: parentId,
-      package_id: pkg.id,
-      athlete_id: athleteId,
-      status: "pending",
-      sessions_total: pkg.session_count,
-      sessions_remaining: 0,
-      amount_paid_cents: 0,
-      currency: pkg.currency,
-    })
+    .insert(
+      withTenantInsert({
+        guardian_id: parentId,
+        package_id: pkg.id,
+        athlete_id: athleteId,
+        status: "pending",
+        sessions_total: pkg.session_count,
+        sessions_remaining: 0,
+        amount_paid_cents: 0,
+        currency: pkg.currency,
+      }),
+    )
     .select("*")
     .single();
 
