@@ -691,8 +691,8 @@ export async function listPaymentTransactions(
 }
 
 /**
- * Idempotent Stripe event claim.
- * Returns whether this worker should process the event.
+ * Idempotent Stripe event claim (scoped by TRAINING_TENANT_ID via service client).
+ * Uniqueness is (tenant_id, stripe_event_id) on training_stripe_events.
  */
 export async function claimStripeEvent(input: {
   stripeEventId: string;

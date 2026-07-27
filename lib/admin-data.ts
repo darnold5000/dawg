@@ -5,6 +5,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { mapAthleteRow, mapBookingRows } from "@/lib/supabase/tenant-row-map";
 import { FALLBACK_SESSIONS } from "@/lib/fallback-data";
 import type {
   BookingWithRelations,
@@ -169,7 +170,7 @@ export async function getSessionRoster(
       .eq("session_id", sessionId)
       .order("booked_at");
 
-    const bookings = (data ?? []) as BookingWithRelations[];
+    const bookings = mapBookingRows((data ?? []) as Record<string, unknown>[]);
     const parentIds = [...new Set(bookings.map((b) => b.parent_id))];
     const athleteIds = [...new Set(bookings.map((b) => b.athlete_id))];
 
@@ -178,10 +179,15 @@ export async function getSessionRoster(
       supabase.from(DAWG_TABLES.athletes).select("*").in("id", athleteIds),
     ]);
 
-    const enriched = bookings.map((b) => ({
+    const enriched: BookingWithRelations[] = bookings.map((b) => ({
       ...b,
-      parent: parents?.find((p) => p.id === b.parent_id),
-      athlete: athletes?.find((a) => a.id === b.athlete_id),
+      parent: parents?.find((p) => p.id === b.parent_id) ?? null,
+      athlete:
+        mapAthleteRow(
+          (athletes?.find((a) => a.id === b.athlete_id) ?? {
+            id: b.athlete_id,
+          }) as Record<string, unknown>,
+        ) ?? null,
       session: session ?? undefined,
     }));
 

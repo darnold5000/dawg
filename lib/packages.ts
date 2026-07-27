@@ -4,6 +4,11 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import {
+  mapBookingRow,
+  mapPackagePurchaseRow,
+  mapPackagePurchaseRows,
+} from "@/lib/supabase/tenant-row-map";
 import type {
   PackagePurchase,
   PackagePurchaseWithPackage,
@@ -146,7 +151,9 @@ export async function listActiveCreditsForParent(
     .gt("sessions_remaining", 0)
     .order("paid_at", { ascending: true });
 
-  const rows = (data as PackagePurchaseWithPackage[]) ?? [];
+  const rows = mapPackagePurchaseRows(
+    (data ?? []) as Record<string, unknown>[],
+  ) as PackagePurchaseWithPackage[];
   if (!athleteId) return rows;
 
   const preferred = rows.filter(
@@ -186,7 +193,7 @@ export async function confirmPackagePurchasePaid(input: {
     .maybeSingle();
 
   if (!existing) return { ok: false, error: "Purchase not found" };
-  const current = existing as PackagePurchase;
+  const current = mapPackagePurchaseRow(existing as Record<string, unknown>);
   if (current.status === "paid") {
     return { ok: true, purchase: current };
   }
@@ -210,7 +217,7 @@ export async function confirmPackagePurchasePaid(input: {
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Could not confirm purchase" };
   }
-  return { ok: true, purchase: data as PackagePurchase };
+  return { ok: true, purchase: mapPackagePurchaseRow(data as Record<string, unknown>) };
 }
 
 export async function getPurchaseById(
@@ -225,7 +232,9 @@ export async function getPurchaseById(
     .select(`*, package:training_packages (*)`)
     .eq("id", purchaseId)
     .maybeSingle();
-  return (data as PackagePurchaseWithPackage) ?? null;
+  return data
+    ? (mapPackagePurchaseRow(data as Record<string, unknown>) as PackagePurchaseWithPackage)
+    : null;
 }
 
 export async function getPurchaseByCheckoutSession(
@@ -240,7 +249,9 @@ export async function getPurchaseByCheckoutSession(
     .select(`*, package:training_packages (*)`)
     .eq("stripe_checkout_session_id", checkoutSessionId)
     .maybeSingle();
-  return (data as PackagePurchaseWithPackage) ?? null;
+  return data
+    ? (mapPackagePurchaseRow(data as Record<string, unknown>) as PackagePurchaseWithPackage)
+    : null;
 }
 
 export async function listPurchasesForParent(
@@ -291,14 +302,17 @@ export async function redeemPackageCreditOnAttendance(
 
   const supabase = createTrainingServiceClient();
 
-  const { data: booking } = await supabase
+  const { data: bookingRow } = await supabase
     .from(DAWG_TABLES.bookings)
     .select(
-      "id, parent_id, athlete_id, attendance_status, payment_status, payment_method",
+      "id, parent_id:guardian_id, athlete_id, attendance_status, payment_status, payment_method",
     )
     .eq("id", bookingId)
     .maybeSingle();
 
+  const booking = mapBookingRow(
+    (bookingRow ?? null) as Record<string, unknown> | null,
+  );
   if (!booking) {
     return { ok: false, error: "Booking not found", code: "NOT_FOUND" };
   }
