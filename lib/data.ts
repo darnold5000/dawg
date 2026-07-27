@@ -5,6 +5,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { COACH_AVERY } from "@/lib/content/coach-avery";
 import {
   FALLBACK_PROGRAMS,
   FALLBACK_REVIEWS,
@@ -110,9 +111,27 @@ export async function getPrograms(): Promise<Program[]> {
   }
 }
 
+function withCanonicalCoachCopy(trainers: Trainer[]): Trainer[] {
+  return trainers.map((t) => {
+    if (!t.name.toLowerCase().includes("avery")) return t;
+    return {
+      ...t,
+      name: COACH_AVERY.name,
+      title: COACH_AVERY.title,
+      bio: COACH_AVERY.bio,
+      photo_url: t.photo_url ?? COACH_AVERY.photoPath,
+    };
+  });
+}
+
 export async function getTrainers(): Promise<Trainer[]> {
+  const visible = (list: Trainer[]) =>
+    withCanonicalCoachCopy(
+      list.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name)),
+    );
+
   if (!isSupabaseConfigured()) {
-    return FALLBACK_TRAINERS.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name));
+    return visible(FALLBACK_TRAINERS);
   }
   try {
     const supabase = await createClient();
@@ -122,13 +141,11 @@ export async function getTrainers(): Promise<Trainer[]> {
       .eq("active", true)
       .order("display_order");
     if (error || !data?.length) {
-      return FALLBACK_TRAINERS.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name));
+      return visible(FALLBACK_TRAINERS);
     }
-    return (data as Trainer[]).filter(
-      (t) => !HIDDEN_TRAINER_NAMES.has(t.name),
-    );
+    return visible(data as Trainer[]);
   } catch {
-    return FALLBACK_TRAINERS.filter((t) => !HIDDEN_TRAINER_NAMES.has(t.name));
+    return visible(FALLBACK_TRAINERS);
   }
 }
 

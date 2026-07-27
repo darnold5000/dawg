@@ -1,4 +1,5 @@
 import { addDays, format } from "date-fns";
+import { COACH_AVERY } from "@/lib/content/coach-avery";
 import type {
   BusinessSettings,
   Program,
@@ -66,10 +67,10 @@ export const FALLBACK_TRAINERS: Trainer[] = [
   {
     id: "trainer-1",
     profile_id: null,
-    name: "Coach Avery",
-    title: "Owner / Head Trainer",
-    bio: "Coach Avery leads DAWG Youth Training in Mooresville, helping athletes build strength, speed, agility, and confidence in a positive, high-energy room. He focuses on developing physical skills and mental toughness—from Little Dawgs through Big Dawgs and collegiate athletes—so kids show up stronger in training, competition, and everyday life.",
-    photo_url: "/images/dawg/trainers/coach-avery.png",
+    name: COACH_AVERY.name,
+    title: COACH_AVERY.title,
+    bio: COACH_AVERY.bio,
+    photo_url: COACH_AVERY.photoPath,
     specialties: ["Speed", "Agility", "Youth Athletic Development"],
     certifications: [],
     coaching_experience: "Youth athletic training in Mooresville, Indiana",

@@ -21,8 +21,8 @@ export default async function AboutPage() {
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
-        <div className="grid items-center gap-10 lg:grid-cols-2">
-          <div>
+        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-12">
+          <div className="min-w-0">
             <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand">
               About DAWG
             </p>
@@ -47,15 +47,18 @@ export default async function AboutPage() {
               <Link href="/schedule">View Training Schedule</Link>
             </Button>
           </div>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-ink">
-            <Image
-              src="/images/dawg/about/training-action.png"
-              alt="DAWG athletes training agility on the turf in Mooresville"
-              fill
-              className="object-cover object-center"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              priority
-            />
+          <div className="flex justify-center lg:justify-end">
+            <div className="relative w-full max-w-sm overflow-hidden rounded-xl bg-ink p-2 sm:max-w-md lg:max-w-none lg:w-full">
+              <Image
+                src="/images/dawg/about/training-action.png"
+                alt="DAWG athletes training agility on the turf in Mooresville"
+                width={621}
+                height={1024}
+                className="h-auto w-full object-contain"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                priority
+              />
+            </div>
           </div>
         </div>
       </section>

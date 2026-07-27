@@ -1,4 +1,9 @@
 -- Migration 006: Training vertical storage (tenant-prefixed coach photos).
+--
+-- Hosted Signal Works Pro: SQL Editor often returns
+--   ERROR 42501: must be owner of table buckets
+-- for the INSERT below. Use Dashboard bucket + 006b instead (see 006b header).
+-- Self-hosted / roles with storage ownership may run this file as-is.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -14,6 +19,7 @@ set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
+-- Policies (duplicate in 006b for hosted Pro when bucket INSERT fails).
 drop policy if exists training_public_read_coach_photos on storage.objects;
 create policy training_public_read_coach_photos
   on storage.objects for select
@@ -32,6 +38,3 @@ create policy training_admin_manage_coach_photos
     and (storage.foldername(name))[1] is not null
     and public.training_is_admin((storage.foldername(name))[1]::uuid)
   );
-
-comment on table storage.buckets is
-  'training-coach-photos paths: {tenant_id}/coaches/{coach_id}/...';

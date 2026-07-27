@@ -28,8 +28,8 @@ export function HomeTrainers({
             </h2>
           </div>
 
-          <div className="mt-10 grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
-            <div>
+          <div className="mt-10 grid items-start gap-10 lg:grid-cols-2 lg:gap-14">
+            <div className="min-w-0 flex flex-col justify-center lg:pr-2">
               <h3 className="font-heading text-3xl tracking-wide md:text-4xl">
                 {trainer.name}
               </h3>
@@ -39,7 +39,7 @@ export function HomeTrainers({
                 </p>
               ) : null}
               {trainer.bio ? (
-                <p className="mt-5 text-base leading-relaxed text-white/80 md:text-lg">
+                <p className="mt-5 whitespace-pre-line text-base leading-relaxed text-white/85 md:text-[1.05rem] md:leading-7">
                   {trainer.bio}
                 </p>
               ) : null}
@@ -49,17 +49,18 @@ export function HomeTrainers({
                 </p>
               ) : null}
             </div>
-            <div>
-              <div className="relative mx-auto aspect-[3/4] w-full max-w-md overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-2xl lg:mx-0 lg:ml-auto lg:max-w-none">
+            <div className="flex justify-center lg:justify-end">
+              <div className="relative w-full max-w-xs overflow-hidden rounded-xl border border-white/10 bg-black/50 p-2 shadow-2xl sm:max-w-sm lg:max-w-md">
                 <Image
                   src={
                     trainer.photo_url ??
                     "/images/dawg/trainers/placeholder.svg"
                   }
                   alt={`Photo of ${trainer.name}`}
-                  fill
-                  className="object-cover object-top"
-                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  width={554}
+                  height={1024}
+                  className="h-auto w-full object-contain"
+                  sizes="(max-width: 1024px) 85vw, 28vw"
                   priority
                 />
               </div>
@@ -92,7 +93,7 @@ export function HomeTrainers({
                 src={t.photo_url ?? "/images/dawg/trainers/placeholder.svg"}
                 alt={`Photo of ${t.name}`}
                 fill
-                className="object-cover object-top"
+                className="object-contain object-center p-1"
                 sizes="(max-width: 768px) 100vw, 33vw"
               />
             </div>
