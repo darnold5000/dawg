@@ -388,6 +388,26 @@ export async function confirmPackagePurchasePaid(input: {
   if (!existing) return { ok: false, error: "Purchase not found" };
   const current = mapPackagePurchaseRow(existing as Record<string, unknown>);
   if (current.status === "paid") {
+    if (
+      current.sessions_total > 0 &&
+      current.sessions_remaining < current.sessions_total
+    ) {
+      const { data: repaired, error: repairError } = await supabase
+        .from(DAWG_TABLES.packagePurchases)
+        .update({
+          sessions_remaining: current.sessions_total,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", input.purchaseId)
+        .select("*")
+        .single();
+      if (!repairError && repaired) {
+        return {
+          ok: true,
+          purchase: mapPackagePurchaseRow(repaired as Record<string, unknown>),
+        };
+      }
+    }
     return { ok: true, purchase: current };
   }
 

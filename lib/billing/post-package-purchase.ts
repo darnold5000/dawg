@@ -29,6 +29,48 @@ function contactFromMetadata(session: Stripe.Checkout.Session) {
 }
 
 /**
+ * Guest checkout leaves guardian_id null until Stripe verifies email.
+ * DB requires guardian_id before status = paid — call this before confirmPackagePurchasePaid.
+ */
+export async function ensurePackagePurchaseParentFromStripe(
+  purchaseId: string,
+  stripeSession: Stripe.Checkout.Session,
+): Promise<{ ok: true; parentId: string } | { ok: false; error: string }> {
+  const verifiedEmail = verifiedCheckoutEmail(stripeSession);
+  if (!verifiedEmail) {
+    return { ok: false, error: "Missing verified email on Checkout session" };
+  }
+
+  const purchaseBefore = await getPurchaseById(purchaseId);
+  if (!purchaseBefore) {
+    return { ok: false, error: "Purchase not found" };
+  }
+
+  const contact = contactFromMetadata(stripeSession);
+  const provisionalParent = purchaseBefore.parent_id
+    ? await getParentById(purchaseBefore.parent_id)
+    : null;
+
+  const parent = await findOrCreateParentByEmail({
+    email: verifiedEmail,
+    firstName: contact.firstName || provisionalParent?.first_name || "DAWG",
+    lastName: contact.lastName || provisionalParent?.last_name || "Family",
+    phone: contact.phone || provisionalParent?.phone || "",
+    requirePhone: false,
+  });
+
+  if (!parent) {
+    return { ok: false, error: "Could not resolve parent for purchase" };
+  }
+
+  if (parent.id !== purchaseBefore.parent_id) {
+    await reassignPackagePurchaseParent(purchaseId, parent.id);
+  }
+
+  return { ok: true, parentId: parent.id };
+}
+
+/**
  * After Stripe confirms payment, attach the purchase to the verified checkout
  * email only (never the pre-checkout form email) and send claim / login email.
  */
@@ -36,16 +78,15 @@ export async function handlePostPackagePurchase(input: {
   purchaseId: string;
   stripeSession: Stripe.Checkout.Session;
 }): Promise<void> {
-  const verifiedEmail = verifiedCheckoutEmail(input.stripeSession);
-  if (!verifiedEmail) {
-    console.error(
-      "[post-package-purchase] missing verified email",
-      input.purchaseId,
-    );
+  const ensured = await ensurePackagePurchaseParentFromStripe(
+    input.purchaseId,
+    input.stripeSession,
+  );
+  if (!ensured.ok) {
+    console.error("[post-package-purchase]", ensured.error, input.purchaseId);
     return;
   }
 
-  const contact = contactFromMetadata(input.stripeSession);
   const purchaseBefore = await getPurchaseById(input.purchaseId);
   if (!purchaseBefore) {
     console.error("[post-package-purchase] purchase not found", input.purchaseId);
@@ -56,37 +97,10 @@ export async function handlePostPackagePurchase(input: {
     return;
   }
 
-  const provisionalParent = purchaseBefore.parent_id
-    ? await getParentById(purchaseBefore.parent_id)
-    : null;
-
-  // Ownership is determined solely by Stripe's verified email — not the form.
-  const parent = await findOrCreateParentByEmail({
-    email: verifiedEmail,
-    firstName: contact.firstName || provisionalParent?.first_name || "DAWG",
-    lastName: contact.lastName || provisionalParent?.last_name || "Family",
-    phone: contact.phone || provisionalParent?.phone || "",
-  });
-
+  const parent = await getParentById(ensured.parentId);
   if (!parent) {
-    console.error("[post-package-purchase] could not resolve parent");
+    console.error("[post-package-purchase] parent not found", ensured.parentId);
     return;
-  }
-
-  if (parent.id !== purchaseBefore.parent_id) {
-    if (purchaseBefore.parent_id && provisionalParent) {
-      console.info(
-        "[post-package-purchase] reassigned purchase from form parent to Stripe-verified parent",
-        {
-          purchaseId: input.purchaseId,
-          from: purchaseBefore.parent_id,
-          to: parent.id,
-          formEmail: provisionalParent.email,
-          verifiedEmail,
-        },
-      );
-    }
-    await reassignPackagePurchaseParent(input.purchaseId, parent.id);
   }
 
   const purchase = await getPurchaseById(input.purchaseId);

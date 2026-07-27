@@ -19,7 +19,9 @@ function allowedPaymentMethods(requirement) {
 function defaultPaymentMethod(requirement) {
   const allowed = allowedPaymentMethods(requirement);
   if (allowed.length === 1) return allowed[0];
-  return null;
+  if (allowed.includes("stripe")) return "stripe";
+  if (allowed.includes("pay_at_facility")) return "pay_at_facility";
+  return allowed[0] ?? null;
 }
 
 function isHoldActive(booking) {
@@ -47,8 +49,8 @@ assert(
   "pay_online defaults to stripe (not facility)",
 );
 assert(
-  defaultPaymentMethod("online_or_facility") === null,
-  "online_or_facility does not silently default",
+  defaultPaymentMethod("online_or_facility") === "stripe",
+  "online_or_facility defaults to pay online when both are allowed",
 );
 assert(
   defaultPaymentMethod("pay_at_facility") === "pay_at_facility",

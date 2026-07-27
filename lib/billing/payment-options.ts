@@ -1,8 +1,21 @@
 import type { PaymentMethod, PaymentRequirement } from "@/lib/types/database";
 
-/** Set `NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED=true` when Stripe checkout is live. */
+/**
+ * Online card checkout (Stripe). Explicit opt-out: NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED=false
+ * Opt-in: NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED=true, or Stripe keys present at build/runtime.
+ */
 export function isOnlineCardPaymentEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED === "true";
+  const flag = process.env.NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED?.trim().toLowerCase();
+  if (flag === "false" || flag === "0" || flag === "no") return false;
+  if (flag === "true" || flag === "1" || flag === "yes") return true;
+
+  const hasPublishable = Boolean(
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim(),
+  );
+  if (typeof window !== "undefined") {
+    return hasPublishable;
+  }
+  return hasPublishable && Boolean(process.env.STRIPE_SECRET_KEY?.trim());
 }
 
 export function allowedPaymentMethods(
@@ -36,6 +49,7 @@ export function defaultPaymentMethod(
 ): PaymentMethod | null {
   const selectable = selectablePaymentMethods(requirement);
   if (selectable.length === 1) return selectable[0];
+  if (selectable.includes("stripe")) return "stripe";
   if (selectable.includes("pay_at_facility")) return "pay_at_facility";
   return selectable[0] ?? null;
 }

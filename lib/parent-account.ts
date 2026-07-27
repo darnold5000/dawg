@@ -61,8 +61,10 @@ export async function getParentByEmail(
       "id, first_name, last_name, email, phone, account_claimed_at, account_invite_sent_at",
     )
     .ilike("email", normalized)
-    .maybeSingle();
-  return (data as ParentRow) ?? null;
+    .order("created_at", { ascending: true })
+    .limit(1);
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row as ParentRow) ?? null;
 }
 
 async function findParentsByPhoneSuffix(

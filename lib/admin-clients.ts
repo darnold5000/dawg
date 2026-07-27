@@ -62,6 +62,75 @@ function mapAthlete(a: Athlete): ClientAthleteSummary {
   };
 }
 
+/** One row per email in admin list; sums credits/bookings across duplicate parent records. */
+function dedupeFamiliesByEmail(families: ClientFamily[]): ClientFamily[] {
+  const byEmail = new Map<string, ClientFamily>();
+
+  for (const family of families) {
+    const key = normalizeEmail(family.parent.email) || family.parent.id;
+    const existing = byEmail.get(key);
+    if (!existing) {
+      byEmail.set(key, family);
+      continue;
+    }
+
+    const keepCurrent =
+      family.parent.created_at < existing.parent.created_at
+        ? family
+        : existing;
+    const other = keepCurrent === family ? existing : family;
+
+    const athleteIds = new Set(keepCurrent.athletes.map((a) => a.id));
+    const mergedAthletes = [
+      ...keepCurrent.athletes,
+      ...other.athletes.filter((a) => !athleteIds.has(a.id)),
+    ];
+    mergedAthletes.sort((a, b) =>
+      a.first_name.localeCompare(b.first_name, undefined, {
+        sensitivity: "base",
+      }),
+    );
+
+    const names = new Set<string>();
+    for (const n of [
+      keepCurrent.packageSummary,
+      other.packageSummary,
+    ].filter(Boolean) as string[]) {
+      for (const part of n.split(",").map((s) => s.trim())) {
+        if (part) names.add(part);
+      }
+    }
+
+    const lastBookedAt =
+      [keepCurrent.lastBookedAt, other.lastBookedAt]
+        .filter(Boolean)
+        .sort()
+        .pop() ?? null;
+    const lastSessionDate =
+      [keepCurrent.lastSessionDate, other.lastSessionDate]
+        .filter(Boolean)
+        .sort()
+        .pop() ?? null;
+
+    byEmail.set(key, {
+      parent: keepCurrent.parent,
+      athletes: mergedAthletes,
+      bookingCount: keepCurrent.bookingCount + other.bookingCount,
+      lastBookedAt,
+      sessionsRemaining:
+        keepCurrent.sessionsRemaining + other.sessionsRemaining,
+      packageSummary: names.size ? [...names].join(", ") : null,
+      lastSessionDate,
+    });
+  }
+
+  return [...byEmail.values()].sort((a, b) =>
+    a.parent.last_name.localeCompare(b.parent.last_name, undefined, {
+      sensitivity: "base",
+    }),
+  );
+}
+
 export async function getClientFamilies(): Promise<ClientFamily[]> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return [];
@@ -147,7 +216,7 @@ export async function getClientFamilies(): Promise<ClientFamily[]> {
       packageStats.set(pid, prev);
     }
 
-    return ((parents ?? []) as Parent[]).map((parent) => {
+    const families = ((parents ?? []) as Parent[]).map((parent) => {
       const stats = bookingStats.get(parent.id);
       const pkg = packageStats.get(parent.id);
       const familyAthletes = athletesByParent.get(parent.id) ?? [];
@@ -166,6 +235,8 @@ export async function getClientFamilies(): Promise<ClientFamily[]> {
         lastSessionDate: stats?.lastSessionDate ?? null,
       };
     });
+
+    return dedupeFamiliesByEmail(families);
   } catch {
     return [];
   }
@@ -346,29 +417,58 @@ export async function createClientFamily(input: {
 export async function deleteClientFamily(
   parentId: string,
 ): Promise<
-  | { ok: true; bookingCount: number }
+  | { ok: true; bookingCount: number; parentsRemoved: number }
   | { ok: false; error: string; code?: string }
 > {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return { ok: true, bookingCount: 0 };
+    return { ok: true, bookingCount: 0, parentsRemoved: 0 };
   }
 
   const supabase = createTrainingServiceClient();
 
-  const { data: parent } = await supabase
+  const { data: anchor, error: anchorError } = await supabase
     .from(DAWG_TABLES.parents)
-    .select("id")
+    .select("id, email")
     .eq("id", parentId)
     .maybeSingle();
 
-  if (!parent) {
+  if (anchorError) {
+    return {
+      ok: false,
+      error: anchorError.message,
+      code: "DELETE_FAILED",
+    };
+  }
+
+  if (!anchor) {
     return { ok: false, error: "Client not found.", code: "NOT_FOUND" };
   }
+
+  const emailKey = normalizeEmail(String(anchor.email ?? ""));
+  const { data: siblingRows, error: siblingError } = await supabase
+    .from(DAWG_TABLES.parents)
+    .select("id")
+    .ilike("email", emailKey || String(anchor.email));
+
+  if (siblingError) {
+    return {
+      ok: false,
+      error: siblingError.message,
+      code: "DELETE_FAILED",
+    };
+  }
+
+  const parentIds = [
+    ...new Set([
+      parentId,
+      ...((siblingRows ?? []) as { id: string }[]).map((r) => r.id),
+    ]),
+  ];
 
   const { data: bookingRows, error: bookingListError } = await supabase
     .from(DAWG_TABLES.bookings)
     .select("id")
-    .eq("guardian_id", parentId);
+    .in("guardian_id", parentIds);
 
   if (bookingListError) {
     return {
@@ -380,16 +480,59 @@ export async function deleteClientFamily(
 
   const bookingIds = (bookingRows ?? []).map((row) => row.id as string);
 
+  const { data: purchaseRows, error: purchaseListError } = await supabase
+    .from(DAWG_TABLES.packagePurchases)
+    .select("id")
+    .in("guardian_id", parentIds);
+
+  if (purchaseListError) {
+    return {
+      ok: false,
+      error: purchaseListError.message,
+      code: "DELETE_FAILED",
+    };
+  }
+
+  const purchaseIds = (purchaseRows ?? []).map((row) => row.id as string);
+
+  if (purchaseIds.length > 0) {
+    const { error: redemptionByPurchaseError } = await supabase
+      .from(DAWG_TABLES.packageRedemptions)
+      .delete()
+      .in("purchase_id", purchaseIds);
+
+    if (redemptionByPurchaseError) {
+      return {
+        ok: false,
+        error: redemptionByPurchaseError.message,
+        code: "DELETE_FAILED",
+      };
+    }
+  }
+
   if (bookingIds.length > 0) {
-    const { error: redemptionError } = await supabase
+    const { error: redemptionByBookingError } = await supabase
       .from(DAWG_TABLES.packageRedemptions)
       .delete()
       .in("booking_id", bookingIds);
 
-    if (redemptionError) {
+    if (redemptionByBookingError) {
       return {
         ok: false,
-        error: redemptionError.message,
+        error: redemptionByBookingError.message,
+        code: "DELETE_FAILED",
+      };
+    }
+
+    const { error: paymentTxError } = await supabase
+      .from(DAWG_TABLES.paymentTransactions)
+      .delete()
+      .in("booking_id", bookingIds);
+
+    if (paymentTxError) {
+      return {
+        ok: false,
+        error: paymentTxError.message,
         code: "DELETE_FAILED",
       };
     }
@@ -397,7 +540,7 @@ export async function deleteClientFamily(
     const { error: bookingError } = await supabase
       .from(DAWG_TABLES.bookings)
       .delete()
-      .eq("guardian_id", parentId);
+      .in("guardian_id", parentIds);
 
     if (bookingError) {
       return {
@@ -411,7 +554,7 @@ export async function deleteClientFamily(
   const { error: purchaseError } = await supabase
     .from(DAWG_TABLES.packagePurchases)
     .delete()
-    .eq("guardian_id", parentId);
+    .in("guardian_id", parentIds);
 
   if (purchaseError) {
     return {
@@ -424,7 +567,7 @@ export async function deleteClientFamily(
   const { error: guardianError } = await supabase
     .from(DAWG_TABLES.parents)
     .delete()
-    .eq("id", parentId);
+    .in("id", parentIds);
 
   if (guardianError) {
     return {
@@ -434,7 +577,11 @@ export async function deleteClientFamily(
     };
   }
 
-  return { ok: true, bookingCount: bookingIds.length };
+  return {
+    ok: true,
+    bookingCount: bookingIds.length,
+    parentsRemoved: parentIds.length,
+  };
 }
 
 export function clientsToCsv(families: ClientFamily[]): string {

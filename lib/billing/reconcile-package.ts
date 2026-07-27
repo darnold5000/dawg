@@ -5,7 +5,10 @@ import {
   getPurchaseByCheckoutSession,
   getPurchaseById,
 } from "@/lib/packages";
-import { handlePostPackagePurchase } from "@/lib/billing/post-package-purchase";
+import {
+  ensurePackagePurchaseParentFromStripe,
+  handlePostPackagePurchase,
+} from "@/lib/billing/post-package-purchase";
 
 function purchaseIdFromSession(session: Stripe.Checkout.Session): string | null {
   const fromMeta = session.metadata?.purchaseId ?? session.metadata?.purchase_id;
@@ -31,6 +34,14 @@ export async function applyPaidPackageCheckoutSession(
 
   if (session.payment_status !== "paid") {
     return { purchaseId, confirmed: false };
+  }
+
+  const parentAttach = await ensurePackagePurchaseParentFromStripe(
+    purchaseId,
+    session,
+  );
+  if (!parentAttach.ok) {
+    throw new Error(parentAttach.error);
   }
 
   const paymentIntentId =
@@ -90,7 +101,9 @@ export async function reconcilePackageCheckout(input: {
   }
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
+    const session = await stripe.checkout.sessions.retrieve(checkoutSessionId, {
+      expand: ["customer_details"],
+    });
     if (session.metadata?.kind !== "package" && !session.metadata?.purchaseId) {
       const byCheckout = await getPurchaseByCheckoutSession(checkoutSessionId);
       if (!byCheckout) {

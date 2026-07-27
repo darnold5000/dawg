@@ -26,8 +26,12 @@ export default async function PackageSuccessPage({
   if (!payAtFacility) {
     if (q.session_id && q.session_id !== "{CHECKOUT_SESSION_ID}") {
       await reconcilePackageCheckout({ checkoutSessionId: q.session_id });
-    } else if (q.purchase_id) {
-      await reconcilePackageCheckout({ purchaseId: q.purchase_id });
+    }
+    if (q.purchase_id) {
+      const afterSession = await getPurchaseById(q.purchase_id);
+      if (afterSession?.status !== "paid") {
+        await reconcilePackageCheckout({ purchaseId: q.purchase_id });
+      }
     }
   }
 
@@ -37,6 +41,48 @@ export default async function PackageSuccessPage({
 
   const confirmed = purchase?.status === "paid";
   const pendingFacility = payAtFacility && purchase?.status === "pending";
+  const pendingStripeConfirm =
+    !payAtFacility && !confirmed && Boolean(purchase);
+
+  const creditsLine = (() => {
+    if (!purchase) return null;
+    if (pendingFacility) {
+      return "Credits activate after you pay at the facility.";
+    }
+    if (pendingStripeConfirm) {
+      return `${purchase.sessions_total} session${purchase.sessions_total === 1 ? "" : "s"} purchased — activating credits after payment confirms.`;
+    }
+    return `${purchase.sessions_remaining} of ${purchase.sessions_total} sessions remaining`;
+  })();
+
+  const amountLine = (() => {
+    if (!purchase?.package) return null;
+    if (pendingFacility || payAtFacility) {
+      return (
+        <>
+          Amount due at facility:{" "}
+          {formatPrice(purchase.package.price_cents)}
+        </>
+      );
+    }
+    if (!confirmed) {
+      return (
+        <span className="text-muted-foreground">
+          Payment processing — refresh in a few seconds if this does not update.
+        </span>
+      );
+    }
+    return (
+      <>
+        Paid{" "}
+        {formatPrice(
+          purchase.amount_paid_cents > 0
+            ? purchase.amount_paid_cents
+            : purchase.package.price_cents,
+        )}
+      </>
+    );
+  })();
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
@@ -59,24 +105,8 @@ export default async function PackageSuccessPage({
           <p className="font-heading text-xl tracking-wide">
             {purchase.package.name}
           </p>
-          <p className="mt-2 text-muted-foreground">
-            {pendingFacility
-              ? "Credits activate after you pay at the facility."
-              : `${purchase.sessions_remaining} of ${purchase.sessions_total} sessions remaining`}
-          </p>
-          {pendingFacility || payAtFacility ? (
-            <p className="mt-1 text-muted-foreground">
-              Amount due at facility:{" "}
-              {formatPrice(purchase.package.price_cents)}
-            </p>
-          ) : (
-            <p className="mt-1">
-              Paid{" "}
-              {formatPrice(
-                purchase.amount_paid_cents || purchase.package.price_cents,
-              )}
-            </p>
-          )}
+          <p className="mt-2 text-muted-foreground">{creditsLine}</p>
+          {amountLine ? <p className="mt-1">{amountLine}</p> : null}
         </div>
       ) : null}
       <div className="mt-8 flex flex-wrap justify-center gap-3">

@@ -79,8 +79,8 @@ export function DeleteClientButton({
           <DialogHeader>
             <DialogTitle>Delete client?</DialogTitle>
             <DialogDescription>
-              This permanently removes {parentName} from your client list. This
-              cannot be undone.
+              This permanently removes {parentName} from your client list (including
+              any duplicate records with the same email). This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-sm text-muted-foreground">

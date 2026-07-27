@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  defaultPaymentMethod,
   isOnlineCardPaymentEnabled,
   paymentMethodLabel,
 } from "@/lib/billing/payment-options";
@@ -38,7 +39,8 @@ export function PackagePurchaseCards({
     parentPhone: initialContact?.parentPhone ?? "",
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    "pay_at_facility",
+    () =>
+      defaultPaymentMethod("online_or_facility") ?? "pay_at_facility",
   );
   const [purchasingSlug, setPurchasingSlug] = useState<string | null>(null);
 
