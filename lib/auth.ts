@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { getTrainingTenantIdOrNull } from "@/lib/tenant/deployment";
 import type { Profile } from "@/lib/types/database";
 import { isAdminRole, isOwnerRole, isStaffRole } from "@/lib/roles";
 
@@ -34,14 +35,33 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 
   if (!user) return null;
 
-  const { data } = await supabase
+  const tenantId = getTrainingTenantIdOrNull();
+  let query = supabase
     .from(DAWG_TABLES.profiles)
-    .select("*")
-    .eq("id", user.id)
-    .eq("active", true)
-    .single();
+    .select(
+      "user_id, full_name, email, phone, role, active, created_at, updated_at",
+    )
+    .eq("user_id", user.id)
+    .eq("active", true);
 
-  return (data as Profile) ?? null;
+  if (tenantId) {
+    query = query.eq("tenant_id", tenantId);
+  }
+
+  const { data } = await query.maybeSingle();
+
+  if (!data) return null;
+
+  return {
+    id: user.id,
+    full_name: data.full_name,
+    email: data.email,
+    phone: data.phone,
+    role: data.role,
+    active: data.active,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+  } as Profile;
 }
 
 export async function requireStaff(): Promise<Profile> {
