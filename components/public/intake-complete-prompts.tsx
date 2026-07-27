@@ -11,6 +11,7 @@ export function IntakeAlreadyComplete({
   athleteName?: string;
   showAccountPrompt?: boolean;
 }) {
+  const isBookingReturn = returnTo.startsWith("/book/");
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-brand/40 bg-brand/10 p-6">
@@ -19,17 +20,23 @@ export function IntakeAlreadyComplete({
           {athleteName
             ? `Intake for ${athleteName} is already on file.`
             : "Your athlete intake is already on file."}{" "}
-          You can continue to your booking — no need to fill this out again.
+          {isBookingReturn
+            ? "Continue to confirm payment and book this session."
+            : "You can continue — no need to fill this out again."}
         </p>
         <Button
           asChild
           className="mt-4 bg-brand text-brand-foreground hover:bg-brand/90"
         >
-          <Link href={returnTo}>Continue</Link>
+          <Link href={returnTo}>
+            {isBookingReturn ? "Continue to booking" : "Continue"}
+          </Link>
         </Button>
       </div>
 
-      {showAccountPrompt ? <IntakeAccountPrompt returnTo={returnTo} /> : null}
+      {showAccountPrompt && !isBookingReturn ? (
+        <IntakeAccountPrompt returnTo={returnTo} />
+      ) : null}
     </div>
   );
 }
@@ -38,10 +45,13 @@ export function IntakeAccountPrompt({ returnTo }: { returnTo: string }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5 text-sm">
       <p className="text-muted-foreground">
-        Want to view your bookings, packages, and remaining credits anytime?
+        Optional: sign in to the family portal at{" "}
+        <strong className="font-medium text-foreground">My account</strong> to
+        view bookings, package credits, and athletes anytime (magic link — no
+        password required).
       </p>
-      <Button asChild variant="outline" className="mt-3">
-        <Link href={claimPath(returnTo)}>Create My Online Account</Link>
+      <Button asChild variant="outline" className="mt-3 border-slate-300 bg-white text-slate-900">
+        <Link href={claimPath(returnTo)}>Email me a sign-in link</Link>
       </Button>
     </div>
   );

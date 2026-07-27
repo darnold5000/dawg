@@ -20,6 +20,9 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const email = url.searchParams.get("email")?.trim().toLowerCase();
     const athleteId = url.searchParams.get("athleteId")?.trim() || null;
+    const athleteFirstName = url.searchParams.get("athleteFirstName")?.trim();
+    const athleteLastName = url.searchParams.get("athleteLastName")?.trim();
+    const athleteDob = url.searchParams.get("athleteDob")?.trim().slice(0, 10);
 
     let parentId: string | null = null;
     const remembered = await loadRememberedFamily();
@@ -40,10 +43,36 @@ export async function GET(request: Request) {
       parentId = data?.id ?? null;
     }
 
+    let resolvedAthleteId = athleteId;
     let intakeComplete = false;
     let intakeRequired = true;
-    if (athleteId) {
-      const readiness = await athleteBookingReady(athleteId);
+
+    if (
+      !resolvedAthleteId &&
+      parentId &&
+      athleteFirstName &&
+      athleteLastName &&
+      athleteDob &&
+      isSupabaseConfigured() &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
+      const supabase = createTrainingServiceClient();
+      const { data: siblings } = await supabase
+        .from(DAWG_TABLES.athletes)
+        .select("id, first_name, last_name, date_of_birth")
+        .eq("guardian_id", parentId);
+      const match = (siblings ?? []).find(
+        (a) =>
+          a.first_name.trim().toLowerCase() ===
+            athleteFirstName.toLowerCase() &&
+          a.last_name.trim().toLowerCase() === athleteLastName.toLowerCase() &&
+          a.date_of_birth === athleteDob,
+      );
+      if (match) resolvedAthleteId = match.id;
+    }
+
+    if (resolvedAthleteId) {
+      const readiness = await athleteBookingReady(resolvedAthleteId);
       intakeComplete = readiness.ready;
       intakeRequired = !readiness.ready;
     }
@@ -67,7 +96,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       parentId,
-      athleteId,
+      athleteId: resolvedAthleteId,
       intakeComplete,
       intakeRequired,
       creditsRemaining,

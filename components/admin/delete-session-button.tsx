@@ -49,11 +49,11 @@ export function DeleteSessionButton({
   return (
     <Button
       type="button"
-      variant="outline"
+      variant={iconOnly ? "ghost" : "outline"}
       size={iconOnly ? "icon-sm" : "sm"}
       className={
         iconOnly
-          ? "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+          ? "size-7 shrink-0 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
           : "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
       }
       disabled={deleting}
@@ -61,7 +61,7 @@ export function DeleteSessionButton({
       onClick={onDelete}
     >
       {iconOnly ? (
-        <Trash2 className="size-4" />
+        <Trash2 className="size-3.5" />
       ) : deleting ? (
         "Deleting…"
       ) : (

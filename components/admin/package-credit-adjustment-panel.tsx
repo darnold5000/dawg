@@ -39,12 +39,14 @@ export function PackageCreditAdjustmentPanel({
   athletes,
   packages,
   adjustments,
+  catalogWarning = null,
 }: {
   parentId: string;
   purchases: PackagePurchaseWithPackage[];
   athletes: AthleteOption[];
   packages: TrainingPackage[];
   adjustments: PackageCreditAdjustment[];
+  catalogWarning?: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -260,7 +262,11 @@ export function PackageCreditAdjustmentPanel({
             </SheetHeader>
 
             <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-              {packages.length === 0 ? (
+              {catalogWarning ? (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                  {catalogWarning}
+                </p>
+              ) : packages.length === 0 ? (
                 <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
                   Package catalog is empty for this tenant. {PACKAGE_CATALOG_SEED_HINT}
                 </p>

@@ -14,7 +14,7 @@ import { getClientFamily } from "@/lib/admin-clients";
 import { listPackageCreditAdjustments } from "@/lib/admin-package-credits";
 import { formatDate, formatMoney } from "@/lib/billing/format";
 import { listIntakesForParent } from "@/lib/intake";
-import { listActivePackages, listPurchasesForParent } from "@/lib/packages";
+import { loadPackageCatalogForAdmin, listPurchasesForParent } from "@/lib/packages";
 import {
   formatSessionDateShort,
   formatSessionTime,
@@ -31,14 +31,15 @@ export default async function AdminClientDetailPage({
   if (!family) notFound();
 
   const { parent, athletes, bookings } = family;
-  const [intakes, purchases, packages, adjustments] = await Promise.all([
+  const [intakes, purchases, packageCatalog, adjustments] = await Promise.all([
     listIntakesForParent(parent.id),
     listPurchasesForParent(parent.id),
-    listActivePackages(),
+    loadPackageCatalogForAdmin(),
     profile.role && isAdminRole(profile.role)
       ? listPackageCreditAdjustments(parent.id)
       : Promise.resolve([]),
   ]);
+  const packages = packageCatalog.packages;
   const intakeByAthlete = new Map(intakes.map((i) => [i.athlete_id, i]));
   const mailto = `mailto:${encodeURIComponent(parent.email)}?subject=${encodeURIComponent(
     "Message from DAWG Youth Training",
@@ -259,6 +260,7 @@ export default async function AdminClientDetailPage({
               athletes={athletes}
               packages={packages}
               adjustments={adjustments}
+              catalogWarning={packageCatalog.catalogWarning}
             />
           ) : null}
 

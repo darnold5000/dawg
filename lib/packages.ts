@@ -148,11 +148,36 @@ export type LoggedInPackageCheckoutInput = z.infer<
 >;
 
 export async function listActivePackages(): Promise<TrainingPackage[]> {
+  const loaded = await loadPackageCatalogForAdmin();
+  return loaded.packages;
+}
+
+export type PackageCatalogLoadResult = {
+  packages: TrainingPackage[];
+  catalogWarning: string | null;
+};
+
+/** Admin / server: explains empty catalog (env vs seed). */
+export async function loadPackageCatalogForAdmin(): Promise<PackageCatalogLoadResult> {
   if (!isSupabaseConfigured()) {
-    return FALLBACK_PACKAGES;
+    return {
+      packages: FALLBACK_PACKAGES,
+      catalogWarning: null,
+    };
   }
-  if (!canQueryTrainingPackageCatalog()) {
-    return [];
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return {
+      packages: [],
+      catalogWarning:
+        "Server cannot read packages: add SUPABASE_SERVICE_ROLE_KEY to this Vercel environment.",
+    };
+  }
+  if (!isTrainingDeploymentConfigured()) {
+    return {
+      packages: [],
+      catalogWarning:
+        "Set TRAINING_TENANT_ID on Vercel to your dawg-youth-training tenant UUID (from migration 001 / tenants table).",
+    };
   }
   try {
     const supabase = createTrainingServiceClient();
@@ -164,13 +189,27 @@ export async function listActivePackages(): Promise<TrainingPackage[]> {
         .order("display_order", { ascending: true }),
     );
     if (error) {
-      console.error("[packages] listActivePackages", error);
-      return [];
+      console.error("[packages] loadPackageCatalogForAdmin", error);
+      return {
+        packages: [],
+        catalogWarning: `Could not load packages: ${error.message}`,
+      };
     }
-    return (data as TrainingPackage[]) ?? [];
+    const packages = (data as TrainingPackage[]) ?? [];
+    if (packages.length === 0) {
+      return {
+        packages: [],
+        catalogWarning: PACKAGE_CATALOG_SEED_HINT,
+      };
+    }
+    return { packages, catalogWarning: null };
   } catch (err) {
-    console.error("[packages] listActivePackages", err);
-    return [];
+    console.error("[packages] loadPackageCatalogForAdmin", err);
+    return {
+      packages: [],
+      catalogWarning:
+        err instanceof Error ? err.message : "Could not load package catalog",
+    };
   }
 }
 

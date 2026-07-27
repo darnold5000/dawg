@@ -19,7 +19,7 @@ import type { SessionWithRelations } from "@/lib/types/database";
 import { bookLoginPath } from "@/lib/family-auth-url";
 import { formatSessionTime, formatSessionTitle } from "@/lib/format";
 
-const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function ScheduleMonthCalendar({
   sessions,
@@ -51,8 +51,8 @@ export function ScheduleMonthCalendar({
   }, [sessions]);
 
   const gridDays = useMemo(() => {
-    const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
-    const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
+    const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 });
+    const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 });
     return eachDayOfInterval({ start, end });
   }, [month]);
 
@@ -109,58 +109,66 @@ export function ScheduleMonthCalendar({
             return (
               <div
                 key={dateKey}
-                className={`min-h-[7.5rem] border-b border-r border-border p-1.5 sm:min-h-[9rem] sm:p-2 ${
+                className={`min-h-[5rem] border-b border-r border-border p-1 sm:min-h-[5.5rem] sm:p-1.5 ${
                   !inMonth ? "bg-muted/20" : "bg-card"
                 } ${isToday ? "ring-1 ring-inset ring-brand/50" : ""}`}
               >
                 <p
-                  className={`mb-1 text-xs font-semibold tabular-nums ${
+                  className={`mb-0.5 text-[10px] font-semibold tabular-nums sm:text-xs ${
                     inMonth ? "text-foreground" : "text-muted-foreground"
                   }`}
                 >
                   {format(day, "d")}
                 </p>
-                <ul className="space-y-1.5">
+                <ul className="space-y-1">
                   {daySessions.map((session) => {
                     const full = (session.spots_remaining ?? 0) <= 0;
                     const color = session.program?.calendar_color;
                     const label =
                       session.program?.name ??
                       formatSessionTitle(session.title);
+                    const spotsLabel = full
+                      ? "Full"
+                      : `${session.spots_remaining}L`;
                     return (
                       <li
                         key={session.id}
-                        className="rounded-md border border-border/80 bg-background/80 p-1.5 text-[11px] leading-tight sm:text-xs"
+                        className="rounded border border-border/70 bg-background/90 px-1 py-0.5 text-[10px] leading-tight sm:text-[11px]"
                       >
-                        <div className="flex items-start gap-1">
+                        <div className="flex min-w-0 items-center gap-1">
                           {color ? (
                             <span
-                              className="mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full"
+                              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
                               style={{ backgroundColor: color }}
                               aria-hidden
                             />
                           ) : null}
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium tabular-nums text-brand">
-                              {formatSessionTime(session.start_time)}
-                            </p>
-                            <p className="truncate font-medium text-foreground">
-                              {label}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {full
-                                ? "Full"
-                                : `${session.spots_remaining} left`}
-                            </p>
-                          </div>
+                          <span
+                            className="shrink-0 font-semibold tabular-nums text-brand"
+                          >
+                            {formatSessionTime(session.start_time)}
+                          </span>
+                          <span className="min-w-0 truncate font-medium text-foreground">
+                            {label}
+                          </span>
+                          <span
+                            className="shrink-0 text-muted-foreground"
+                            title={
+                              full
+                                ? "Class full"
+                                : `${session.spots_remaining} spots left`
+                            }
+                          >
+                            {spotsLabel}
+                          </span>
                         </div>
                         <Button
                           asChild
                           size="sm"
-                          className={`mt-1.5 h-7 w-full px-2 text-[11px] sm:text-xs ${
+                          className={`mt-0.5 h-5 w-full px-1 text-[10px] font-bold sm:h-6 sm:text-[11px] ${
                             full
                               ? ""
-                              : "bg-gold font-bold text-gold-foreground hover:bg-gold/90"
+                              : "bg-gold text-gold-foreground hover:bg-gold/90"
                           }`}
                           variant={full ? "secondary" : "default"}
                         >

@@ -8,7 +8,7 @@ import {
   parseISO,
   startOfWeek,
 } from "date-fns";
-import { CalendarDays, List, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, List, Pencil, Plus } from "lucide-react";
 import { DeleteSessionButton } from "@/components/admin/delete-session-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -206,7 +206,7 @@ export function ScheduleSessionsView({
                           className="rounded-md border border-border bg-muted/30 p-2 text-xs"
                         >
                           <div className="flex items-start justify-between gap-1">
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               {session.calendar_color ? (
                                 <span
                                   className="mb-1 inline-block h-2 w-2 rounded-full"
@@ -226,12 +226,7 @@ export function ScheduleSessionsView({
                                 {session.booked_count}/{session.capacity}
                               </p>
                             </div>
-                            <DeleteSessionButton
-                              sessionId={session.id}
-                              title={session.program_name ?? session.title}
-                              bookedCount={session.booked_count}
-                              iconOnly
-                            />
+                            <SessionCardActions session={session} />
                           </div>
                           <Link
                             href={`/admin/sessions/${session.id}/roster`}
@@ -249,6 +244,33 @@ export function ScheduleSessionsView({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SessionCardActions({ session }: { session: ScheduleSessionItem }) {
+  const name = session.program_name ?? session.title;
+  return (
+    <div className="flex shrink-0 items-center gap-0.5">
+      <Button
+        asChild
+        variant="ghost"
+        size="icon-sm"
+        className="size-7 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+      >
+        <Link
+          href={`/admin/sessions/${session.id}/edit`}
+          aria-label={`Edit ${name}`}
+        >
+          <Pencil className="size-3.5" />
+        </Link>
+      </Button>
+      <DeleteSessionButton
+        sessionId={session.id}
+        title={name}
+        bookedCount={session.booked_count}
+        iconOnly
+      />
     </div>
   );
 }
@@ -278,19 +300,11 @@ function SessionRow({ session }: { session: ScheduleSessionItem }) {
           {session.trainer_name ? ` · ${session.trainer_name}` : ""}
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1">
+        <SessionCardActions session={session} />
         <Button asChild variant="outline" size="sm">
           <Link href={`/admin/sessions/${session.id}/roster`}>Roster</Link>
         </Button>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/admin/sessions/${session.id}/edit`}>Edit</Link>
-        </Button>
-        <DeleteSessionButton
-          sessionId={session.id}
-          title={name}
-          bookedCount={session.booked_count}
-          iconOnly
-        />
       </div>
     </div>
   );
