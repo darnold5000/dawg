@@ -14,6 +14,7 @@ import { isAdminRole } from "@/lib/roles";
 import { getClientFamily } from "@/lib/admin-clients";
 import { listPackageCreditAdjustments } from "@/lib/admin-package-credits";
 import { formatDate, formatMoney } from "@/lib/billing/format";
+import { SITE } from "@/lib/constants";
 import { listIntakesForParent } from "@/lib/intake";
 import { loadPackageCatalogForAdmin, listPurchasesForParent } from "@/lib/packages";
 import {
@@ -43,7 +44,7 @@ export default async function AdminClientDetailPage({
   const packages = packageCatalog.packages;
   const intakeByAthlete = new Map(intakes.map((i) => [i.athlete_id, i]));
   const mailto = `mailto:${encodeURIComponent(parent.email)}?subject=${encodeURIComponent(
-    "Message from DAWG Youth Training",
+    `Message from ${SITE.name}`,
   )}`;
   const tel = parent.phone
     ? `tel:${parent.phone.replace(/[^\d+]/g, "")}`

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { getSessionById } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
+import { SITE } from "@/lib/constants";
 import { bookLoginPath } from "@/lib/family-auth-url";
 import {
   durationMinutes,
@@ -27,12 +28,12 @@ export async function generateMetadata({
   if (!session)
     return createMetadata({
       title: "Session",
-      description: "Training session details at DAWG Youth Training.",
+      description: `Training session details at ${SITE.name}.`,
       path: `/schedule/${sessionId}`,
     });
   return createMetadata({
     title: session.title,
-    description: session.description ?? `Book ${session.title} at DAWG Youth Training.`,
+    description: session.description ?? `Book ${session.title} at ${SITE.name}.`,
     path: `/schedule/${sessionId}`,
   });
 }

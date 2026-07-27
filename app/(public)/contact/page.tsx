@@ -59,7 +59,7 @@ export default async function ContactPage() {
                     rel="noopener noreferrer"
                     className="font-medium underline underline-offset-2"
                   >
-                    DAWG Youth Training
+                    {SITE.name}
                   </a>
                 </dd>
               </div>

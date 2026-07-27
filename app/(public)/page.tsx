@@ -16,11 +16,11 @@ import {
   getUpcomingSessions,
 } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
+import { SITE } from "@/lib/constants";
 
 export const metadata = createMetadata({
   title: "Youth Athletic Training in Mooresville, Indiana",
-  description:
-    "DAWG Youth Training helps young athletes build strength, speed, agility, confidence, and discipline. Book group classes and private training online.",
+  description: `${SITE.description} Book group classes and private training online.`,
   path: "/",
 });
 

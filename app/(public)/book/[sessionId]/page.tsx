@@ -3,6 +3,7 @@ import { BookSessionGate } from "@/components/public/book-session-gate";
 import { getSessionById } from "@/lib/data";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { createMetadata } from "@/lib/seo";
+import { SITE } from "@/lib/constants";
 import { paymentMethodLabel } from "@/lib/billing/payment-options";
 
 function bookingIntro(
@@ -31,7 +32,7 @@ export async function generateMetadata({
   const session = await getSessionById(sessionId);
   return createMetadata({
     title: session ? `Book ${session.title}` : "Book Session",
-    description: "Reserve a DAWG Youth Training session online.",
+    description: `Reserve a ${SITE.name} session online.`,
     path: `/book/${sessionId}`,
   });
 }

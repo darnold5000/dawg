@@ -1,9 +1,9 @@
 export const SITE = {
-  name: "DAWG Youth Training",
+  name: "Dawg Training",
   shortName: "DAWG",
   tagline: "Build the Athlete. Develop the Mindset.",
   description:
-    "DAWG Youth Training helps young athletes build strength, speed, agility, confidence, and discipline through positive, age-appropriate athletic training in Mooresville, Indiana.",
+    "Dawg Training helps young athletes build strength, speed, agility, confidence, and discipline through positive, age-appropriate athletic training in Mooresville, Indiana.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   phone: "(317) 835-1076",
   phoneHref: "tel:+13178351076",

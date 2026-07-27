@@ -6,7 +6,7 @@ insert into public.dawg_business_settings (
   facebook_url, business_hours, cancellation_policy, booking_policy, map_embed_url
 )
 select
-  'DAWG Youth Training',
+  'Dawg Training',
   '(317) 835-1076',
   'coachavery1287@gmail.com',
   '477 Town Center St',
@@ -22,7 +22,7 @@ where not exists (select 1 from public.dawg_business_settings);
 
 -- Restore real DAWG contact/location if a prior demo anonymization was applied
 update public.dawg_business_settings set
-  business_name = 'DAWG Youth Training',
+  business_name = 'Dawg Training',
   phone = '(317) 835-1076',
   email = 'coachavery1287@gmail.com',
   address_line_1 = '477 Town Center St',
@@ -93,13 +93,13 @@ select
   st.id,
   t.id,
   'Little Dawgs Speed & Agility',
-  'Age-appropriate athletic training at DAWG Youth Training.',
+  'Age-appropriate athletic training at Dawg Training.',
   (current_date + 3),
   '16:00',
   '17:00',
   null, null, 'Beginner',
   10, 2500, 'usd', 'online_or_facility',
-  'DAWG Youth Training',
+  'Dawg Training',
   '477 Town Center St, Mooresville, IN 46158',
   'Athletic shoes, water bottle, comfortable training clothes',
   'Please cancel at least 24 hours in advance when possible.',
@@ -120,12 +120,12 @@ insert into public.dawg_sessions (
 select
   p.id, st.id, t.id,
   'Big Dawgs Strength & Speed',
-  'Age-appropriate athletic training at DAWG Youth Training.',
+  'Age-appropriate athletic training at Dawg Training.',
   (current_date + 4),
   '17:00', '18:00',
   null, null, 'Intermediate',
   12, 3000, 'usd', 'pay_online',
-  'DAWG Youth Training',
+  'Dawg Training',
   '477 Town Center St, Mooresville, IN 46158',
   'Athletic shoes, water bottle, comfortable training clothes',
   'Please cancel at least 24 hours in advance when possible.',
@@ -150,7 +150,7 @@ select
   '15:00', '16:00',
   7, 18, 'All levels',
   1, 6000, 'usd', 'online_or_facility',
-  'DAWG Youth Training',
+  'Dawg Training',
   '477 Town Center St, Mooresville, IN 46158',
   'Athletic shoes, water bottle',
   'Please cancel at least 24 hours in advance when possible.',

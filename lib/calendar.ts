@@ -56,7 +56,7 @@ export function buildIcsCalendar(event: CalendarEventInput): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//DAWG Youth Training//Booking//EN",
+    "PRODID:-//Dawg Training//Booking//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

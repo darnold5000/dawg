@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SITE } from "@/lib/constants";
 
 export function ClientEmailForm({
   parentId,
   parentEmail,
-  defaultSubject = "Message from DAWG Youth Training",
+  defaultSubject = `Message from ${SITE.name}`,
 }: {
   parentId: string;
   parentEmail: string;

@@ -2,11 +2,11 @@ import { PackagePurchaseCards } from "@/components/public/package-purchase-cards
 import { listActivePackages } from "@/lib/packages";
 import { getAuthenticatedFamily } from "@/lib/family-auth";
 import { createMetadata } from "@/lib/seo";
+import { SITE } from "@/lib/constants";
 
 export const metadata = createMetadata({
   title: "Training packages",
-  description:
-    "Buy a single session, 10-pack, or 20-pack for DAWG Youth Training.",
+  description: `Buy a single session, 10-pack, or 20-pack for ${SITE.name}.`,
   path: "/packages",
 });
 

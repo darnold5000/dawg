@@ -12,7 +12,7 @@ set
   end,
   -- Prefer both payment options on reopened sessions
   payment_requirement = 'online_or_facility',
-  location_name = coalesce(nullif(location_name, ''), 'DAWG Youth Training'),
+  location_name = coalesce(nullif(location_name, ''), 'Dawg Training'),
   location_address = coalesce(
     nullif(location_address, ''),
     '477 Town Center St, Mooresville, IN 46158'
@@ -81,7 +81,7 @@ select
   '15:00', '16:00',
   7, 18, 'All levels',
   1, 6000, 'usd', 'online_or_facility',
-  'DAWG Youth Training',
+  'Dawg Training',
   '477 Town Center St, Mooresville, IN 46158',
   'Athletic shoes, water bottle',
   'Test session — cancel anytime with staff.',
@@ -111,7 +111,7 @@ select
   '16:00', '17:00',
   7, 18, 'All levels',
   1, 6000, 'usd', 'pay_online',
-  'DAWG Youth Training',
+  'Dawg Training',
   '477 Town Center St, Mooresville, IN 46158',
   'Athletic shoes, water bottle',
   'Test session — cancel anytime with staff.',
@@ -141,7 +141,7 @@ select
   '17:00', '18:00',
   7, 18, 'All levels',
   1, 6000, 'usd', 'pay_at_facility',
-  'DAWG Youth Training',
+  'Dawg Training',
   '477 Town Center St, Mooresville, IN 46158',
   'Athletic shoes, water bottle',
   'Test session — cancel anytime with staff.',

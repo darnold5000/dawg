@@ -13,7 +13,7 @@ import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
 export const metadata = createMetadata({
   title: "Booking Confirmation",
-  description: "Your DAWG Youth Training reservation confirmation.",
+  description: `Your ${SITE.name} reservation confirmation.`,
   path: "/book/confirmation",
 });
 

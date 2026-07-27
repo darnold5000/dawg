@@ -1,6 +1,6 @@
-# DAWG Youth Training
+# Dawg Training
 
-Launch package site for DAWG Youth Training (Mooresville, Indiana): public marketing site, group/private scheduling, guest Stripe Checkout, pay-at-facility bookings, and a staff admin dashboard.
+Launch package site for Dawg Training (Mooresville, Indiana): public marketing site, group/private scheduling, guest Stripe Checkout, pay-at-facility bookings, and a staff admin dashboard.
 
 ## Stack
 

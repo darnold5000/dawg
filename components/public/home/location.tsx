@@ -93,7 +93,7 @@ export function HomeLocation({ settings }: { settings: BusinessSettings }) {
 
           <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
             <iframe
-              title="DAWG Youth Training location map"
+              title={`${SITE.name} location map`}
               src={mapUrl}
               className="h-[320px] w-full border-0 md:h-full md:min-h-[360px]"
               loading="lazy"

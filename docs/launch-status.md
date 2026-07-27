@@ -1,6 +1,6 @@
 # DAWG Launch status
 
-Signal Works **$49/month Launch** package for DAWG Youth Training.
+Signal Works **$49/month Launch** package for Dawg Training.
 
 ## Completed Launch features
 

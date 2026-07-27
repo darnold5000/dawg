@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { GALLERY_IMAGES } from "@/lib/gallery";
+import { SITE } from "@/lib/constants";
 
 export function HomeGallery() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -26,8 +27,7 @@ export function HomeGallery() {
             Train Like You Mean It
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Speed, strength, and focused coaching — a look inside DAWG Youth
-            Training.
+            Speed, strength, and focused coaching — a look inside {SITE.name}.
           </p>
         </div>
 

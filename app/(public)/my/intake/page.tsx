@@ -7,11 +7,11 @@ import {
 import { getIntakeFormContext } from "@/lib/intake";
 import { IntakeAlreadyComplete } from "@/components/public/intake-complete-prompts";
 import { createMetadata } from "@/lib/seo";
+import { SITE } from "@/lib/constants";
 
 export const metadata = createMetadata({
   title: "Athlete intake",
-  description:
-    "Complete one-time athlete intake before booking DAWG Youth Training sessions.",
+  description: `Complete one-time athlete intake before booking ${SITE.name} sessions.`,
   path: "/my/intake",
 });
 

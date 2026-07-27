@@ -338,7 +338,7 @@ export async function sendContactAcknowledgement(payload: {
       from: fromAddress(),
       to: payload.email,
       replyTo: SITE.email,
-      subject: "We received your message — DAWG Youth Training",
+      subject: `We received your message — ${SITE.name}`,
       html: `
       <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
         <h1>Thanks for reaching out</h1>

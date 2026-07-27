@@ -13,7 +13,7 @@ export const GALLERY_IMAGES: GalleryImage[] = [
   },
   {
     src: "/images/dawg/gallery/02.jpg",
-    alt: "Strength training session at DAWG Youth Training",
+    alt: "Strength training session at Dawg Training",
     label: "Strength training",
   },
   {
@@ -28,7 +28,7 @@ export const GALLERY_IMAGES: GalleryImage[] = [
   },
   {
     src: "/images/dawg/gallery/05.jpg",
-    alt: "DAWG Youth Training facility",
+    alt: "Dawg Training facility",
     label: "Facility",
   },
   {
