@@ -147,12 +147,41 @@ function testRpcWrap() {
   assert.equal(rpcCalls[1]?.args.p_canonical_id, "a");
 }
 
+function testSessionTemplatesTableScope() {
+  const calls: string[] = [];
+  const table = mockTableClient(calls) as unknown as ReturnType<
+    SupabaseClient["from"]
+  >;
+  const scoped = wrapTableClient(table, TENANT_A);
+  scoped.insert({ name: "Little Dawgs — 4:00 PM" });
+  const insertCall = calls.find((c) => c.startsWith("table.insert:"));
+  assert.ok(insertCall?.includes(TENANT_A));
+}
+
+function testCrossTenantTemplateIdRejected() {
+  const tenantA = TENANT_A;
+  const tenantB = TENANT_B;
+  assert.notEqual(tenantA, tenantB);
+  const calls: string[] = [];
+  const table = mockTableClient(calls) as unknown as ReturnType<
+    SupabaseClient["from"]
+  >;
+  const scopedB = wrapTableClient(table, tenantB);
+  scopedB.select("id").eq("id", "template-from-tenant-a");
+  assert.ok(
+    calls.some((c) => c.includes(tenantB) && !c.includes(tenantA)),
+    "updates for tenant B must not inject tenant A",
+  );
+}
+
 function run() {
   testTenantRpcArgs();
   testSelectUpdateDeleteScope();
   testChainedOrStillWorks();
   testInsertUpsertTenantInjection();
   testRpcWrap();
+  testSessionTemplatesTableScope();
+  testCrossTenantTemplateIdRejected();
   console.log("training-tenant-scope: ok");
 }
 

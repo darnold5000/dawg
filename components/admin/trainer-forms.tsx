@@ -229,7 +229,7 @@ export function TrainerEditCard({ trainer }: { trainer: Trainer }) {
               src={photoSrc}
               alt={`Photo of ${trainer.name}`}
               fill
-              className="object-cover"
+              className="object-contain object-center p-0.5"
               sizes="80px"
             />
           </div>
@@ -306,7 +306,7 @@ export function TrainerEditCard({ trainer }: { trainer: Trainer }) {
           src={previewSrc}
           alt={`Photo of ${form.name}`}
           fill
-          className="object-cover"
+          className="object-contain object-center p-0.5"
           sizes="96px"
           unoptimized={previewSrc.startsWith("blob:")}
         />

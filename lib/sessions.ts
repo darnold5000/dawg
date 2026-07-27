@@ -6,6 +6,7 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { dollarsToCents } from "@/lib/billing/format";
+import { endTimeFromStart, normalizeTime } from "@/lib/session-time";
 import type { PaymentRequirement, SessionStatus } from "@/lib/types/database";
 
 export const sessionFormSchema = z.object({
@@ -55,12 +56,7 @@ export const sessionFormSchema = z.object({
 
 export type SessionFormInput = z.infer<typeof sessionFormSchema>;
 
-function normalizeTime(value: string): string {
-  if (/^\d{2}:\d{2}$/.test(value)) return `${value}:00`;
-  return value.slice(0, 8);
-}
-
-function buildOccurrenceDates(
+export function buildOccurrenceDates(
   startDate: string,
   recurrence: "none" | "weekly" | "weekdays" | "custom",
   weeks: number,

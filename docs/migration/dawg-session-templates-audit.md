@@ -1,9 +1,39 @@
 # DAWG session templates + calendar scheduling — audit
 
-**Branch:** `feature/dawg-production-multitenant` (confirmed)  
-**Date:** 2026-07-27  
-**Status:** Audit complete — **implementation not started** (awaiting clean tree + approval)  
-**Related:** `lib/sessions.ts`, `training_sessions`, `docs/migration/dawg-production-architecture-audit.md`
+**Branch:** `feature/dawg-production-multitenant`  
+**Updated:** 2026-07-27  
+**Status:** **Phases 1–3 implemented in repo** (migration `013` — **not applied on Pro until reviewed**)  
+**Admin workflow:** `docs/admin/session-templates.md`  
+**Related:** `lib/sessions.ts`, `lib/session-templates.ts`, `lib/template-scheduling.ts`, `training_sessions`, `training_session_templates`
+
+---
+
+## Implementation summary (Phases 1–3)
+
+| Item | Decision |
+|------|----------|
+| Migration | `013_training_session_templates.sql` (`012` reserved for coach bio) |
+| Template table | `training_session_templates` with `default_trainer_id` → `training_coaches.id` (same as `sessions.trainer_id`; spec “coach user” = coach row) |
+| Occurrence link | Nullable `training_sessions.template_id` |
+| Recurrence series table | **Deferred** — reuse `recurrence_group_id` on materialized rows only |
+| Snapshot | Schedule copies title, times, capacity, price, program, coach, description, payment into each `training_sessions` row; template edits do not update existing rows |
+| Duplicate protection | Same tenant + program + date + start time (optional skip) |
+| Admin calendar | **Phase 4 — not built** |
+| Series edit/cancel | **Phase 5 — not built** |
+| Dev seed | `scripts/seed-dawg-session-templates.sql` (not for production auto-run) |
+
+### Model polish (post-review, same release)
+
+| Item | Decision |
+|------|----------|
+| Template names | **Not unique** — duplicate labels allowed (e.g. multiple “Private Lesson”) |
+| Program names | Canonical **Little Dawgs** / **Big Dawgs** (`014`) |
+| Color | **`training_programs.calendar_color`** — templates inherit |
+| Capacity / price | Nullable on template = **inherit from program** at schedule time |
+| Visibility | `default_visibility` on program + optional template override; snapshotted to `training_sessions.visibility` |
+| Coaches | `default_trainer_id` + `default_assistant_trainer_id` (UI for assistant reserved) |
+| Admin UX | **Templates** then **Calendar** nav; **Add to calendar** (not “schedule template”) |
+| Phase 4 calendar | **Still deferred** — `/admin/sessions` is interim calendar list |
 
 ---
 

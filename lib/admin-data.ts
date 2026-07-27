@@ -1,6 +1,5 @@
 import { addDays, format, parseISO } from "date-fns";
 import {
-  createClient,
   createTrainingServiceClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
@@ -15,13 +14,16 @@ import type {
 import { getPrograms, getSessionTypes, getTrainers } from "@/lib/data";
 
 export async function getAdminSessions(): Promise<SessionWithRelations[]> {
-  // Demo rows (sess-*) only when Supabase is not configured — never on a live DB.
   if (!isSupabaseConfigured()) {
     return FALLBACK_SESSIONS;
   }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("[getAdminSessions] SUPABASE_SERVICE_ROLE_KEY is not set");
+    return [];
+  }
 
   try {
-    const supabase = await createClient();
+    const supabase = createTrainingServiceClient();
     const { data, error } = await supabase
       .from(DAWG_TABLES.sessions)
       .select("*")
@@ -36,7 +38,7 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
       return [];
     }
 
-    const supabaseService = createTrainingServiceClient();
+    const supabaseService = supabase;
     const ids = data.map((s) => s.id);
     const { data: bookings } = await supabaseService
       .from(DAWG_TABLES.bookings)

@@ -12,6 +12,7 @@ import {
   Users,
   Dumbbell,
   Star,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,13 @@ import { isAdminRole } from "@/lib/roles";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/sessions", label: "Sessions", icon: CalendarDays },
+  {
+    href: "/admin/session-templates",
+    label: "Templates",
+    icon: Layers,
+    adminOnly: true,
+  },
+  { href: "/admin/sessions", label: "Calendar", icon: CalendarDays },
   { href: "/admin/bookings", label: "Bookings", icon: ClipboardList },
   { href: "/admin/clients", label: "Clients", icon: ContactRound },
   { href: "/admin/programs", label: "Programs", icon: Dumbbell, adminOnly: true },

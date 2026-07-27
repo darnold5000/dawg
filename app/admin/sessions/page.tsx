@@ -21,9 +21,13 @@ export default async function AdminSessionsPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="font-heading text-3xl tracking-wide">Sessions</h2>
+            <h2 className="font-heading text-3xl tracking-wide">Calendar</h2>
             <p className="text-sm text-muted-foreground">
-              Create, publish, and manage training sessions
+              Dated sessions parents book — usually created from{" "}
+              <Link href="/admin/session-templates" className="text-brand underline">
+                templates
+              </Link>
+              .
             </p>
           </div>
           <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">

@@ -6,6 +6,7 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { COACH_AVERY } from "@/lib/content/coach-avery";
+import { isPublicScheduleVisibility } from "@/lib/training-visibility";
 import {
   FALLBACK_PROGRAMS,
   FALLBACK_REVIEWS,
@@ -239,9 +240,11 @@ export async function getUpcomingSessions(
       types,
       trainers,
       counts,
-    }).filter(
-      (s) => !s.program || !HIDDEN_PROGRAM_SLUGS.has(s.program.slug),
-    );
+    })
+      .filter(
+        (s) => !s.program || !HIDDEN_PROGRAM_SLUGS.has(s.program.slug),
+      )
+      .filter((s) => isPublicScheduleVisibility(s.visibility));
   } catch {
     return [];
   }
@@ -324,7 +327,9 @@ export async function getFilteredSessions(
     }
 
     return sessions.filter(
-      (s) => !s.program || !HIDDEN_PROGRAM_SLUGS.has(s.program.slug),
+      (s) =>
+        (!s.program || !HIDDEN_PROGRAM_SLUGS.has(s.program.slug)) &&
+        isPublicScheduleVisibility(s.visibility),
     );
   } catch {
     return [];
