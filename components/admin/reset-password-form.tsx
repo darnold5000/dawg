@@ -7,31 +7,48 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { establishSessionFromAuthRedirect } from "@/lib/auth/auth-callback";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export function ResetPasswordForm() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
+    let cancelled = false;
 
-    const supabase = createClient();
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
+    async function bootstrap() {
+      if (!isSupabaseConfigured()) {
+        if (!cancelled) {
+          setSessionError("Password reset is not configured.");
+          setChecking(false);
+        }
+        return;
       }
-    });
 
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
+      const supabase = createClient();
+      const result = await establishSessionFromAuthRedirect(supabase);
 
-    return () => subscription.unsubscribe();
+      if (cancelled) return;
+
+      if (!result.ok) {
+        setSessionError(result.message);
+        setChecking(false);
+        return;
+      }
+
+      setReady(true);
+      setChecking(false);
+    }
+
+    void bootstrap();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
@@ -57,26 +74,36 @@ export function ResetPasswordForm() {
     }
   }
 
-  if (!ready) {
+  if (checking) {
+    return (
+      <p className="text-sm text-muted-foreground">Validating your reset link…</p>
+    );
+  }
+
+  if (sessionError) {
     return (
       <div className="space-y-3 text-sm text-muted-foreground">
-        <p>
-          Open this page from the link in your reset email. If you used the
-          Supabase Dashboard “send recovery” button, the link may point at the
-          wrong site — request a new link from{" "}
-          <Link href="/admin/forgot-password" className="text-brand underline">
-            Forgot password
-          </Link>{" "}
-          on the DAWG app instead.
+        <p className="text-foreground" role="alert">
+          {sessionError}
         </p>
         <Link
-          href="/admin/login"
+          href="/admin/forgot-password"
           className="inline-block text-brand underline-offset-4 hover:underline"
+        >
+          Request a new reset link
+        </Link>
+        <Link
+          href="/admin/login"
+          className="block text-brand underline-offset-4 hover:underline"
         >
           Back to sign in
         </Link>
       </div>
     );
+  }
+
+  if (!ready) {
+    return null;
   }
 
   return (
