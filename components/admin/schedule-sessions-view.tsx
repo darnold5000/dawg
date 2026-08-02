@@ -10,6 +10,10 @@ import {
 } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, List, Pencil, Plus } from "lucide-react";
 import { DeleteSessionButton } from "@/components/admin/delete-session-button";
+import {
+  AddClassToDayPicker,
+  type ScheduleClassOption,
+} from "@/components/admin/add-class-to-day-picker";
 import { Button } from "@/components/ui/button";
 import {
   formatScheduleDaySubdate,
@@ -33,14 +37,18 @@ type ViewMode = "list" | "calendar";
 
 export function ScheduleSessionsView({
   sessions,
+  templates,
   today,
   displayDayLimit = 14,
 }: {
   sessions: ScheduleSessionItem[];
+  templates: ScheduleClassOption[];
   today: string;
   displayDayLimit?: number;
 }) {
-  const [view, setView] = useState<ViewMode>("list");
+  const [view, setView] = useState<ViewMode>(
+    sessions.length === 0 ? "calendar" : "list",
+  );
   const [weekOffset, setWeekOffset] = useState(0);
 
   const byDate = useMemo(() => {
@@ -69,52 +77,28 @@ export function ScheduleSessionsView({
     [weekStart],
   );
 
-  if (sessions.length === 0) {
-    return null;
+  if (sessions.length === 0 && view === "list") {
+    return (
+      <div className="space-y-4">
+        <ViewModeToggle view={view} setView={setView} />
+        <div className="rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
+          No upcoming sessions in list view. Switch to{" "}
+          <button
+            type="button"
+            className="font-medium text-brand underline-offset-2 hover:underline"
+            onClick={() => setView("calendar")}
+          >
+            Week
+          </button>{" "}
+          to add classes on any day, including weekends.
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex rounded-lg border border-border bg-card p-1">
-          <button
-            type="button"
-            className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium ${
-              view === "list"
-                ? "bg-brand text-brand-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            onClick={() => setView("list")}
-          >
-            <List className="size-4" />
-            List
-          </button>
-          <button
-            type="button"
-            className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium ${
-              view === "calendar"
-                ? "bg-brand text-brand-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            onClick={() => setView("calendar")}
-          >
-            <CalendarDays className="size-4" />
-            Week
-          </button>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="outline">
-            <Link href="/admin/sessions/add">
-              <Plus className="mr-1 size-4" />
-              Add class
-            </Link>
-          </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/admin/programs#private-lessons">Private lesson</Link>
-          </Button>
-        </div>
-      </div>
+        <ViewModeToggle view={view} setView={setView} />
 
       {view === "list" ? (
         <div className="space-y-6">
@@ -123,14 +107,21 @@ export function ScheduleSessionsView({
             const isToday = dateKey === today;
             return (
               <section key={dateKey} className="space-y-3">
-                <div>
-                  <h3 className="font-heading text-lg tracking-widest">
-                    {formatScheduleWeekday(dateKey)}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {formatScheduleDaySubdate(dateKey)}
-                    {isToday ? " · Today" : ""}
-                  </p>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-heading text-lg tracking-widest">
+                      {formatScheduleWeekday(dateKey)}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {formatScheduleDaySubdate(dateKey)}
+                      {isToday ? " · Today" : ""}
+                    </p>
+                  </div>
+                  <AddClassToDayPicker
+                    dateKey={dateKey}
+                    templates={templates}
+                    alwaysVisible
+                  />
                 </div>
                 <div className="grid gap-2">
                   {daySessions.map((session) => (
@@ -196,7 +187,7 @@ export function ScheduleSessionsView({
               return (
                 <div
                   key={dateKey}
-                  className={`min-h-[8rem] rounded-lg border border-border bg-card p-2 ${
+                  className={`group relative min-h-[8rem] rounded-lg border border-border bg-card p-2 ${
                     isToday ? "ring-1 ring-brand/40" : ""
                   }`}
                 >
@@ -208,7 +199,7 @@ export function ScheduleSessionsView({
                   </p>
                   <ul className="mt-2 space-y-2">
                     {daySessions.length === 0 ? (
-                      <li className="text-xs text-muted-foreground">—</li>
+                      <li className="text-xs text-muted-foreground">No classes</li>
                     ) : (
                       daySessions.map((session) => (
                         <li
@@ -248,12 +239,64 @@ export function ScheduleSessionsView({
                       ))
                     )}
                   </ul>
+                  <AddClassToDayPicker dateKey={dateKey} templates={templates} />
                 </div>
               );
             })}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ViewModeToggle({
+  view,
+  setView,
+}: {
+  view: ViewMode;
+  setView: (view: ViewMode) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex rounded-lg border border-border bg-card p-1">
+        <button
+          type="button"
+          className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium ${
+            view === "list"
+              ? "bg-brand text-brand-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={() => setView("list")}
+        >
+          <List className="size-4" />
+          List
+        </button>
+        <button
+          type="button"
+          className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium ${
+            view === "calendar"
+              ? "bg-brand text-brand-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={() => setView("calendar")}
+        >
+          <CalendarDays className="size-4" />
+          Week
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button asChild size="sm" variant="outline">
+          <Link href="/admin/sessions/add">
+            <Plus className="mr-1 size-4" />
+            Add class
+          </Link>
+        </Button>
+        <Button asChild size="sm" variant="outline">
+          <Link href="/admin/programs#private-lessons">Private lesson</Link>
+        </Button>
+      </div>
     </div>
   );
 }

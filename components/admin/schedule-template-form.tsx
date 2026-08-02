@@ -40,6 +40,8 @@ type RepeatPreset =
   | "wednesday"
   | "thursday"
   | "friday"
+  | "saturday"
+  | "sunday"
   | "custom";
 
 const REPEAT_OPTIONS: { value: RepeatPreset; label: string }[] = [
@@ -50,6 +52,8 @@ const REPEAT_OPTIONS: { value: RepeatPreset; label: string }[] = [
   { value: "wednesday", label: "Every Wednesday" },
   { value: "thursday", label: "Every Thursday" },
   { value: "friday", label: "Every Friday" },
+  { value: "saturday", label: "Every Saturday" },
+  { value: "sunday", label: "Every Sunday" },
   { value: "custom", label: "Custom days" },
 ];
 
@@ -73,6 +77,8 @@ function presetToRecurrence(preset: RepeatPreset, customDays: number[]) {
     wednesday: 3,
     thursday: 4,
     friday: 5,
+    saturday: 6,
+    sunday: 0,
   };
   return {
     mode: "repeating" as const,
@@ -299,11 +305,13 @@ export function ScheduleTemplateForm({
           <Label>Which days?</Label>
           <div className="flex flex-wrap gap-2">
             {[
+              { day: 0, label: "Sun" },
               { day: 1, label: "Mon" },
               { day: 2, label: "Tue" },
               { day: 3, label: "Wed" },
               { day: 4, label: "Thu" },
               { day: 5, label: "Fri" },
+              { day: 6, label: "Sat" },
             ].map(({ day, label }) => (
               <button
                 key={day}

@@ -7,6 +7,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { getAdminSessions } from "@/lib/admin-data";
+import { listSessionTemplates } from "@/lib/session-templates";
+import type { ScheduleClassOption } from "@/components/admin/add-class-to-day-picker";
 
 function toScheduleItems(
   sessions: Awaited<ReturnType<typeof getAdminSessions>>,
@@ -33,11 +35,29 @@ function toScheduleItems(
     }));
 }
 
+function toClassOptions(
+  templates: Awaited<ReturnType<typeof listSessionTemplates>>,
+): ScheduleClassOption[] {
+  return templates.map((t) => ({
+    id: t.id,
+    default_start_time: t.default_start_time,
+    default_duration_minutes: t.default_duration_minutes,
+    program: t.program
+      ? { name: t.program.name, calendar_color: t.program.calendar_color }
+      : null,
+    trainer: t.trainer ? { name: t.trainer.name } : null,
+  }));
+}
+
 export default async function AdminSessionsPage() {
   const profile = await requireStaff();
-  const sessions = await getAdminSessions();
+  const [sessions, templates] = await Promise.all([
+    getAdminSessions(),
+    listSessionTemplates({ includeInactive: false }),
+  ]);
   const today = new Date().toISOString().slice(0, 10);
   const items = toScheduleItems(sessions);
+  const classOptions = toClassOptions(templates);
 
   return (
     <AdminShell profile={profile}>
@@ -67,30 +87,26 @@ export default async function AdminSessionsPage() {
           </div>
         </div>
 
-        {items.length === 0 ? (
+        {items.length === 0 && classOptions.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-muted/20 p-10 text-center">
             <p className="font-medium">No classes on your schedule yet</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Use standard weekly setup for Little/Big Dawgs blocks, or add one
-              class at a time.
+              Create a class first, then add it to the calendar — including
+              Saturdays and Sundays from the week view.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Button
                 asChild
                 className="bg-brand text-brand-foreground hover:bg-brand/90"
               >
-                <Link href="/admin/sessions/weekly">Standard weekly setup</Link>
+                <Link href="/admin/classes/new">Create a class</Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href="/admin/sessions/add">+ Add class</Link>
+                <Link href="/admin/sessions/weekly">Standard weekly setup</Link>
               </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
-              Need a new time slot?{" "}
-              <Link href="/admin/classes/new" className="text-brand underline">
-                Create a class
-              </Link>{ " "}
-              first. Private lessons:{" "}
+              Private lessons:{" "}
               <Link
                 href="/admin/programs#private-lessons"
                 className="text-brand underline"
@@ -101,7 +117,11 @@ export default async function AdminSessionsPage() {
             </p>
           </div>
         ) : (
-          <ScheduleSessionsView sessions={items} today={today} />
+          <ScheduleSessionsView
+            sessions={items}
+            templates={classOptions}
+            today={today}
+          />
         )}
       </div>
     </AdminShell>

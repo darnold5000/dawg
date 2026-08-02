@@ -49,7 +49,26 @@ import {
 
 Full orchestration (auth links + delivery) lives in the client until extracted—see MA5 `auth-email-flows.ts`.
 
-## Testing
+## Domain DNS (required for each Resend domain)
+
+When you verify a domain in Resend, you must add **all** of the following in DNS for that domain (and again for every additional domain or subdomain you send from):
+
+| Record | Who provides it | Notes |
+|--------|-----------------|--------|
+| SPF | Resend dashboard | Usually merged with existing SPF if one exists |
+| DKIM | Resend dashboard | One or more CNAME/TXT records |
+| **DMARC** | **You (DNS host)** | TXT at `_dmarc.<domain>` — not optional for production |
+
+Resend verifies SPF/DKIM; **DMARC is not created automatically**. Add it for every domain you set up in Resend, or delivery and inbox placement can suffer and some receivers will flag mail.
+
+Example monitoring policy:
+
+```txt
+_dmarc.example.com  TXT  "v=DMARC1; p=none; rua=mailto:dmarc-reports@example.com"
+```
+
+Do not use a `RESEND_FROM_EMAIL` / tenant from-address on a domain until Resend shows **Verified** and DMARC is published.
+
 
 ```bash
 cd signalworks-modules/email && npx vitest run
