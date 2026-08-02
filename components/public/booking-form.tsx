@@ -40,7 +40,6 @@ import {
 } from "@/lib/booking-draft";
 import {
   allowedPaymentMethods,
-  defaultPaymentMethod,
   isOnlineCardPaymentEnabled,
   paymentMethodLabel,
   selectablePaymentMethods,
@@ -56,6 +55,27 @@ import {
   BOOKING_SCHOOL_GRADES,
 } from "@/lib/booking-athlete-options";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
+
+/** Online-only checkout options for the public booking UI. */
+function onlineCheckoutPaymentOptions(
+  requirement: SessionWithRelations["payment_requirement"],
+): PaymentMethod[] {
+  const methods = selectablePaymentMethods(requirement).filter(
+    (method) => method !== "pay_at_facility",
+  );
+  if (methods.length === 0 && isOnlineCardPaymentEnabled()) {
+    return ["stripe"];
+  }
+  return methods;
+}
+
+function defaultOnlineCheckoutPaymentMethod(
+  requirement: SessionWithRelations["payment_requirement"],
+): PaymentMethod | "" {
+  const options = onlineCheckoutPaymentOptions(requirement);
+  if (options.includes("stripe")) return "stripe";
+  return options[0] ?? "";
+}
 
 const emptyForm = {
   parentFirstName: "",
@@ -139,7 +159,7 @@ export function BookingForm({
   );
 
   const paymentOptions = useMemo(
-    () => selectablePaymentMethods(session.payment_requirement),
+    () => onlineCheckoutPaymentOptions(session.payment_requirement),
     [session.payment_requirement],
   );
   const showDisabledPayOnline = useMemo(() => {
@@ -147,7 +167,7 @@ export function BookingForm({
     return allowedPaymentMethods(session.payment_requirement).includes("stripe");
   }, [session.payment_requirement]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
-    () => defaultPaymentMethod(session.payment_requirement) ?? "",
+    () => defaultOnlineCheckoutPaymentMethod(session.payment_requirement),
   );
 
   const athleteDob = form.athleteDob.trim().slice(0, 10);
@@ -208,7 +228,7 @@ export function BookingForm({
             Boolean(family.agreementsCurrent),
         }));
         if (draft?.paymentMethod) {
-          const allowed = selectablePaymentMethods(session.payment_requirement);
+          const allowed = onlineCheckoutPaymentOptions(session.payment_requirement);
           if (allowed.includes(draft.paymentMethod as PaymentMethod)) {
             setPaymentMethod(draft.paymentMethod as PaymentMethod);
           }
@@ -244,7 +264,7 @@ export function BookingForm({
           acceptRequiredAgreements: draft.acceptRequiredAgreements,
         }));
         if (draft.paymentMethod) {
-          const allowed = selectablePaymentMethods(session.payment_requirement);
+          const allowed = onlineCheckoutPaymentOptions(session.payment_requirement);
           if (allowed.includes(draft.paymentMethod as PaymentMethod)) {
             setPaymentMethod(draft.paymentMethod as PaymentMethod);
           }
@@ -486,7 +506,7 @@ export function BookingForm({
     setSavedFamily(null);
     setSelectedAthleteId("");
     setForm(emptyForm);
-    setPaymentMethod(defaultPaymentMethod(session.payment_requirement) ?? "");
+    setPaymentMethod(defaultOnlineCheckoutPaymentMethod(session.payment_requirement));
     clearBookingDraft(session.id);
   }
 
@@ -1310,9 +1330,7 @@ export function BookingForm({
                       {paymentMethodLabel(method)}
                     </span>
                     <span className="mt-0.5 block text-muted-foreground">
-                      {method === "stripe"
-                        ? "Secure card payment via Stripe."
-                        : "Join the roster — pay at the facility."}
+                      Secure card payment via Stripe.
                     </span>
                   </span>
                 </label>

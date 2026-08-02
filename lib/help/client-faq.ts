@@ -6,17 +6,17 @@ export const CLIENT_FAQ_ITEMS: FaqItem[] = [
     id: "book-session",
     question: "How do I book a training session?",
     answerParagraphs: [
-      "Open the training schedule, choose a class or private slot, and tap Book. You'll confirm the athlete, complete intake if needed, and choose how to pay when the session allows it.",
+      "Open the training schedule, choose a class or private slot, and tap Book. You'll confirm the athlete and complete intake if needed. Paid sessions checkout online; group classes may use package credits.",
       "If a class is full, you can join the waitlist with your contact information.",
     ],
     link: { href: "/schedule", label: "View schedule" },
   },
   {
     id: "payments",
-    question: "Can I pay online or at the facility?",
+    question: "How do I pay for sessions and packages?",
     answerParagraphs: [
-      "It depends on the session. Some require card payment online, some are pay-at-facility only, and some let you choose either option at checkout.",
-      "Pay online uses secure Stripe checkout. Pay at facility reserves your spot — you pay when you arrive. You'll get a confirmation email either way (online bookings confirm after payment completes).",
+      "Paid sessions and training packages are purchased online with secure Stripe checkout.",
+      "Many group programs use package credits instead of a per-session price — buy a package online, then book classes that redeem one credit per visit. You'll get a confirmation email when payment completes.",
     ],
     link: { href: "/booking-policy", label: "Booking policy" },
   },

@@ -198,7 +198,7 @@ export function paymentDisplayLabel(
     return opts?.paid === false ? "Pay online" : "Paid online";
   }
   if (method === "package_credit") return "Package credit";
-  return "Pay at facility";
+  return opts?.paid === false ? "Payment due" : "Paid";
 }
 
 export function amountDisplay(
@@ -208,5 +208,5 @@ export function amountDisplay(
   const price = formatPrice(cents);
   if (method === "stripe") return price;
   if (method === "package_credit") return `${price} (package credit)`;
-  return `${price} due at facility`;
+  return price;
 }

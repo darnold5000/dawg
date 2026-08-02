@@ -62,7 +62,9 @@ export default async function BookingConfirmationPage({
   const rosterBooking =
     q.roster === "1" || isRosterCreditSession(session);
   const paymentMethod =
-    q.payment === "stripe" ? "stripe" : "pay_at_facility";
+    q.payment === "stripe" || q.payment === "package_credit"
+      ? q.payment
+      : undefined;
   const location =
     session.location_address ??
     session.location_name ??

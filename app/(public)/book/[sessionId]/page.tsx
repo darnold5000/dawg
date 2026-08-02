@@ -4,7 +4,6 @@ import { getSessionById } from "@/lib/data";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { createMetadata } from "@/lib/seo";
 import { SITE } from "@/lib/constants";
-import { paymentMethodLabel } from "@/lib/billing/payment-options";
 
 function bookingIntro(
   session: NonNullable<Awaited<ReturnType<typeof getSessionById>>>,
@@ -16,10 +15,10 @@ function bookingIntro(
     case "pay_online":
       return "Pay securely online with Stripe to hold your spot.";
     case "online_or_facility":
-      return "Choose how you'd like to pay for this session.";
+      return "Pay securely online with Stripe to hold your spot.";
     case "pay_at_facility":
     default:
-      return `Join the roster and ${paymentMethodLabel("pay_at_facility").toLowerCase()}.`;
+      return "Pay securely online with Stripe to hold your spot.";
   }
 }
 

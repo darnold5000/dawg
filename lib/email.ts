@@ -50,7 +50,7 @@ function paymentLabel(method: PaymentMethod, opts?: { paid?: boolean }) {
     return opts?.paid === false ? "Pay Online" : "Paid Online";
   }
   if (method === "package_credit") return "Package credit";
-  return "Pay at Facility";
+  return "Payment due";
 }
 
 function row(label: string, value: string) {

@@ -40,7 +40,7 @@ export function selectablePaymentMethods(
   if (isOnlineCardPaymentEnabled()) return allowed;
   const withoutStripe = allowed.filter((m) => m !== "stripe");
   if (withoutStripe.length > 0) return withoutStripe;
-  return ["pay_at_facility"];
+  return ["stripe"];
 }
 
 export function defaultPaymentMethod(
@@ -56,5 +56,5 @@ export function defaultPaymentMethod(
 export function paymentMethodLabel(method: PaymentMethod): string {
   if (method === "stripe") return "Pay online";
   if (method === "package_credit") return "Use package credit";
-  return "Pay at facility";
+  return "Payment due";
 }

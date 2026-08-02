@@ -1,18 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  defaultPaymentMethod,
-  isOnlineCardPaymentEnabled,
-  paymentMethodLabel,
-} from "@/lib/billing/payment-options";
 import { formatPrice } from "@/lib/format";
-import type { PaymentMethod } from "@/lib/types/database";
 import type { TrainingPackage } from "@/lib/types/database";
 
 type ContactFields = {
@@ -22,8 +15,6 @@ type ContactFields = {
   parentPhone: string;
 };
 
-const PACKAGE_PAYMENT_OPTIONS: PaymentMethod[] = ["stripe", "pay_at_facility"];
-
 export function PackagePurchaseCards({
   packages,
   initialContact,
@@ -31,24 +22,13 @@ export function PackagePurchaseCards({
   packages: TrainingPackage[];
   initialContact?: Partial<ContactFields>;
 }) {
-  const router = useRouter();
   const [contact, setContact] = useState<ContactFields>({
     parentFirstName: initialContact?.parentFirstName ?? "",
     parentLastName: initialContact?.parentLastName ?? "",
     parentEmail: initialContact?.parentEmail ?? "",
     parentPhone: initialContact?.parentPhone ?? "",
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    () =>
-      defaultPaymentMethod("online_or_facility") ?? "pay_at_facility",
-  );
   const [purchasingSlug, setPurchasingSlug] = useState<string | null>(null);
-
-  // SSR can disagree with the browser on isOnlineCardPaymentEnabled; sync default once mounted.
-  useEffect(() => {
-    const next = defaultPaymentMethod("online_or_facility");
-    if (next) setPaymentMethod(next);
-  }, []);
 
   function update<K extends keyof ContactFields>(key: K, value: ContactFields[K]) {
     setContact((prev) => ({ ...prev, [key]: value }));
@@ -72,19 +52,13 @@ export function PackagePurchaseCards({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           packageSlug: pkg.slug,
-          paymentMethod,
+          paymentMethod: "stripe",
           ...contact,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Could not start checkout");
-        return;
-      }
-      if (data.payAtFacility && data.purchaseId) {
-        router.push(
-          `/packages/success?purchase_id=${encodeURIComponent(data.purchaseId)}&payment=pay_at_facility`,
-        );
         return;
       }
       if (data.checkoutUrl) {
@@ -113,8 +87,7 @@ export function PackagePurchaseCards({
     <div className="space-y-10">
       <div className="form-panel grid gap-4 sm:grid-cols-2">
         <p className="sm:col-span-2 text-sm text-muted-foreground">
-          Enter your contact info once, choose how you want to pay, then pick a
-          package.
+          Enter your contact info once, then pick a package to purchase online.
         </p>
         <div className="space-y-1.5">
           <Label htmlFor="parentFirstName">First name</Label>
@@ -156,6 +129,7 @@ export function PackagePurchaseCards({
         </div>
       </div>
 
+      {/* Payment selection removed — packages purchase online via Stripe checkout.
       <fieldset className="space-y-3 rounded-xl border border-border p-4">
         <legend className="px-1 font-heading text-lg tracking-wide">
           Payment
@@ -182,7 +156,7 @@ export function PackagePurchaseCards({
           ) : null}
           {(isOnlineCardPaymentEnabled()
             ? PACKAGE_PAYMENT_OPTIONS
-            : (["pay_at_facility"] as PaymentMethod[])
+            : ([] as PaymentMethod[])
           ).map((method) => (
             <label
               key={method}
@@ -212,6 +186,7 @@ export function PackagePurchaseCards({
           ))}
         </div>
       </fieldset>
+      */}
 
       <div className="grid gap-6 sm:grid-cols-3">
         {packages.map((pkg) => (
@@ -231,13 +206,7 @@ export function PackagePurchaseCards({
               disabled={purchasingSlug !== null}
               onClick={() => void purchase(pkg)}
             >
-              {purchasingSlug === pkg.slug
-                ? paymentMethod === "stripe"
-                  ? "Starting checkout…"
-                  : "Saving order…"
-                : paymentMethod === "stripe"
-                  ? "Purchase online"
-                  : "Order — pay at facility"}
+              {purchasingSlug === pkg.slug ? "Starting checkout…" : "Purchase online"}
             </Button>
           </div>
         ))}

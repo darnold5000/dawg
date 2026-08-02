@@ -328,7 +328,7 @@ export async function createPublicBooking(
       return {
         ok: false,
         error:
-          "Online payment is coming soon. Please choose pay at facility.",
+          "Online payment is not available right now. Please try again later or contact us.",
         code: "ONLINE_PAYMENT_DISABLED",
       };
     }
@@ -353,7 +353,7 @@ export async function createPublicBooking(
     ) {
       return {
         ok: false,
-        error: "Pay at facility is not available for this session.",
+        error: "Online payment is required for this session.",
         code: "FACILITY_PAYMENT_NOT_ALLOWED",
       };
     }
@@ -454,7 +454,7 @@ export async function createPublicBooking(
     if (message.includes("FACILITY_PAYMENT_NOT_ALLOWED")) {
       return {
         ok: false,
-        error: "Pay at facility is not available for this session.",
+        error: "Online payment is required for this session.",
         code: "FACILITY_PAYMENT_NOT_ALLOWED",
       };
     }

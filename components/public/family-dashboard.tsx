@@ -19,7 +19,7 @@ function familyPaymentLabel(status: PaymentStatus): string {
     case "not_required":
       return "Included";
     case "unpaid":
-      return "Pay at facility";
+      return "Payment due";
     case "pending":
       return "Payment pending";
     case "paid":

@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              "Online payment is coming soon. Please choose pay at facility.",
+              "Online payment is not available right now. Please try again later or contact us.",
           },
           { status: 400 },
         );
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Online payment is coming soon. Please choose pay at facility.",
+            "Online payment is not available right now. Please try again later or contact us.",
         },
         { status: 400 },
       );
