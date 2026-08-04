@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PackagePurchaseCards } from "@/components/public/package-purchase-cards";
 import { listActivePackages } from "@/lib/packages";
 import { getAuthenticatedFamily } from "@/lib/family-auth";
@@ -30,6 +31,18 @@ export default async function PackagesPage({
       {q.cancelled === "1" ? (
         <p className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
           Checkout was cancelled. You can try again below.
+        </p>
+      ) : null}
+
+      {family ? (
+        <p className="mt-4 rounded-lg border border-brand/30 bg-brand/5 px-4 py-3 text-sm text-muted-foreground">
+          Welcome back,{" "}
+          <strong className="text-foreground">{family.parentFirstName}</strong>.
+          Your contact info is saved on this device.{" "}
+          <Link href="/my" className="underline underline-offset-2">
+            View my account
+          </Link>
+          .
         </p>
       ) : null}
 

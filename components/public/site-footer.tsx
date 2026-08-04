@@ -43,6 +43,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link href="/my" className="hover:text-white">
+                My Account
+              </Link>
+            </li>
+            <li>
               <Link href="/privacy" className="hover:text-white">
                 Privacy Policy
               </Link>

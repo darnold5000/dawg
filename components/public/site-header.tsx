@@ -126,6 +126,13 @@ export function SiteHeader() {
               </Link>
             );
           })}
+          <Button
+            asChild
+            variant="outline"
+            className="ml-2 border-white/30 bg-transparent font-semibold text-white hover:bg-white/10 hover:text-white"
+          >
+            <Link href="/my">My Account</Link>
+          </Button>
           <Button asChild className="ml-2 bg-gold font-bold text-gold-foreground hover:bg-gold/90">
             <Link href="/schedule">Book Training</Link>
           </Button>
@@ -165,6 +172,15 @@ export function SiteHeader() {
               </Link>
             );
           })}
+          <Button
+            asChild
+            variant="outline"
+            className="mt-2 border-white/30 bg-transparent font-semibold text-white hover:bg-white/10 hover:text-white"
+          >
+            <Link href="/my" onClick={() => setOpen(false)}>
+              My Account
+            </Link>
+          </Button>
           <Button asChild className="mt-2 bg-gold font-bold text-gold-foreground hover:bg-gold/90">
             <Link href="/schedule" onClick={() => setOpen(false)}>
               Book Training

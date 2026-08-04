@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,17 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function FamilyLoginForm({
-  returnTo = "/schedule",
+  returnTo = "/my",
+  initialEmail = "",
 }: {
   returnTo?: string;
+  initialEmail?: string;
 }) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [staffBlocked, setStaffBlocked] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    setStaffBlocked(false);
     try {
       const res = await fetch("/api/my/login", {
         method: "POST",
@@ -26,6 +31,10 @@ export function FamilyLoginForm({
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data.code === "STAFF_EMAIL") {
+          setStaffBlocked(true);
+          return;
+        }
         toast.error(data.error ?? "Could not send link");
         return;
       }
@@ -35,6 +44,33 @@ export function FamilyLoginForm({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (staffBlocked) {
+    return (
+      <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-6 text-sm">
+        <p className="font-medium">Staff account detected</p>
+        <p className="mt-2 text-muted-foreground">
+          <strong>{email}</strong> is registered for staff access, not the
+          family portal. Use Staff login to manage DAWG.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
+            <Link href="/admin/login">Go to Staff login</Link>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setStaffBlocked(false);
+              setEmail("");
+            }}
+          >
+            Use a different email
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (sent) {
@@ -65,8 +101,8 @@ export function FamilyLoginForm({
       className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm"
     >
       <p className="text-sm text-muted-foreground">
-        Enter your email and we&apos;ll send the right secure link — intake,
-        sign-in, or create your online account.
+        We&apos;ll email a one-time link to get your family set up or open your
+        account on this device.
       </p>
       <div className="space-y-1.5">
         <Label htmlFor="myEmail">Email address</Label>

@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   try {
     const body = bodySchema.parse(await request.json());
     const token = normalizeMagicLinkToken(body.token);
-    const returnTo = sanitizeReturnPath(body.returnTo, "/schedule");
+    const returnTo = sanitizeReturnPath(body.returnTo, "/my");
 
     const result = await verifyFamilyLoginToken(token);
     if (!result.ok) {

@@ -60,7 +60,7 @@ export function FamilyDashboard({ data }: { data: FamilyPortalData }) {
 
   async function signOut() {
     await forgetRememberedFamily();
-    router.push("/schedule");
+    router.push("/my/login");
     router.refresh();
   }
 
@@ -120,7 +120,14 @@ export function FamilyDashboard({ data }: { data: FamilyPortalData }) {
         <h3 className="font-heading text-xl tracking-wide">Athletes</h3>
         {data.athletes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No athletes on file yet. Purchase a package to add your athlete.
+            No athletes on file yet.{" "}
+            <Link
+              href="/my/intake?return=/my"
+              className="underline underline-offset-2"
+            >
+              Complete athlete intake
+            </Link>
+            .
           </p>
         ) : (
           <ul className="grid gap-2">

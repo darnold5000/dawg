@@ -17,6 +17,7 @@ import {
 import { setAuthReturnCookie } from "@/lib/family-auth";
 import { evaluateLoginToken } from "@/lib/family-token-verify";
 import { intakePath, sanitizeReturnPath } from "@/lib/family-auth-url";
+import { isActiveStaffEmail } from "@/lib/auth/staff-email";
 import { parentHasAnyIntake } from "@/lib/intake";
 import {
   findOrCreateParentByEmail,
@@ -158,6 +159,15 @@ export async function requestFamilyAccessLink(
   let parent = await getParentByEmail(normalized);
 
   if (!parent) {
+    if (await isActiveStaffEmail(normalized)) {
+      return {
+        ok: false,
+        code: "STAFF_EMAIL",
+        error:
+          "This email is registered for staff access. Use Staff login to sign in.",
+      };
+    }
+
     parent = await findOrCreateParentByEmail({
       email: normalized,
       firstName: "DAWG",
