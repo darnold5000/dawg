@@ -44,7 +44,7 @@ export function SiteFooter() {
             </li>
             <li>
               <Link href="/my" className="hover:text-white">
-                My Account
+                Account
               </Link>
             </li>
             <li>

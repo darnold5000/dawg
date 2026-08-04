@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { forgetRememberedFamily } from "@/lib/returning-family";
+import { forgetRememberedFamily, saveLastFamilyLoginEmail } from "@/lib/returning-family";
 import {
   formatPrice,
   formatSessionDateShort,
@@ -59,6 +59,7 @@ export function FamilyDashboard({ data }: { data: FamilyPortalData }) {
   const router = useRouter();
 
   async function signOut() {
+    saveLastFamilyLoginEmail(data.parent.email);
     await forgetRememberedFamily();
     router.push("/my/login");
     router.refresh();

@@ -34,6 +34,38 @@ type RememberedFamilyPayload = SavedFamily & {
 
 const LEGACY_KEY = "dawg_returning_family";
 const DEMO_KEY = "dawg_family_device_demo";
+const LAST_LOGIN_EMAIL_KEY = "dawg_family_login_email";
+
+/** Remember last family login email for form prefill after sign-out (email only). */
+export function saveLastFamilyLoginEmail(email: string) {
+  if (typeof window === "undefined") return;
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed) return;
+  try {
+    window.localStorage.setItem(LAST_LOGIN_EMAIL_KEY, trimmed);
+  } catch {
+    // ignore
+  }
+}
+
+export function loadLastFamilyLoginEmail(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = window.localStorage.getItem(LAST_LOGIN_EMAIL_KEY)?.trim();
+    return value || null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLastFamilyLoginEmail() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(LAST_LOGIN_EMAIL_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 /** Wipe insecure legacy payload (may have included medical notes). */
 export function clearLegacyLocalFamily() {

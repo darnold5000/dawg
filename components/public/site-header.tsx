@@ -131,7 +131,7 @@ export function SiteHeader() {
             variant="outline"
             className="ml-2 border-white/30 bg-transparent font-semibold text-white hover:bg-white/10 hover:text-white"
           >
-            <Link href="/my">My Account</Link>
+            <Link href="/my">Account</Link>
           </Button>
           <Button asChild className="ml-2 bg-gold font-bold text-gold-foreground hover:bg-gold/90">
             <Link href="/schedule">Book Training</Link>
@@ -178,7 +178,7 @@ export function SiteHeader() {
             className="mt-2 border-white/30 bg-transparent font-semibold text-white hover:bg-white/10 hover:text-white"
           >
             <Link href="/my" onClick={() => setOpen(false)}>
-              My Account
+              Account
             </Link>
           </Button>
           <Button asChild className="mt-2 bg-gold font-bold text-gold-foreground hover:bg-gold/90">

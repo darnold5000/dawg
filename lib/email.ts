@@ -402,13 +402,13 @@ export async function sendAccountClaimEmail(payload: {
   const site = getSiteUrl();
   const returnTo = payload.returnTo ?? "/my";
   const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}&return=${encodeURIComponent(returnTo)}`;
-  const sessionLabel = `${payload.sessionsTotal} session${payload.sessionsTotal === 1 ? "" : "s"}`;
+  const sessionLabel = `${payload.sessionsTotal} session credit${payload.sessionsTotal === 1 ? "" : "s"}`;
   const heading = payload.reminder
-    ? "Reminder: claim your DAWG account"
-    : "Claim your DAWG account";
+    ? "Reminder: set up your DAWG account"
+    : "Set up your DAWG account";
   const intro = payload.reminder
-    ? `Your <strong>${escapeHtml(payload.packageName)}</strong> (${sessionLabel}) is ready. This is a reminder to claim your free DAWG account so you can view your balance and booking history.`
-    : `Your <strong>${escapeHtml(payload.packageName)}</strong> (${sessionLabel}) is ready. Claim your free DAWG account to view your balance and booking history.`;
+    ? `Your <strong>${escapeHtml(payload.packageName)}</strong> purchase (${sessionLabel}) is on file. This is a reminder to set up your online account so you can view your credit balance and booking history anytime.`
+    : `Thank you for your purchase! Your <strong>${escapeHtml(payload.packageName)}</strong> (${sessionLabel}) is on file. Set up your online account to view your credit balance and booking history anytime.`;
 
   await sendEmail(
     {
@@ -416,23 +416,23 @@ export async function sendAccountClaimEmail(payload: {
       to: payload.parentEmail,
       replyTo: SITE.email,
       subject: payload.reminder
-        ? `Your ${payload.packageName} is ready — claim your account`
-        : `Claim your DAWG account — ${payload.packageName} ready`,
+        ? `Your ${payload.packageName} — set up your account`
+        : `Your ${payload.packageName} purchase — set up your account`,
       html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
         <h1 style="font-size: 22px; margin: 0 0 12px;">${heading}</h1>
         <p>Hi ${escapeHtml(firstName(payload.parentFirstName))},</p>
         <p>${intro}</p>
-        <p>Your credits are already on file — claiming your account is optional, but it lets you see your balance and history anytime.</p>
+        <p>Your session credits are already saved — setting up your account is optional, but it lets you check your balance and history whenever you like.</p>
         <p style="margin: 24px 0;">
           <a href="${link}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
-            Claim your account
+            Set up my account
           </a>
         </p>
         <p style="color: #666; font-size: 13px;">This secure link expires in 24 hours. If you did not make this purchase, contact us at ${SITE.phone}.</p>
       </div>
     `,
-      text: `Your ${payload.packageName} is ready. Claim your DAWG account: ${link}`,
+      text: `Your ${payload.packageName} purchase is on file (${sessionLabel}). Set up your DAWG account: ${link}`,
     },
     payload.reminder ? "account-claim-reminder" : "account-claim",
   );

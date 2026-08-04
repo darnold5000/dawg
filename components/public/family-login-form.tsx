@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  clearLastFamilyLoginEmail,
+  loadLastFamilyLoginEmail,
+  saveLastFamilyLoginEmail,
+} from "@/lib/returning-family";
 
 export function FamilyLoginForm({
   returnTo = "/my",
@@ -18,6 +23,16 @@ export function FamilyLoginForm({
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [staffBlocked, setStaffBlocked] = useState(false);
+
+  useEffect(() => {
+    if (initialEmail) {
+      setEmail(initialEmail);
+      saveLastFamilyLoginEmail(initialEmail);
+      return;
+    }
+    const last = loadLastFamilyLoginEmail();
+    if (last) setEmail(last);
+  }, [initialEmail]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,6 +54,7 @@ export function FamilyLoginForm({
         return;
       }
       setSent(true);
+      saveLastFamilyLoginEmail(email);
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -63,6 +79,7 @@ export function FamilyLoginForm({
             variant="outline"
             onClick={() => {
               setStaffBlocked(false);
+              clearLastFamilyLoginEmail();
               setEmail("");
             }}
           >
@@ -87,7 +104,11 @@ export function FamilyLoginForm({
           type="button"
           variant="outline"
           className="mt-4"
-          onClick={() => setSent(false)}
+          onClick={() => {
+            setSent(false);
+            clearLastFamilyLoginEmail();
+            setEmail("");
+          }}
         >
           Use a different email
         </Button>
