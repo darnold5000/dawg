@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test:safeguards": "npx tsx scripts/verify-account-safeguards.ts",
     "test:package-credits": "npx tsx --test lib/package-credit-booking.test.ts",
+    "test:follow-up": "npx tsx --test lib/family-access-copy.test.ts lib/admin-booking-lifecycle.test.ts lib/booking-contact-email.test.ts",
     "test:training-tenant": "npx tsx scripts/test-training-tenant-scope.ts"
   },
   "dependencies": {

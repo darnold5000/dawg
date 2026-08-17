@@ -12,6 +12,7 @@ import type { AttendanceStatus, BookingWithRelations } from "@/lib/types/databas
 import { athleteAgeFromDob } from "@/lib/format";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { BookingReadinessBadge } from "@/components/admin/booking-readiness-badge";
+import { BookingLifecycleActions } from "@/components/admin/booking-lifecycle-actions";
 import type { AthleteBookingReadinessStatus } from "@/lib/intake";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +26,13 @@ const toneClass = {
 export function RosterAttendance({
   bookings,
   readinessByAthleteId = {},
+  removalByBookingId = {},
+  showRemove = false,
 }: {
   bookings: BookingWithRelations[];
   readinessByAthleteId?: Record<string, AthleteBookingReadinessStatus>;
+  removalByBookingId?: Record<string, { canRemove: boolean; reason: string | null }>;
+  showRemove?: boolean;
 }) {
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -97,7 +102,8 @@ export function RosterAttendance({
             </div>
 
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {ATTENDANCE_STATUSES.map((option) => {
+              {ATTENDANCE_STATUSES.filter((option) => option !== "cancelled").map(
+                (option) => {
                 const active = status === option;
                 return (
                   <button
@@ -115,7 +121,19 @@ export function RosterAttendance({
                     {attendanceLabel(option)}
                   </button>
                 );
-              })}
+              },
+              )}
+            </div>
+            <div className="mt-2 border-t border-border pt-2">
+              <BookingLifecycleActions
+                bookingId={b.id}
+                compact
+                showRemove={showRemove}
+                canRemove={
+                  showRemove && (removalByBookingId[b.id]?.canRemove ?? false)
+                }
+                removeDisabledReason={removalByBookingId[b.id]?.reason}
+              />
             </div>
           </article>
         );

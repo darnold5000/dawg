@@ -10,6 +10,7 @@ import { SITE } from "@/lib/constants";
 import { buildIcsCalendar, calendarDetailsLine } from "@/lib/calendar";
 import { formatPrice, formatSessionDate, formatSessionTime } from "@/lib/format";
 import { getSiteUrl } from "@/lib/billing/site-url";
+import { FAMILY_CLAIM_COPY } from "@/lib/family-access-copy";
 import type { Booking, PaymentMethod, PaymentStatus } from "@/lib/types/database";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -404,11 +405,11 @@ export async function sendAccountClaimEmail(payload: {
   const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}&return=${encodeURIComponent(returnTo)}`;
   const sessionLabel = `${payload.sessionsTotal} session credit${payload.sessionsTotal === 1 ? "" : "s"}`;
   const heading = payload.reminder
-    ? "Reminder: set up your DAWG account"
-    : "Set up your DAWG account";
+    ? "Reminder: set up access to your DAWG family account"
+    : FAMILY_CLAIM_COPY.emailHeading;
   const intro = payload.reminder
-    ? `Your <strong>${escapeHtml(payload.packageName)}</strong> purchase (${sessionLabel}) is on file. This is a reminder to set up your online account so you can view your credit balance and booking history anytime.`
-    : `Thank you for your purchase! Your <strong>${escapeHtml(payload.packageName)}</strong> (${sessionLabel}) is on file. Set up your online account to view your credit balance and booking history anytime.`;
+    ? `Your <strong>${escapeHtml(payload.packageName)}</strong> purchase (${sessionLabel}) is already on file. This is a reminder to set up access so you can view bookings, athletes, and package credits.`
+    : `Thank you for your purchase. Your <strong>${escapeHtml(payload.packageName)}</strong> (${sessionLabel}) is already on file. Set up access so you can view bookings, athletes, and package credits.`;
 
   await sendEmail(
     {
@@ -416,25 +417,61 @@ export async function sendAccountClaimEmail(payload: {
       to: payload.parentEmail,
       replyTo: SITE.email,
       subject: payload.reminder
-        ? `Your ${payload.packageName} — set up your account`
-        : `Your ${payload.packageName} purchase — set up your account`,
+        ? `Your ${payload.packageName} — set up account access`
+        : `Your ${payload.packageName} purchase — set up account access`,
       html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
         <h1 style="font-size: 22px; margin: 0 0 12px;">${heading}</h1>
         <p>Hi ${escapeHtml(firstName(payload.parentFirstName))},</p>
         <p>${intro}</p>
-        <p>Your session credits are already saved — setting up your account is optional, but it lets you check your balance and history whenever you like.</p>
+        <p>${FAMILY_CLAIM_COPY.body}</p>
         <p style="margin: 24px 0;">
           <a href="${link}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
-            Set up my account
+            ${FAMILY_CLAIM_COPY.emailButton}
           </a>
         </p>
         <p style="color: #666; font-size: 13px;">This secure link expires in 24 hours. If you did not make this purchase, contact us at ${SITE.phone}.</p>
       </div>
     `,
-      text: `Your ${payload.packageName} purchase is on file (${sessionLabel}). Set up your DAWG account: ${link}`,
+      text: `Your ${payload.packageName} purchase is on file (${sessionLabel}). ${FAMILY_CLAIM_COPY.title}: ${link}`,
     },
     payload.reminder ? "account-claim-reminder" : "account-claim",
+  );
+}
+
+/** Claim link for an existing guardian record (not a new purchase). */
+export async function sendExistingFamilyAccessEmail(payload: {
+  parentEmail: string;
+  parentFirstName: string;
+  token: string;
+  returnTo?: string;
+}): Promise<void> {
+  const site = getSiteUrl();
+  const returnTo = payload.returnTo ?? "/my";
+  const link = `${site}/my/verify?token=${encodeURIComponent(payload.token)}&return=${encodeURIComponent(returnTo)}`;
+
+  await sendEmail(
+    {
+      from: fromAddress(),
+      to: payload.parentEmail,
+      replyTo: SITE.email,
+      subject: FAMILY_CLAIM_COPY.title,
+      html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #121212;">
+        <h1 style="font-size: 22px; margin: 0 0 12px;">${FAMILY_CLAIM_COPY.emailHeading}</h1>
+        <p>Hi ${escapeHtml(firstName(payload.parentFirstName))},</p>
+        <p>${FAMILY_CLAIM_COPY.body}</p>
+        <p style="margin: 24px 0;">
+          <a href="${link}" style="display: inline-block; background: #121212; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            ${FAMILY_CLAIM_COPY.emailButton}
+          </a>
+        </p>
+        <p style="color: #666; font-size: 13px;">This secure link expires in 24 hours. If you did not request this, you can ignore this email.</p>
+      </div>
+    `,
+      text: `${FAMILY_CLAIM_COPY.title}\n\n${FAMILY_CLAIM_COPY.body}\n\n${link}`,
+    },
+    "account-claim",
   );
 }
 

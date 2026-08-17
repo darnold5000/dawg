@@ -25,6 +25,7 @@ import type {
   Trainer,
   TrainingSession,
 } from "@/lib/types/database";
+import { isActiveRosterBooking } from "@/lib/booking-roster";
 
 function todayISO(): string {
   return format(new Date(), "yyyy-MM-dd");
@@ -38,20 +39,22 @@ async function bookingCounts(
     const supabase = createTrainingServiceClient();
     const { data } = await supabase
       .from(DAWG_TABLES.bookings)
-      .select("session_id, status, booking_expires_at")
+      .select("session_id, status, booking_expires_at, attendance_status")
       .in("session_id", sessionIds)
       .in("status", ["pending", "confirmed"]);
 
     const now = Date.now();
     const counts: Record<string, number> = {};
     for (const row of data ?? []) {
-      if (row.status === "pending") {
-        if (
-          row.booking_expires_at &&
-          new Date(row.booking_expires_at).getTime() <= now
-        ) {
-          continue;
-        }
+      if (
+        !isActiveRosterBooking({
+          status: row.status,
+          attendance_status: row.attendance_status,
+          booking_expires_at: row.booking_expires_at,
+          nowMs: now,
+        })
+      ) {
+        continue;
       }
       counts[row.session_id] = (counts[row.session_id] ?? 0) + 1;
     }

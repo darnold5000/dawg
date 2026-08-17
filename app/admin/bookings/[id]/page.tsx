@@ -3,11 +3,14 @@ import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AgreementsSummary } from "@/components/admin/agreements-summary";
 import { BookingBillingPanel } from "@/components/admin/billing/booking-billing-panel";
+import { BookingLifecycleActions } from "@/components/admin/booking-lifecycle-actions";
 import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-badge";
 import { requireStaff } from "@/lib/auth";
 import { listPaymentTransactions } from "@/lib/billing/adapter";
 import { adminBookingPaymentTypeLabel } from "@/lib/admin-booking-labels";
+import { hardDeleteBlockReason } from "@/lib/booking-roster";
 import { getPackageRedemptionsForBookings } from "@/lib/admin-package-redemptions";
+import { isAdminRole } from "@/lib/roles";
 import { attendanceLabel } from "@/lib/attendance";
 import {
   createTrainingServiceClient,
@@ -65,6 +68,12 @@ export default async function AdminBookingDetailPage({
   const txResult = await listPaymentTransactions(id);
   const transactions: PaymentTransaction[] = txResult.ok ? txResult.data : [];
   const packageByBooking = await getPackageRedemptionsForBookings([id]);
+  const removeReason = hardDeleteBlockReason(booking, {
+    hasRedemption: packageByBooking.has(id),
+    hasPaymentTransaction: transactions.length > 0,
+  });
+  const canRemove =
+    Boolean(profile.role && isAdminRole(profile.role)) && removeReason == null;
   const paymentTypeLabel = adminBookingPaymentTypeLabel({
     paymentStatus: booking.payment_status,
     paymentMethod: booking.payment_method,
@@ -185,6 +194,25 @@ export default async function AdminBookingDetailPage({
         ) : null}
 
         <AgreementsSummary booking={booking} />
+
+        <section className="rounded-xl border border-border bg-card p-5">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Session roster
+          </h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Cancel keeps this booking in history. Remove permanently deletes
+            unpaid test or mistaken bookings from the session.
+          </p>
+          <div className="mt-4">
+            <BookingLifecycleActions
+              bookingId={booking.id}
+              showRemove={Boolean(profile.role && isAdminRole(profile.role))}
+              canRemove={canRemove}
+              removeDisabledReason={removeReason}
+              afterRemoveHref="/admin/bookings"
+            />
+          </div>
+        </section>
 
         <BookingBillingPanel
           booking={booking}

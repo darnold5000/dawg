@@ -12,6 +12,7 @@ import type {
   TrainingSession,
 } from "@/lib/types/database";
 import { getPrograms, getSessionTypes, getTrainers } from "@/lib/data";
+import { isActiveRosterBooking } from "@/lib/booking-roster";
 
 export async function getAdminSessions(): Promise<SessionWithRelations[]> {
   if (!isSupabaseConfigured()) {
@@ -42,7 +43,7 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
     const ids = data.map((s) => s.id);
     const { data: bookings } = await supabaseService
       .from(DAWG_TABLES.bookings)
-      .select("session_id, status, booking_expires_at")
+      .select("session_id, status, booking_expires_at, attendance_status")
       .in("session_id", ids)
       .in("status", ["pending", "confirmed"]);
 
@@ -50,9 +51,12 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
     const counts: Record<string, number> = {};
     for (const row of bookings ?? []) {
       if (
-        row.status === "pending" &&
-        row.booking_expires_at &&
-        new Date(row.booking_expires_at).getTime() <= now
+        !isActiveRosterBooking({
+          status: row.status,
+          attendance_status: row.attendance_status,
+          booking_expires_at: row.booking_expires_at,
+          nowMs: now,
+        })
       ) {
         continue;
       }

@@ -142,6 +142,15 @@ export async function GET(request: Request) {
       }));
     }
 
+    console.info("[booking-context] hydration", {
+      hasRememberedFamily: Boolean(remembered),
+      guardianId: parentId,
+      hasParentEmail: Boolean(parentOnFile?.email),
+      emailSource: remembered ? "cookie" : email ? "query" : "none",
+      athleteCount: athletesOnFile.length,
+      bookingContextLoaded: true,
+    });
+
     return NextResponse.json({
       parentId,
       athleteId: resolvedAthleteId,

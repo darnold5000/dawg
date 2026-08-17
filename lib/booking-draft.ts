@@ -73,3 +73,17 @@ export function clearBookingDraft(sessionId: string) {
     // ignore
   }
 }
+
+export function clearAllBookingDrafts() {
+  if (typeof window === "undefined") return;
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < window.sessionStorage.length; i += 1) {
+      const key = window.sessionStorage.key(i);
+      if (key?.startsWith("dawg_booking_draft:")) keys.push(key);
+    }
+    for (const key of keys) window.sessionStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}

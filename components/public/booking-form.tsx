@@ -34,6 +34,7 @@ function persistRememberedBookingLocally(input: {
   saveDemoFamily(input);
 }
 import {
+  clearAllBookingDrafts,
   clearBookingDraft,
   loadBookingDraft,
   saveBookingDraft,
@@ -186,7 +187,7 @@ export function BookingForm({
 
       if (cancelled) return;
 
-      if (family && family.athletes.length > 0) {
+      if (family) {
         setSavedFamily(family);
         const initialAthleteId =
           draft?.selectedAthleteId &&
@@ -199,10 +200,10 @@ export function BookingForm({
           : undefined;
         setForm((prev) => ({
           ...prev,
-          parentFirstName: draft?.parentFirstName || family.parentFirstName,
-          parentLastName: draft?.parentLastName || family.parentLastName,
-          parentEmail: draft?.parentEmail || family.parentEmail,
-          parentPhone: draft?.parentPhone || family.parentPhone,
+          parentFirstName: family.parentFirstName,
+          parentLastName: family.parentLastName,
+          parentEmail: family.parentEmail,
+          parentPhone: family.parentPhone,
           athleteFirstName:
             draft?.athleteFirstName || athlete?.firstName || "",
           athleteLastName: draft?.athleteLastName || athlete?.lastName || "",
@@ -332,9 +333,11 @@ export function BookingForm({
 
     async function loadContext() {
       const params = new URLSearchParams();
-      const contactEmail = minor
-        ? form.parentEmail.trim()
-        : form.athleteEmail.trim();
+      const contactEmail = savedFamily?.parentEmail
+        ? savedFamily.parentEmail
+        : minor
+          ? form.parentEmail.trim()
+          : form.athleteEmail.trim();
       if (contactEmail) params.set("email", contactEmail);
       if (
         selectedAthleteId &&
@@ -508,6 +511,7 @@ export function BookingForm({
 
   async function bookAsDifferentFamily() {
     await forgetRememberedFamily();
+    clearAllBookingDrafts();
     setSavedFamily(null);
     setSelectedAthleteId("");
     setForm(emptyForm);
@@ -517,6 +521,14 @@ export function BookingForm({
   }
 
   function bookingContactFields() {
+    if (savedFamily?.parentEmail) {
+      return {
+        parentFirstName: savedFamily.parentFirstName,
+        parentLastName: savedFamily.parentLastName,
+        parentEmail: savedFamily.parentEmail,
+        parentPhone: savedFamily.parentPhone || form.parentPhone.trim(),
+      };
+    }
     if (minor) {
       return {
         parentFirstName: form.parentFirstName.trim(),
@@ -554,6 +566,11 @@ export function BookingForm({
     setSubmitting(true);
 
     try {
+      if (!waitlistMode && !hydrated) {
+        toastError("Loading your family info…");
+        return;
+      }
+
       if (waitlistMode) {
         const res = await fetch("/api/waitlist", {
           method: "POST",
@@ -1077,6 +1094,7 @@ export function BookingForm({
                   id="parentEmail"
                   type="email"
                   required
+                  readOnly={Boolean(savedFamily)}
                   value={form.parentEmail}
                   onChange={(e) => update("parentEmail", e.target.value)}
                   autoComplete="email"
@@ -1423,6 +1441,7 @@ export function BookingForm({
           type="submit"
           disabled={
             submitting ||
+            !hydrated ||
             (!rosterCredit && !packageCreditAvailable && !paymentMethod)
           }
           className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:min-w-[220px] sm:px-8"

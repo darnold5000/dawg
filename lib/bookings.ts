@@ -31,7 +31,7 @@ const bookingFieldsSchema = z.object({
   sessionId: z.string().min(1),
   parentFirstName: z.string().min(1).max(80),
   parentLastName: z.string().min(1).max(80),
-  parentEmail: z.string().email().max(160),
+  parentEmail: z.string().email("Enter a valid email address").max(160),
   parentPhone: z.string().min(7).max(40),
   athleteFirstName: z.string().min(1).max(80),
   athleteLastName: z.string().min(1).max(80),
@@ -99,7 +99,7 @@ export const waitlistSchema = z.object({
   sessionId: z.string().min(1),
   parentName: z.string().min(1).max(120),
   athleteName: z.string().min(1).max(120),
-  email: z.string().email().max(160),
+  email: z.string().email("Enter a valid email address").max(160),
   phone: z.string().min(7).max(40),
 });
 

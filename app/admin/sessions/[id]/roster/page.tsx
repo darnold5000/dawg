@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { getSessionRoster } from "@/lib/admin-data";
 import { getAthleteBookingReadinessMap } from "@/lib/intake";
+import { isAdminRole } from "@/lib/roles";
+import {
+  hardDeleteBlockReason,
+  isActiveRosterBooking,
+} from "@/lib/booking-roster";
+import { getPackageRedemptionsForBookings } from "@/lib/admin-package-redemptions";
 import { athleteAgeFromDob, formatSessionDate, formatSessionTime } from "@/lib/format";
 
 export default async function RosterPage({
@@ -18,8 +24,17 @@ export default async function RosterPage({
   const { session, bookings } = await getSessionRoster(id);
   if (!session) notFound();
 
-  const activeBookings = bookings.filter(
-    (b) => b.status === "confirmed" || b.status === "pending",
+  const activeBookings = bookings.filter((b) => isActiveRosterBooking(b));
+  const packageByBooking = await getPackageRedemptionsForBookings(
+    activeBookings.map((b) => b.id),
+  );
+  const removalByBookingId = Object.fromEntries(
+    activeBookings.map((b) => {
+      const reason = hardDeleteBlockReason(b, {
+        hasRedemption: packageByBooking.has(b.id),
+      });
+      return [b.id, { canRemove: reason == null, reason }];
+    }),
   );
 
   const readinessByAthleteId = Object.fromEntries(
@@ -98,6 +113,8 @@ export default async function RosterPage({
           <RosterAttendance
             bookings={activeBookings}
             readinessByAthleteId={readinessByAthleteId}
+            removalByBookingId={removalByBookingId}
+            showRemove={Boolean(profile.role && isAdminRole(profile.role))}
           />
         )}
       </div>

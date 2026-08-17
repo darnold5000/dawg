@@ -10,7 +10,7 @@ import {
 } from "@/lib/family-device";
 import { CURRENT_AGREEMENTS_VERSION } from "@/lib/agreements";
 import {
-  sendAccountClaimEmail,
+  sendExistingFamilyAccessEmail,
   sendFamilyLoginEmail,
   sendIntakeAccessEmail,
 } from "@/lib/email";
@@ -103,8 +103,6 @@ async function sendTokenEmail(input: {
   parentFirstName: string;
   token: string;
   returnTo: string;
-  packageName?: string;
-  sessionsTotal?: number;
 }) {
   const safeReturn = sanitizeReturnPath(input.returnTo, "/schedule");
 
@@ -119,13 +117,11 @@ async function sendTokenEmail(input: {
   }
 
   if (input.purpose === "claim") {
-    await sendAccountClaimEmail({
+    await sendExistingFamilyAccessEmail({
       parentEmail: input.parentEmail,
       parentFirstName: input.parentFirstName,
       token: input.token,
       returnTo: safeReturn,
-      packageName: input.packageName ?? "DAWG training",
-      sessionsTotal: input.sessionsTotal ?? 1,
     });
     return;
   }

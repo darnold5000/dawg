@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { forgetRememberedFamily, saveLastFamilyLoginEmail } from "@/lib/returning-family";
+import { clearAllBookingDrafts } from "@/lib/booking-draft";
 import {
   formatPrice,
   formatSessionDateShort,
@@ -61,6 +62,7 @@ export function FamilyDashboard({ data }: { data: FamilyPortalData }) {
   async function signOut() {
     saveLastFamilyLoginEmail(data.parent.email);
     await forgetRememberedFamily();
+    clearAllBookingDrafts();
     router.push("/my/login");
     router.refresh();
   }

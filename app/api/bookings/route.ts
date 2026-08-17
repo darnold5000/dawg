@@ -12,6 +12,7 @@ import {
   intakePath,
   parentEmailMatches,
 } from "@/lib/family-auth";
+import { applyRememberedFamilyToBookingBody } from "@/lib/booking-contact-email";
 
 const recent = new Map<string, number>();
 
@@ -25,10 +26,21 @@ function rateLimited(key: string, windowMs = 15_000): boolean {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const rawBody = (await request.json()) as Record<string, unknown>;
+    const family = await getAuthenticatedFamily();
+    const submittedEmail =
+      typeof rawBody.parentEmail === "string" ? rawBody.parentEmail.trim() : "";
+    console.info("[bookings] email decision", {
+      authenticatedFamilyPresent: Boolean(family),
+      submittedEmailPresent: Boolean(submittedEmail),
+      emailMatchesFamily: family
+        ? parentEmailMatches(family, submittedEmail || family.parentEmail)
+        : null,
+    });
+
+    const body = applyRememberedFamilyToBookingBody(rawBody, family);
     const parsed = bookingSchema.parse(body);
 
-    const family = await getAuthenticatedFamily();
     if (family && !parentEmailMatches(family, parsed.parentEmail)) {
       return NextResponse.json(
         {

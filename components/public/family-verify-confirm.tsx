@@ -5,27 +5,20 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  FAMILY_CLAIM_COPY,
+  FAMILY_INTAKE_COPY,
+  FAMILY_LOGIN_COPY,
+} from "@/lib/family-access-copy";
 import type { FamilyTokenPurpose } from "@/lib/family-login";
 
 const purposeCopy: Record<
   FamilyTokenPurpose,
   { title: string; body: string; button: string }
 > = {
-  login: {
-    title: "Continue to DAWG",
-    body: "Tap continue to pick up where you left off.",
-    button: "Continue",
-  },
-  claim: {
-    title: "Create your online account",
-    body: "Tap continue to finish setting up your DAWG online account.",
-    button: "Continue",
-  },
-  intake: {
-    title: "Complete athlete intake",
-    body: "Tap continue to open the intake form for your athlete.",
-    button: "Continue to intake",
-  },
+  login: FAMILY_LOGIN_COPY,
+  claim: FAMILY_CLAIM_COPY,
+  intake: FAMILY_INTAKE_COPY,
 };
 
 export function FamilyVerifyConfirm({

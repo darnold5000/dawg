@@ -19,7 +19,7 @@ import {
 export const intakeSchema = z.object({
   parentFirstName: z.string().trim().min(1).max(80),
   parentLastName: z.string().trim().min(1).max(80),
-  parentEmail: z.string().trim().email().max(160),
+  parentEmail: z.string().trim().email("Enter a valid email address").max(160),
   parentPhone: z.string().trim().min(7).max(40),
   athleteFirstName: z.string().trim().min(1).max(80),
   athleteLastName: z.string().trim().min(1).max(80),
