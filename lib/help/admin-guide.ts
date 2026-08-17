@@ -54,7 +54,7 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
   {
     id: "roster",
     label: "Roster & attendance",
-    intro: "Running class check-in and tying attendance to credits.",
+    intro: "Running class check-in. Package credits are adjusted separately.",
     blocks: [
       {
         heading: "Session roster",
@@ -65,11 +65,11 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
       {
         heading: "Attendance statuses",
         paragraphs: [
-          "Mark Registered, Attended, No-show, or Cancelled as appropriate. Attended is what triggers package credit redemption on credit-based classes.",
+          "Mark Registered, Attended, No-show, or Cancelled as appropriate. Attendance does not change package-credit balances.",
         ],
         bullets: [
-          "Credit redeemed — toast shows package name and sessions remaining.",
-          "No credits — athlete marked attended but no balance; collect payment or grant credits on the client profile.",
+          "Package credits are managed manually by staff on the client profile.",
+          "Use the credit adjustment controls to grant, add, or remove remaining sessions.",
         ],
       },
     ],
@@ -106,12 +106,12 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
   {
     id: "credits",
     label: "Package credits",
-    intro: "Granting, adjusting, and syncing session credits (owner/admin).",
+    intro: "Granting and adjusting session credits (owner/admin).",
     blocks: [
       {
         heading: "How credits work",
         paragraphs: [
-          "Parents buy packages online or at facility. Credits deduct when staff marks Attended on a package-credit session — not at purchase time.",
+          "Parents buy packages online or at facility. Booking uses an available credit to skip the $25 payment — the remaining balance is not changed automatically. Staff update remaining sessions with the credit adjustment controls.",
         ],
       },
       {
@@ -120,7 +120,6 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
           "Session credits panel (restricted roles):",
         ],
         bullets: [
-          "Apply credits for attended sessions — backfill deductions if attendance was marked but credit did not move.",
           "Grant new credits — creates a new package purchase record with a chosen catalog package.",
           "Add or remove sessions — adjust balance on an existing purchase; add an optional note for audit.",
         ],
@@ -128,7 +127,7 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
       {
         heading: "Facility-paid packages",
         paragraphs: [
-          "If a parent pays for a pack at the desk, ensure the purchase is recorded and paid (or grant credits manually) so roster redemption works.",
+          "If a parent pays for a pack at the desk, ensure the purchase is recorded and paid (or grant credits manually) so the family can book without paying $25.",
         ],
       },
     ],
@@ -186,9 +185,9 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
       {
         heading: "Package credit class",
         bullets: [
-          "Booking shows package credit / not required payment at booking time.",
-          "On attended: system redeems one credit if balance exists.",
-          "No balance: sell package, grant credits, or handle as drop-in per your policy.",
+          "Booking shows package credit / no payment due when an eligible credit exists.",
+          "Balances are not deducted on booking or attendance. Staff adjust remaining sessions on the client profile.",
+          "No balance: sell a package, grant credits, or take the $25 payment.",
         ],
       },
     ],

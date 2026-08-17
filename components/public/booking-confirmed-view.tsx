@@ -206,7 +206,7 @@ export function amountDisplay(
   method: "stripe" | "pay_at_facility" | "package_credit" | string | null | undefined,
 ): string {
   const price = formatPrice(cents);
+  if (method === "package_credit") return "No payment required";
   if (method === "stripe") return price;
-  if (method === "package_credit") return `${price} (package credit)`;
   return price;
 }

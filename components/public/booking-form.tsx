@@ -126,6 +126,7 @@ export function BookingForm({
   );
   const [intakeCompleteOnFile, setIntakeCompleteOnFile] = useState(false);
   const [bookingContextChecked, setBookingContextChecked] = useState(false);
+  const [creditsRemaining, setCreditsRemaining] = useState(0);
 
   const isDbAthleteId = (id: string) => /^[0-9a-f-]{36}$/i.test(id);
 
@@ -157,6 +158,7 @@ export function BookingForm({
     () => isRosterCreditSession(session),
     [session],
   );
+  const packageCreditAvailable = !rosterCredit && creditsRemaining > 0;
 
   const paymentOptions = useMemo(
     () => onlineCheckoutPaymentOptions(session.payment_requirement),
@@ -358,6 +360,7 @@ export function BookingForm({
         const data = (await res.json()) as {
           athleteId?: string | null;
           intakeComplete?: boolean;
+          creditsRemaining?: number;
           parentOnFile?: {
             firstName: string;
             lastName: string;
@@ -377,6 +380,7 @@ export function BookingForm({
         setResolvedAthleteId(athleteId);
         setIntakeCompleteOnFile(Boolean(data.intakeComplete));
         setBookingContextChecked(true);
+        setCreditsRemaining(Number(data.creditsRemaining) || 0);
         if (
           athleteId &&
           /^[0-9a-f-]{36}$/i.test(athleteId) &&
@@ -418,6 +422,7 @@ export function BookingForm({
         if (!cancelled) {
           setResolvedAthleteId(null);
           setBookingContextChecked(true);
+          setCreditsRemaining(0);
         }
       }
     }
@@ -507,6 +512,7 @@ export function BookingForm({
     setSelectedAthleteId("");
     setForm(emptyForm);
     setPaymentMethod(defaultOnlineCheckoutPaymentMethod(session.payment_requirement));
+    setCreditsRemaining(0);
     clearBookingDraft(session.id);
   }
 
@@ -571,7 +577,7 @@ export function BookingForm({
         return;
       }
 
-      if (!rosterCredit && !paymentMethod) {
+      if (!rosterCredit && !packageCreditAvailable && !paymentMethod) {
         toastError("Please select a payment method");
         return;
       }
@@ -613,7 +619,9 @@ export function BookingForm({
             athleteId,
             experienceLevel: form.experienceLevel || undefined,
             medicalNotes,
-            ...(rosterCredit ? {} : { paymentMethod }),
+            ...(rosterCredit || packageCreditAvailable
+              ? {}
+              : { paymentMethod }),
             acceptRequiredAgreements: agreementsNeeded
               ? form.acceptRequiredAgreements
               : true,
@@ -654,7 +662,9 @@ export function BookingForm({
           athlete: `${form.athleteFirstName} ${form.athleteLastName}`,
           token: data.confirmationToken ?? "",
         });
-        if (rosterCredit) {
+        if (data.coveredByPackageCredit) {
+          q.set("payment", "package_credit");
+        } else if (rosterCredit) {
           q.set("roster", "1");
         } else if (paymentMethod) {
           q.set("payment", paymentMethod);
@@ -773,7 +783,9 @@ export function BookingForm({
           athleteId,
           experienceLevel: form.experienceLevel || undefined,
           medicalNotes: medicalNotes || undefined,
-          ...(rosterCredit ? {} : { paymentMethod }),
+          ...(rosterCredit || packageCreditAvailable
+            ? {}
+            : { paymentMethod }),
           acceptRequiredAgreements: agreementsNeeded
             ? form.acceptRequiredAgreements
             : true,
@@ -810,7 +822,9 @@ export function BookingForm({
         athlete: `${form.athleteFirstName} ${form.athleteLastName}`,
         token: data.confirmationToken ?? "",
       });
-      if (rosterCredit) {
+      if (data.coveredByPackageCredit) {
+        q.set("payment", "package_credit");
+      } else if (rosterCredit) {
         q.set("roster", "1");
       } else if (paymentMethod) {
         q.set("payment", paymentMethod);
@@ -1287,6 +1301,18 @@ export function BookingForm({
         {!rosterCredit ? (
           <div className="booking-form-section">
             <h3 className="booking-form-section-title">Payment</h3>
+            {packageCreditAvailable ? (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
+                <p className="font-medium text-foreground">
+                  Package credit available
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  This session is covered by your existing package. No payment
+                  is required today.
+                </p>
+              </div>
+            ) : (
+              <>
             <p className="booking-form-section-hint">
               {formatPrice(session.price_cents)} due for this session
             </p>
@@ -1336,6 +1362,8 @@ export function BookingForm({
                 </label>
               ))}
             </div>
+              </>
+            )}
           </div>
         ) : null}
 
@@ -1393,7 +1421,10 @@ export function BookingForm({
       <div className="booking-form-footer">
         <Button
           type="submit"
-          disabled={submitting || (!rosterCredit && !paymentMethod)}
+          disabled={
+            submitting ||
+            (!rosterCredit && !packageCreditAvailable && !paymentMethod)
+          }
           className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:min-w-[220px] sm:px-8"
         >
           {submitting
@@ -1401,12 +1432,12 @@ export function BookingForm({
               ? "Reserving…"
               : "Saving & reserving…"
             : compactBooking
-              ? rosterCredit
+              ? rosterCredit || packageCreditAvailable
                 ? "Book session"
                 : paymentMethod === "stripe"
                   ? "Pay & book"
                   : "Book session"
-              : rosterCredit
+              : rosterCredit || packageCreditAvailable
                 ? "Complete intake & book"
                 : paymentMethod === "stripe"
                   ? "Complete intake & pay"

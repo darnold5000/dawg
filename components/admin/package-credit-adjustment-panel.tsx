@@ -40,6 +40,8 @@ export function PackageCreditAdjustmentPanel({
   packages,
   adjustments,
   catalogWarning = null,
+  futureConfirmedBookingCount = 0,
+  sessionsRemaining = 0,
 }: {
   parentId: string;
   purchases: PackagePurchaseWithPackage[];
@@ -47,6 +49,8 @@ export function PackageCreditAdjustmentPanel({
   packages: TrainingPackage[];
   adjustments: PackageCreditAdjustment[];
   catalogWarning?: string | null;
+  futureConfirmedBookingCount?: number;
+  sessionsRemaining?: number;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -61,7 +65,6 @@ export function PackageCreditAdjustmentPanel({
   const [reason, setReason] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
 
   const selectedPackage = packages.find((p) => p.slug === packageSlug);
 
@@ -72,33 +75,6 @@ export function PackageCreditAdjustmentPanel({
     (mode === "grant"
       ? packages.length > 0
       : purchases.length > 0 && purchaseId);
-
-  async function syncAttendedCredits() {
-    setSyncing(true);
-    try {
-      const res = await fetch(
-        `/api/admin/clients/${parentId}/package-credits/sync`,
-        { method: "POST" },
-      );
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Could not sync credits");
-        return;
-      }
-      if (data.redeemed > 0) {
-        toast.success(
-          `Applied ${data.redeemed} credit${data.redeemed === 1 ? "" : "s"} for attended sessions`,
-        );
-      } else {
-        toast.message("No missing credit deductions found for attended sessions");
-      }
-      router.refresh();
-    } catch {
-      toast.error("Could not sync credits");
-    } finally {
-      setSyncing(false);
-    }
-  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -177,21 +153,17 @@ export function PackageCreditAdjustmentPanel({
               Session credits (owner / admin)
             </h3>
             <p className="mt-1 text-sm text-amber-900/80">
-              Group classes deduct one package credit when staff marks{" "}
-              <strong>Attended</strong> on the session roster. Use these tools to
-              grant credits, fix a balance, or backfill credits for sessions
-              already marked attended.
+              Package credits are managed manually by staff. Use the credit
+              adjustment controls to update a family&apos;s remaining sessions.
             </p>
+            {futureConfirmedBookingCount > 0 && sessionsRemaining > 0 ? (
+              <p className="mt-3 rounded-lg border border-amber-300 bg-white/80 px-3 py-2 text-sm text-amber-950">
+                This family has future bookings and {sessionsRemaining}{" "}
+                manually managed credit
+                {sessionsRemaining === 1 ? "" : "s"} remaining.
+              </p>
+            ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="border-amber-400 bg-white hover:bg-amber-50"
-                disabled={syncing}
-                onClick={() => void syncAttendedCredits()}
-              >
-                {syncing ? "Syncing…" : "Apply credits for attended sessions"}
-              </Button>
               <Button
                 type="button"
                 variant="outline"

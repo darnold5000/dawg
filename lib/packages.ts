@@ -15,7 +15,6 @@ import {
 } from "@/lib/supabase/training-scope";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import {
-  mapBookingRow,
   mapPackagePurchaseRow,
   mapPackagePurchaseRows,
 } from "@/lib/supabase/tenant-row-map";
@@ -23,6 +22,7 @@ import {
   findOrCreateParentByContact,
   normalizeEmail,
 } from "@/lib/parent-account";
+import { filterEligibleCreditsForAthlete } from "@/lib/package-credit-eligibility";
 import type {
   PackagePurchase,
   PackagePurchaseWithPackage,
@@ -349,15 +349,25 @@ export async function listActiveCreditsForParent(
   ) as PackagePurchaseWithPackage[];
   if (!athleteId) return rows;
 
-  const preferred = rows.filter(
-    (r) => r.athlete_id === athleteId || r.athlete_id == null,
-  );
-  preferred.sort((a, b) => {
+  const eligible = filterEligibleCreditsForAthlete(rows, athleteId);
+  eligible.sort((a, b) => {
     if (a.athlete_id === athleteId && b.athlete_id !== athleteId) return -1;
     if (b.athlete_id === athleteId && a.athlete_id !== athleteId) return 1;
     return 0;
   });
-  return preferred.length ? preferred : rows;
+  return eligible;
+}
+
+/** Credits that can cover a booking: family-wide, or this athlete when known. */
+export async function listCreditsCoveringBooking(
+  parentId: string,
+  athleteId?: string | null,
+): Promise<PackagePurchaseWithPackage[]> {
+  if (athleteId) {
+    return listActiveCreditsForParent(parentId, athleteId);
+  }
+  const credits = await listActiveCreditsForParent(parentId);
+  return credits.filter((credit) => credit.athlete_id == null);
 }
 
 export async function totalCreditsRemaining(
@@ -498,155 +508,33 @@ export type PackageCreditRedemptionResult =
         | "paid_online"
         | "paid_at_facility"
         | "no_credits"
-        | "not_attended";
+        | "not_attended"
+        | "manual_management";
     }
   | { ok: false; error: string; code?: string };
 
 /**
- * Deduct one package credit when staff marks attendance as attended.
- * Idempotent per booking — credits are not double-charged.
+ * Package credits are managed manually by staff.
+ * Attendance must not deduct, reserve, or redeem a credit.
  */
 export async function redeemPackageCreditOnAttendance(
   bookingId: string,
 ): Promise<PackageCreditRedemptionResult> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return { ok: false, error: "Database unavailable", code: "NO_DB" };
-  }
-
-  const supabase = createTrainingServiceClient();
-
-  const { data: bookingRow } = await supabase
-    .from(DAWG_TABLES.bookings)
-    .select(
-      "id, parent_id:guardian_id, athlete_id, attendance_status, payment_status, payment_method",
-    )
-    .eq("id", bookingId)
-    .maybeSingle();
-
-  const booking = mapBookingRow(
-    (bookingRow ?? null) as Record<string, unknown> | null,
-  );
-  if (!booking) {
-    return { ok: false, error: "Booking not found", code: "NOT_FOUND" };
-  }
-
-  if (booking.attendance_status !== "attended") {
-    return { ok: true, redeemed: false, reason: "not_attended" };
-  }
-
-  const { data: existingRedemption } = await supabase
-    .from(DAWG_TABLES.packageRedemptions)
-    .select("id")
-    .eq("booking_id", bookingId)
-    .maybeSingle();
-
-  if (existingRedemption) {
-    return { ok: true, redeemed: false, reason: "already_redeemed" };
-  }
-
-  // Roster / package sessions use not_required at booking — credit is taken at attendance.
-  if (
-    booking.payment_method === "stripe" &&
-    (booking.payment_status === "paid" || booking.payment_status === "pending")
-  ) {
-    return { ok: true, redeemed: false, reason: "paid_online" };
-  }
-
-  if (
-    booking.payment_method === "pay_at_facility" &&
-    booking.payment_status === "paid"
-  ) {
-    return { ok: true, redeemed: false, reason: "paid_at_facility" };
-  }
-
-  if (booking.payment_method === "package_credit") {
-    return { ok: true, redeemed: false, reason: "already_redeemed" };
-  }
-
-  const credits = await listActiveCreditsForParent(
-    booking.parent_id,
-    booking.athlete_id,
-  );
-  const purchase = credits[0];
-  if (!purchase) {
-    return { ok: true, redeemed: false, reason: "no_credits" };
-  }
-
-  const { data: remaining, error } = await supabase.rpc(
-    "training_redeem_package_credit",
-    {
-      p_purchase_id: purchase.id,
-      p_booking_id: bookingId,
-      p_guardian_id: booking.parent_id,
-    },
-  );
-
-  if (error) {
-    const message = error.message ?? "";
-    if (message.includes("NO_CREDIT_AVAILABLE")) {
-      return { ok: true, redeemed: false, reason: "no_credits" };
-    }
-    if (message.includes("unique") || message.includes("training_package_redemptions")) {
-      return { ok: true, redeemed: false, reason: "already_redeemed" };
-    }
-    return { ok: false, error: message, code: "REDEEM_FAILED" };
-  }
-
-  await supabase
-    .from(DAWG_TABLES.bookings)
-    .update({
-      payment_method: "package_credit",
-      payment_status: "paid",
-      amount_paid_cents: purchase.amount_paid_cents
-        ? Math.round(purchase.amount_paid_cents / purchase.sessions_total)
-        : 0,
-      paid_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", bookingId);
-
-  return {
-    ok: true,
-    redeemed: true,
-    purchaseId: purchase.id,
-    sessionsRemaining: Number(remaining),
-    packageName: purchase.package?.name ?? null,
-  };
+  console.info("[packages] skip automatic redemption", {
+    booking_id: bookingId,
+  });
+  return { ok: true, redeemed: false, reason: "manual_management" };
 }
 
-/** Backfill credits for attended bookings that never had a redemption recorded. */
+/** Attendance no longer backfills credit deductions. */
 export async function syncAttendedBookingCredits(parentId: string): Promise<{
   ok: true;
   redeemed: number;
   skipped: number;
   failed: number;
 }> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return { ok: true, redeemed: 0, skipped: 0, failed: 0 };
-  }
-
-  const supabase = createTrainingServiceClient();
-  const { data: bookings } = await supabase
-    .from(DAWG_TABLES.bookings)
-    .select("id")
-    .eq("guardian_id", parentId)
-    .eq("attendance_status", "attended")
-    .order("booked_at", { ascending: true });
-
-  let redeemed = 0;
-  let skipped = 0;
-  let failed = 0;
-
-  for (const booking of bookings ?? []) {
-    const result = await redeemPackageCreditOnAttendance(booking.id);
-    if (!result.ok) {
-      failed += 1;
-    } else if (result.redeemed) {
-      redeemed += 1;
-    } else {
-      skipped += 1;
-    }
-  }
-
-  return { ok: true, redeemed, skipped, failed };
+  console.info("[packages] skip attended credit sync", {
+    guardian_id: parentId,
+  });
+  return { ok: true, redeemed: 0, skipped: 0, failed: 0 };
 }

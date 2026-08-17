@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { loadRememberedFamily } from "@/lib/family-device";
 import { athleteBookingReady } from "@/lib/intake";
 import {
-  listActiveCreditsForParent,
-  totalCreditsRemaining,
+  listCreditsCoveringBooking,
 } from "@/lib/packages";
 import {
   createTrainingServiceClient,
@@ -128,8 +127,14 @@ export async function GET(request: Request) {
     }> = [];
 
     if (parentId) {
-      creditsRemaining = await totalCreditsRemaining(parentId, athleteId);
-      const credits = await listActiveCreditsForParent(parentId, athleteId);
+      const credits = await listCreditsCoveringBooking(
+        parentId,
+        resolvedAthleteId,
+      );
+      creditsRemaining = credits.reduce(
+        (sum, credit) => sum + credit.sessions_remaining,
+        0,
+      );
       purchases = credits.map((c) => ({
         id: c.id,
         sessions_remaining: c.sessions_remaining,

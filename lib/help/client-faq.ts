@@ -16,7 +16,7 @@ export const CLIENT_FAQ_ITEMS: FaqItem[] = [
     question: "How do I pay for sessions and packages?",
     answerParagraphs: [
       "Paid sessions and training packages are purchased online with secure Stripe checkout.",
-      "Many group programs use package credits instead of a per-session price — buy a package online, then book classes that redeem one credit per visit. You'll get a confirmation email when payment completes.",
+      "If you have remaining package credits, booking a $25 session does not charge a card. Staff manage remaining sessions on your account.",
     ],
     link: { href: "/booking-policy", label: "Booking policy" },
   },
@@ -24,8 +24,8 @@ export const CLIENT_FAQ_ITEMS: FaqItem[] = [
     id: "packages",
     question: "What are training packages and credits?",
     answerParagraphs: [
-      "Packages are prepaid bundles (for example a 10-pack). Many group programs book at no charge online because they use package credits instead of a per-session price.",
-      "Credits are applied when your athlete attends — not at the moment you buy the pack. Buy more anytime from the packages page when you're running low.",
+      "Packages are prepaid bundles (for example a 10-pack). If you have remaining credits, a normal $25 session is covered at booking and no payment is due that day.",
+      "Remaining session counts are updated by staff. Buy more anytime from the packages page when you're running low.",
     ],
     link: { href: "/packages", label: "Training packages" },
   },

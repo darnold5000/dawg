@@ -28,7 +28,7 @@ export function bookingPolicyDoc(): PolicyDoc {
       "Reservations hold your athlete’s spot for the selected session. Payment is due according to the payment option shown for that session (online or package credit).",
       "A parent or legal guardian must complete bookings for minors and acknowledge facility policies during checkout.",
       `Please cancel or reschedule at least 24 hours in advance when possible by contacting DAWG at ${SITE.phone} or ${SITE.email}.`,
-      "Session packages (single, 10-pack, 20-pack) may be purchased online; each booking can redeem one remaining session credit when available.",
+      "Session packages (single, 10-pack, 20-pack) may be purchased online. An available credit covers a session at booking so no card payment is due that day.",
     ],
   };
 }

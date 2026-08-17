@@ -43,6 +43,12 @@ export default async function AdminClientDetailPage({
   ]);
   const packages = packageCatalog.packages;
   const intakeByAthlete = new Map(intakes.map((i) => [i.athlete_id, i]));
+  const today = new Date().toISOString().slice(0, 10);
+  const futureConfirmedBookingCount = bookings.filter((booking) => {
+    const sessionDate = booking.session?.session_date;
+    if (!sessionDate || sessionDate < today) return false;
+    return booking.status === "confirmed" || booking.status === "pending";
+  }).length;
   const mailto = `mailto:${encodeURIComponent(parent.email)}?subject=${encodeURIComponent(
     `Message from ${SITE.name}`,
   )}`;
@@ -271,6 +277,8 @@ export default async function AdminClientDetailPage({
               packages={packages}
               adjustments={adjustments}
               catalogWarning={packageCatalog.catalogWarning}
+              futureConfirmedBookingCount={futureConfirmedBookingCount}
+              sessionsRemaining={family.sessionsRemaining}
             />
           ) : null}
 

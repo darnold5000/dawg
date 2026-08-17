@@ -46,22 +46,7 @@ export function RosterAttendance({
         toast.error(data.error ?? "Could not update attendance");
         return;
       }
-      if (data.creditRedemption?.redeemed) {
-        const name = data.creditRedemption.packageName ?? "Package";
-        toast.success(
-          `Attended · ${name} credit used (${data.creditRedemption.sessionsRemaining} left)`,
-        );
-      } else if (
-        status === "attended" &&
-        data.creditRedemption?.redeemed === false &&
-        data.creditRedemption.reason === "no_credits"
-      ) {
-        toast.message(
-          "Attended — no package balance to deduct. Collect payment or grant credits on the client profile.",
-        );
-      } else {
-        toast.success(`Marked ${attendanceLabel(status).toLowerCase()}`);
-      }
+      toast.success(`Marked ${attendanceLabel(status).toLowerCase()}`);
       startTransition(() => router.refresh());
     } catch {
       toast.error("Could not update attendance");

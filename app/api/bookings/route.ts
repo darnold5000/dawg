@@ -69,7 +69,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (result.requiresCheckout && !result.demo) {
+    if (
+      result.requiresCheckout &&
+      !result.demo &&
+      !result.coveredByPackageCredit
+    ) {
       const checkout = await createBookingCheckout({
         bookingId: result.booking.id,
         successUrl: bookingSuccessUrl({
@@ -103,6 +107,7 @@ export async function POST(request: Request) {
         checkoutUrl: checkout.data.url,
         checkoutSessionId: checkout.data.sessionId,
         requiresCheckout: true,
+        coveredByPackageCredit: false,
       });
     }
 
@@ -112,6 +117,7 @@ export async function POST(request: Request) {
       bookingId: result.booking.id,
       demo: result.demo ?? false,
       requiresCheckout: false,
+      coveredByPackageCredit: result.coveredByPackageCredit ?? false,
     });
   } catch (error) {
     if (error instanceof ZodError) {

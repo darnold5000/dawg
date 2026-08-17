@@ -23,6 +23,8 @@ import {
 import { athleteBookingReady } from "@/lib/intake";
 import { findOrCreateParentByContact } from "@/lib/parent-account";
 import { isOnlineCardPaymentEnabled } from "@/lib/billing/payment-options";
+import { resolveSessionBookingPayment } from "@/lib/booking-payment-decision";
+import { listActiveCreditsForParent } from "@/lib/packages";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
 const bookingFieldsSchema = z.object({
@@ -112,6 +114,7 @@ export type BookingResult =
       parentId?: string;
       remembered?: boolean;
       rosterCredit?: boolean;
+      coveredByPackageCredit?: boolean;
     }
   | { ok: false; error: string; code?: string };
 
@@ -302,18 +305,6 @@ export async function createPublicBooking(
     program: (session.program as { slug: string } | null) ?? null,
   });
 
-  if (!rosterCredit && !input.paymentMethod) {
-    return {
-      ok: false,
-      error: "Please select a payment method.",
-      code: "PAYMENT_REQUIRED",
-    };
-  }
-
-  const paymentMethod = rosterCredit
-    ? null
-    : (input.paymentMethod as PaymentMethod);
-
   if (session.status !== "published" && session.status !== "full") {
     return {
       ok: false,
@@ -322,44 +313,6 @@ export async function createPublicBooking(
     };
   }
 
-  if (!rosterCredit) {
-    const requirement = session.payment_requirement as string;
-    if (paymentMethod === "stripe" && !isOnlineCardPaymentEnabled()) {
-      return {
-        ok: false,
-        error:
-          "Online payment is not available right now. Please try again later or contact us.",
-        code: "ONLINE_PAYMENT_DISABLED",
-      };
-    }
-    if (
-      paymentMethod === "stripe" &&
-      requirement !== "pay_online" &&
-      requirement !== "online_or_facility"
-    ) {
-      return {
-        ok: false,
-        error: "Online payment is not available for this session.",
-        code: "ONLINE_PAYMENT_NOT_ALLOWED",
-      };
-    }
-    if (
-      paymentMethod === "pay_at_facility" &&
-      requirement !== "pay_at_facility" &&
-      requirement !== "online_or_facility" &&
-      !(
-        requirement === "pay_online" && !isOnlineCardPaymentEnabled()
-      )
-    ) {
-      return {
-        ok: false,
-        error: "Online payment is required for this session.",
-        code: "FACILITY_PAYMENT_NOT_ALLOWED",
-      };
-    }
-  }
-
-  let parentId: string;
   const parentResult = await findOrCreateParentByContact({
     email: input.parentEmail,
     firstName: input.parentFirstName,
@@ -373,7 +326,7 @@ export async function createPublicBooking(
       code: parentResult.code,
     };
   }
-  parentId = parentResult.parent.id;
+  const parentId = parentResult.parent.id;
 
   const { athlete, error: athleteError } = await upsertAthleteForParent(
     supabase,
@@ -398,13 +351,43 @@ export async function createPublicBooking(
     };
   }
 
+  const eligibleCredits = rosterCredit
+    ? []
+    : await listActiveCreditsForParent(parentId, athlete.id);
+  const payment = resolveSessionBookingPayment({
+    rosterCredit,
+    eligibleCreditCount: eligibleCredits.length,
+    requestedPaymentMethod: input.paymentMethod,
+    sessionPriceCents: Number(session.price_cents),
+    paymentRequirement: String(session.payment_requirement ?? ""),
+    onlinePaymentEnabled: isOnlineCardPaymentEnabled(),
+  });
+
+  if (payment.error) {
+    return {
+      ok: false,
+      error: payment.error.message,
+      code: payment.error.code,
+    };
+  }
+
+  const paymentMethod = payment.paymentMethod;
+  const paymentStatus = payment.paymentStatus;
+  const amountDueCents = payment.amountDueCents;
+  const coveredByPackageCredit = payment.coveredByPackageCredit;
+
+  console.info("[bookings] payment decision", {
+    guardian_id: parentId,
+    athlete_id: athlete.id,
+    session_id: input.sessionId,
+    eligible_credit_count: eligibleCredits.length,
+    has_package_credit: coveredByPackageCredit,
+    session_price_cents: Number(session.price_cents),
+    payment_requirement: session.payment_requirement,
+    requires_checkout: payment.requiresCheckout,
+  });
+
   const confirmation = generateConfirmationNumber();
-  const paymentStatus = rosterCredit
-    ? "not_required"
-    : paymentMethod === "stripe"
-      ? "pending"
-      : "unpaid";
-  const amountDueCents = rosterCredit ? 0 : Number(session.price_cents);
 
   const { data: booking, error: bookingError } = await supabase.rpc(
     "training_try_create_session_booking",
@@ -502,8 +485,11 @@ export async function createPublicBooking(
     console.error("[bookings] remember-family side effect failed:", rememberError);
   }
 
-  // Confirmed roster / facility bookings: email immediately. Stripe waits for webhook.
-  if (paymentMethod === "pay_at_facility") {
+  // Confirmed roster / facility / package-credit bookings: email immediately. Stripe waits for webhook.
+  if (
+    paymentMethod === "pay_at_facility" ||
+    paymentMethod === "package_credit"
+  ) {
     const emailResults = await Promise.allSettled([
       (async () => {
         let coachName: string | null = null;
@@ -557,10 +543,11 @@ export async function createPublicBooking(
   return {
     ok: true,
     booking: created,
-    requiresCheckout: paymentMethod === "stripe",
+    requiresCheckout: payment.requiresCheckout,
     parentId,
     remembered,
     rosterCredit,
+    coveredByPackageCredit,
   };
 }
 
