@@ -11,6 +11,7 @@ import {
 } from "./adapter";
 import { getStripe, isStripeConfigured } from "./stripe/server";
 import type { AdapterResult } from "./types";
+import { checkoutReuseDecision } from "@/lib/booking-retry";
 
 export type CreateBookingCheckoutResult = AdapterResult<{
   url: string;
@@ -21,6 +22,8 @@ export async function createBookingCheckout(params: {
   bookingId: string;
   successUrl: string;
   cancelUrl: string;
+  /** When replacing checkout on an existing hold, do not expire the booking on failure. */
+  replaceExisting?: boolean;
 }): Promise<CreateBookingCheckoutResult> {
   if (!isStripeConfigured()) {
     return {
@@ -89,10 +92,12 @@ export async function createBookingCheckout(params: {
     });
 
     if (!checkout.url) {
-      await expirePendingBooking({
-        bookingId: booking.id,
-        reason: "Checkout URL missing",
-      });
+      if (!params.replaceExisting) {
+        await expirePendingBooking({
+          bookingId: booking.id,
+          reason: "Checkout URL missing",
+        });
+      }
       return { ok: false, error: "Checkout URL missing", code: "NO_URL" };
     }
 
@@ -104,10 +109,12 @@ export async function createBookingCheckout(params: {
     });
 
     if (!attached.ok) {
-      await expirePendingBooking({
-        bookingId: booking.id,
-        reason: "Failed to attach Checkout session",
-      });
+      if (!params.replaceExisting) {
+        await expirePendingBooking({
+          bookingId: booking.id,
+          reason: "Failed to attach Checkout session",
+        });
+      }
       return {
         ok: false,
         error: attached.error,
@@ -120,12 +127,79 @@ export async function createBookingCheckout(params: {
       data: { url: checkout.url, sessionId: checkout.id },
     };
   } catch (err) {
-    await expirePendingBooking({
-      bookingId: params.bookingId,
-      reason: "Checkout creation failed",
-    });
+    if (!params.replaceExisting) {
+      await expirePendingBooking({
+        bookingId: params.bookingId,
+        reason: "Checkout creation failed",
+      });
+    }
     const message =
       err instanceof Error ? err.message : "Could not create Checkout session";
     return { ok: false, error: message, code: "CHECKOUT_CREATE_FAILED" };
   }
+}
+
+export type EnsureBookingCheckoutResult = AdapterResult<{
+  url: string;
+  sessionId: string;
+  reused?: boolean;
+  alreadyPaid?: boolean;
+}>;
+
+/** Resume an open Checkout Session or create a replacement on the same booking. */
+export async function ensureBookingCheckout(params: {
+  bookingId: string;
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<EnsureBookingCheckoutResult> {
+  if (!isStripeConfigured()) {
+    return {
+      ok: false,
+      error: "Stripe is not configured",
+      code: "STRIPE_UNAVAILABLE",
+    };
+  }
+  const stripe = getStripe();
+  if (!stripe) {
+    return { ok: false, error: "Stripe unavailable", code: "STRIPE_UNAVAILABLE" };
+  }
+
+  const loaded = await getBookingForCheckout(params.bookingId);
+  if (!loaded.ok) return loaded;
+
+  const existingId = loaded.data.stripe_checkout_session_id;
+  if (existingId) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(existingId);
+      const decision = checkoutReuseDecision({
+        id: session.id,
+        status: session.status ?? "",
+        payment_status: session.payment_status,
+        url: session.url,
+      });
+      if (decision === "reuse" && session.url) {
+        return {
+          ok: true,
+          data: { url: session.url, sessionId: session.id, reused: true },
+        };
+      }
+      if (decision === "reconcile_paid") {
+        return {
+          ok: true,
+          data: {
+            url: session.url ?? "",
+            sessionId: session.id,
+            alreadyPaid: true,
+          },
+        };
+      }
+    } catch {
+      // Fall through and replace checkout.
+    }
+  }
+
+  return createBookingCheckout({
+    ...params,
+    replaceExisting: Boolean(existingId),
+  });
 }

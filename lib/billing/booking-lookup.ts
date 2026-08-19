@@ -5,6 +5,7 @@ import {
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import type { Booking, BookingWithRelations } from "@/lib/types/database";
 import { retrieveCheckoutSession } from "./webhook-handlers";
+import { expireStripeCheckoutSession } from "./adapter";
 
 const REL_SELECT = `
   *,
@@ -71,6 +72,18 @@ export async function expireStalePendingBookings(): Promise<number> {
     return 0;
   }
   const supabase = createTrainingServiceClient();
+  const { data: stale } = await supabase
+    .from(DAWG_TABLES.bookings)
+    .select("id, stripe_checkout_session_id")
+    .eq("status", "pending")
+    .eq("payment_method", "stripe")
+    .not("booking_expires_at", "is", null)
+    .lte("booking_expires_at", new Date().toISOString());
+
+  for (const row of stale ?? []) {
+    await expireStripeCheckoutSession(row.stripe_checkout_session_id);
+  }
+
   const { data, error } = await supabase.rpc(
     "training_expire_stale_pending_bookings",
   );

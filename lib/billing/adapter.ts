@@ -281,11 +281,56 @@ export async function confirmPaidBooking(
   }
 }
 
+export async function expireStripeCheckoutSession(
+  checkoutSessionId: string | null | undefined,
+): Promise<"expired" | "already_complete" | "skipped"> {
+  const id = checkoutSessionId?.trim();
+  if (!id || !isStripeConfigured()) return "skipped";
+  const stripe = getStripe();
+  if (!stripe) return "skipped";
+  try {
+    const session = await stripe.checkout.sessions.retrieve(id);
+    if (session.status === "complete" || session.payment_status === "paid") {
+      return "already_complete";
+    }
+    if (session.status !== "open") return "skipped";
+    await stripe.checkout.sessions.expire(id);
+    return "expired";
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (/cannot be expired/i.test(message) && /paid|complete/i.test(message)) {
+      return "already_complete";
+    }
+    console.info("[adapter] checkout expire skipped", {
+      checkout_session_id: id,
+    });
+    return "skipped";
+  }
+}
+
 export async function expirePendingBooking(
   input: ExpirePendingBookingInput,
 ): Promise<AdapterResult<Booking>> {
   try {
     const supabase = requireService();
+    const { data: current } = await supabase
+      .from(DAWG_TABLES.bookings)
+      .select("*")
+      .eq("id", input.bookingId)
+      .maybeSingle();
+
+    if (current?.payment_status === "paid" && current.status === "confirmed") {
+      return { ok: true, data: current as Booking };
+    }
+
+    const checkoutState = await expireStripeCheckoutSession(
+      (current as Booking | null)?.stripe_checkout_session_id,
+    );
+    if (checkoutState === "already_complete") {
+      const still = (current as Booking | null) ?? null;
+      if (still) return { ok: true, data: still };
+    }
+
     const { data, error } = await supabase
       .from(DAWG_TABLES.bookings)
       .update({

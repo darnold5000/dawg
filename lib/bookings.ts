@@ -26,6 +26,13 @@ import { isOnlineCardPaymentEnabled } from "@/lib/billing/payment-options";
 import { resolveSessionBookingPayment } from "@/lib/booking-payment-decision";
 import { listActiveCreditsForParent } from "@/lib/packages";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
+import { expirePendingBooking } from "@/lib/billing/adapter";
+import {
+  bookingLogPayload,
+  mapBookingRpcError,
+  planAfterUniqueCollision,
+  planBookingSubmit,
+} from "@/lib/booking-retry";
 
 const bookingFieldsSchema = z.object({
   sessionId: z.string().min(1),
@@ -115,6 +122,7 @@ export type BookingResult =
       remembered?: boolean;
       rosterCredit?: boolean;
       coveredByPackageCredit?: boolean;
+      resumed?: boolean;
     }
   | { ok: false; error: string; code?: string };
 
@@ -387,6 +395,98 @@ export async function createPublicBooking(
     requires_checkout: payment.requiresCheckout,
   });
 
+  const { data: occupying } = await supabase
+    .from(DAWG_TABLES.bookings)
+    .select("*")
+    .eq("session_id", input.sessionId)
+    .eq("athlete_id", athlete.id)
+    .in("status", ["pending", "confirmed"])
+    .maybeSingle();
+
+  const occupyingRow = occupying
+    ? mapBookingRow(occupying as Record<string, unknown>)
+    : null;
+
+  let retryPlan = planBookingSubmit({
+    existing: occupying
+      ? {
+          id: String(occupying.id),
+          session_id: String(occupying.session_id),
+          athlete_id: String(occupying.athlete_id),
+          guardian_id: String(occupying.guardian_id ?? occupying.parent_id ?? parentId),
+          status: String(occupying.status),
+          payment_method: occupying.payment_method as string | null,
+          payment_status: String(occupying.payment_status),
+          booking_expires_at: occupying.booking_expires_at ?? null,
+          stripe_checkout_session_id:
+            occupying.stripe_checkout_session_id ?? null,
+          confirmation_email_sent_at:
+            occupying.confirmation_email_sent_at ?? null,
+        }
+      : null,
+  });
+
+  if (retryPlan.action === "reject") {
+    console.info(
+      "[bookings]",
+      bookingLogPayload(
+        retryPlan.code === "SESSION_FULL" ? "session_full" : "already_booked",
+        {
+          bookingId: occupyingRow?.id,
+          sessionId: input.sessionId,
+          athleteId: athlete.id,
+          guardianId: parentId,
+        },
+      ),
+    );
+    return {
+      ok: false,
+      error: retryPlan.error,
+      code: retryPlan.code,
+    };
+  }
+
+  if (retryPlan.action === "expire_then_create") {
+    await expirePendingBooking({
+      bookingId: retryPlan.staleBookingId,
+      reason: "Hold expired before replacement booking",
+    });
+    console.info(
+      "[bookings]",
+      bookingLogPayload("stale_expired", {
+        bookingId: retryPlan.staleBookingId,
+        sessionId: input.sessionId,
+        athleteId: athlete.id,
+        guardianId: parentId,
+        checkoutSessionId: retryPlan.expireCheckoutSessionId,
+      }),
+    );
+    retryPlan = { action: "create", sendConfirmationEmail: false };
+  }
+
+  if (retryPlan.action === "resume_stripe" && occupyingRow) {
+    console.info(
+      "[bookings]",
+      bookingLogPayload("resumed", {
+        bookingId: occupyingRow.id,
+        sessionId: input.sessionId,
+        athleteId: athlete.id,
+        guardianId: parentId,
+        checkoutSessionId: occupyingRow.stripe_checkout_session_id,
+      }),
+    );
+    return {
+      ok: true,
+      booking: occupyingRow,
+      requiresCheckout: true,
+      parentId,
+      remembered: false,
+      rosterCredit,
+      coveredByPackageCredit: false,
+      resumed: true,
+    };
+  }
+
   const confirmation = generateConfirmationNumber();
 
   const { data: booking, error: bookingError } = await supabase.rpc(
@@ -407,45 +507,89 @@ export async function createPublicBooking(
   );
 
   if (bookingError || !booking) {
-    const message = bookingError?.message ?? "";
-    if (message.includes("SESSION_FULL")) {
-      return {
-        ok: false,
-        error: "This session is full. You can join the waitlist.",
-        code: "SESSION_FULL",
-      };
+    const { data: afterCollision } = await supabase
+      .from(DAWG_TABLES.bookings)
+      .select("*")
+      .eq("session_id", input.sessionId)
+      .eq("athlete_id", athlete.id)
+      .in("status", ["pending", "confirmed"])
+      .maybeSingle();
+
+    const recovered = planAfterUniqueCollision({
+      existing: afterCollision
+        ? {
+            id: String(afterCollision.id),
+            session_id: String(afterCollision.session_id),
+            athlete_id: String(afterCollision.athlete_id),
+            guardian_id: String(
+              afterCollision.guardian_id ?? afterCollision.parent_id ?? parentId,
+            ),
+            status: String(afterCollision.status),
+            payment_method: afterCollision.payment_method as string | null,
+            payment_status: String(afterCollision.payment_status),
+            booking_expires_at: afterCollision.booking_expires_at ?? null,
+            stripe_checkout_session_id:
+              afterCollision.stripe_checkout_session_id ?? null,
+          }
+        : null,
+    });
+
+    if (recovered.action === "resume_stripe" && afterCollision) {
+      const resumed = mapBookingRow(afterCollision as Record<string, unknown>);
+      if (resumed) {
+        console.info(
+          "[bookings]",
+          bookingLogPayload("resumed", {
+            bookingId: resumed.id,
+            sessionId: input.sessionId,
+            athleteId: athlete.id,
+            guardianId: parentId,
+            checkoutSessionId: resumed.stripe_checkout_session_id,
+          }),
+        );
+        return {
+          ok: true,
+          booking: resumed,
+          requiresCheckout: true,
+          parentId,
+          remembered: false,
+          rosterCredit,
+          coveredByPackageCredit: false,
+          resumed: true,
+        };
+      }
     }
-    if (
-      message.includes("unique") ||
-      message.includes("training_session_bookings_unique_athlete_session") ||
-      message.includes("duplicate key")
-    ) {
-      return {
-        ok: false,
-        error:
-          "This athlete is already booked for this session. Pick another session or athlete.",
-        code: "ALREADY_BOOKED",
-      };
+
+    const mapped = mapBookingRpcError(bookingError);
+    if (mapped.code === "SESSION_FULL") {
+      console.info(
+        "[bookings]",
+        bookingLogPayload("session_full", {
+          sessionId: input.sessionId,
+          athleteId: athlete.id,
+          guardianId: parentId,
+        }),
+      );
+    } else if (mapped.code === "ALREADY_BOOKED") {
+      console.info(
+        "[bookings]",
+        bookingLogPayload("already_booked", {
+          bookingId: afterCollision?.id ?? occupyingRow?.id,
+          sessionId: input.sessionId,
+          athleteId: athlete.id,
+          guardianId: parentId,
+        }),
+      );
+    } else {
+      console.error(
+        "[bookings] training_try_create_session_booking failed:",
+        bookingError,
+      );
     }
-    if (message.includes("ONLINE_PAYMENT_NOT_ALLOWED")) {
-      return {
-        ok: false,
-        error: "Online payment is not available for this session.",
-        code: "ONLINE_PAYMENT_NOT_ALLOWED",
-      };
-    }
-    if (message.includes("FACILITY_PAYMENT_NOT_ALLOWED")) {
-      return {
-        ok: false,
-        error: "Online payment is required for this session.",
-        code: "FACILITY_PAYMENT_NOT_ALLOWED",
-      };
-    }
-    console.error("[bookings] training_try_create_session_booking failed:", bookingError);
     return {
       ok: false,
-      error: "Could not complete booking. Please try again.",
-      code: "BOOKING_FAILED",
+      error: mapped.error,
+      code: mapped.code,
     };
   }
 
@@ -484,6 +628,16 @@ export async function createPublicBooking(
   } catch (rememberError) {
     console.error("[bookings] remember-family side effect failed:", rememberError);
   }
+
+  console.info(
+    "[bookings]",
+    bookingLogPayload("created", {
+      bookingId: created.id,
+      sessionId: input.sessionId,
+      athleteId: athlete.id,
+      guardianId: parentId,
+    }),
+  );
 
   // Confirmed roster / facility / package-credit bookings: email immediately. Stripe waits for webhook.
   if (
