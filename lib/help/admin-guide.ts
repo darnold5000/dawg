@@ -46,7 +46,7 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
       {
         heading: "Pending and expired holds",
         paragraphs: [
-          "Abandoned Stripe checkouts may leave a booking pending until the hold expires. Stale holds are cleaned up automatically; the session may show open spots again.",
+          "An unpaid Stripe checkout is a temporary capacity hold, not a booking. Staff see these under Temporary holds / Awaiting payment on the roster. Abandoned checkouts expire after 15 minutes and the seat becomes available again.",
         ],
       },
     ],
@@ -59,7 +59,7 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
       {
         heading: "Session roster",
         paragraphs: [
-          "From Schedule, open a session → Roster. Each row is a booking with payment badge and intake readiness when applicable.",
+          "From Schedule, open a session → Roster. Confirmed bookings appear with payment badges, intake readiness, and attendance. Unpaid Stripe holds are listed separately as Awaiting payment and do not have attendance controls.",
         ],
       },
       {

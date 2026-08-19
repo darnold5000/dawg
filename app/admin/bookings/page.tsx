@@ -11,6 +11,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
+import { bookingStatusDisplayLabel } from "@/lib/booking-roster";
 import { formatSessionDateShort, formatSessionTime } from "@/lib/format";
 import type { Booking } from "@/lib/types/database";
 
@@ -128,8 +129,8 @@ export default async function AdminBookingsPage() {
                           ? `${session.title} · ${formatSessionDateShort(session.session_date)} ${formatSessionTime(session.start_time)}`
                           : booking.session_id}
                       </td>
-                      <td className="hidden px-4 py-3 capitalize md:table-cell">
-                        {booking.status}
+                      <td className="hidden px-4 py-3 md:table-cell">
+                        {bookingStatusDisplayLabel(booking)}
                       </td>
                       <td className="hidden max-w-[10rem] px-4 py-3 text-sm lg:table-cell">
                         {paymentType}

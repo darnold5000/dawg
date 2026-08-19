@@ -18,6 +18,8 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import type { Booking } from "@/lib/types/database";
+import { isActiveRosterBooking } from "@/lib/booking-roster";
+import { decideLatePaymentFulfillment } from "@/lib/booking-retry";
 
 function bookingIdFromMetadata(
   meta: Stripe.Metadata | null | undefined,
@@ -121,6 +123,64 @@ async function sendConfirmationOnce(bookingId: string): Promise<void> {
   await markConfirmationEmailSent(bookingId);
 }
 
+async function evaluateLatePayment(
+  booking: Booking,
+): Promise<"ok" | "reject"> {
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return "ok";
+  }
+  const supabase = createTrainingServiceClient();
+  const { data: session } = await supabase
+    .from(DAWG_TABLES.sessions)
+    .select("id, capacity")
+    .eq("id", booking.session_id)
+    .maybeSingle();
+  const { data: rows } = await supabase
+    .from(DAWG_TABLES.bookings)
+    .select("id, status, attendance_status, booking_expires_at")
+    .eq("session_id", booking.session_id);
+
+  const activeOtherSeats = (rows ?? []).filter(
+    (row) =>
+      row.id !== booking.id &&
+      isActiveRosterBooking({
+        status: String(row.status),
+        attendance_status: row.attendance_status,
+        booking_expires_at: row.booking_expires_at,
+      }),
+  ).length;
+
+  const decision = decideLatePaymentFulfillment({
+    status: booking.status,
+    paymentStatus: booking.payment_status,
+    bookingExpiresAt: booking.booking_expires_at,
+    activeOtherSeats,
+    capacity: Number(session?.capacity ?? 0),
+  });
+
+  if (decision.action !== "reject_late_no_capacity") {
+    return "ok";
+  }
+
+  console.info("[reconcile] late payment rejected; session full", {
+    booking_id: booking.id,
+    session_id: booking.session_id,
+    active_other_seats: activeOtherSeats,
+    capacity: session?.capacity ?? null,
+  });
+
+  await supabase
+    .from(DAWG_TABLES.bookings)
+    .update({
+      payment_failure_message:
+        "Payment received after the hold expired and the session was full. Do not confirm; refund required.",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", booking.id);
+
+  return "reject";
+}
+
 /** Apply a retrieved Checkout.Session if Stripe reports it paid. */
 export async function applyPaidCheckoutSession(
   session: Stripe.Checkout.Session,
@@ -142,6 +202,13 @@ export async function applyPaidCheckoutSession(
 
   if (booking.payment_status === "paid" && booking.status === "confirmed") {
     return { bookingId, confirmed: true };
+  }
+
+  if (session.payment_status === "paid") {
+    const late = await evaluateLatePayment(booking);
+    if (late === "reject") {
+      return { bookingId, confirmed: false };
+    }
   }
 
   const amountTotal = session.amount_total ?? 0;
@@ -206,7 +273,10 @@ export async function applyPaidCheckoutSession(
 export async function reconcileCheckoutSession(input: {
   checkoutSessionId?: string | null;
   bookingId?: string | null;
-}): Promise<{ ok: true; confirmed: boolean; bookingId?: string } | { ok: false; error: string }> {
+}): Promise<
+  | { ok: true; confirmed: boolean; bookingId?: string; stripePaid: boolean }
+  | { ok: false; error: string }
+> {
   if (!isStripeConfigured()) {
     return { ok: false, error: "Stripe is not configured" };
   }
@@ -233,6 +303,7 @@ export async function reconcileCheckoutSession(input: {
       ok: true,
       confirmed: applied.confirmed,
       bookingId: applied.bookingId,
+      stripePaid: session.payment_status === "paid",
     };
   } catch (err) {
     const message =

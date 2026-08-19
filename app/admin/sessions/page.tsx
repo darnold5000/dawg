@@ -31,6 +31,8 @@ function toScheduleItems(
       calendar_color: s.program?.calendar_color ?? null,
       capacity: s.capacity,
       booked_count: s.booked_count ?? 0,
+      confirmed_count: s.confirmed_count ?? 0,
+      pending_hold_count: s.pending_hold_count ?? 0,
       trainer_name: s.trainer?.name ?? null,
     }));
 }

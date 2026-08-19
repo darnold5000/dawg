@@ -12,7 +12,10 @@ import type {
   TrainingSession,
 } from "@/lib/types/database";
 import { getPrograms, getSessionTypes, getTrainers } from "@/lib/data";
-import { isActiveRosterBooking } from "@/lib/booking-roster";
+import {
+  isAwaitingPaymentHold,
+  isConfirmedRosterBooking,
+} from "@/lib/booking-roster";
 
 export async function getAdminSessions(): Promise<SessionWithRelations[]> {
   if (!isSupabaseConfigured()) {
@@ -43,24 +46,31 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
     const ids = data.map((s) => s.id);
     const { data: bookings } = await supabaseService
       .from(DAWG_TABLES.bookings)
-      .select("session_id, status, booking_expires_at, attendance_status")
+      .select(
+        "session_id, status, payment_method, payment_status, booking_expires_at, attendance_status",
+      )
       .in("session_id", ids)
       .in("status", ["pending", "confirmed"]);
 
     const now = Date.now();
-    const counts: Record<string, number> = {};
+    const counts: Record<string, { confirmed: number; pendingHold: number }> =
+      {};
     for (const row of bookings ?? []) {
-      if (
-        !isActiveRosterBooking({
-          status: row.status,
-          attendance_status: row.attendance_status,
-          booking_expires_at: row.booking_expires_at,
-          nowMs: now,
-        })
-      ) {
-        continue;
-      }
-      counts[row.session_id] = (counts[row.session_id] ?? 0) + 1;
+      const current = counts[row.session_id] ?? {
+        confirmed: 0,
+        pendingHold: 0,
+      };
+      const snapshot = {
+        status: row.status,
+        payment_method: row.payment_method,
+        payment_status: row.payment_status,
+        attendance_status: row.attendance_status,
+        booking_expires_at: row.booking_expires_at,
+        nowMs: now,
+      };
+      if (isConfirmedRosterBooking(snapshot)) current.confirmed += 1;
+      else if (isAwaitingPaymentHold(snapshot)) current.pendingHold += 1;
+      counts[row.session_id] = current;
     }
 
     const [programs, types, trainers] = await Promise.all([
@@ -70,14 +80,20 @@ export async function getAdminSessions(): Promise<SessionWithRelations[]> {
     ]);
 
     return (data as TrainingSession[]).map((session) => {
-      const booked = counts[session.id] ?? 0;
+      const occupancy = counts[session.id] ?? {
+        confirmed: 0,
+        pendingHold: 0,
+      };
+      const occupied = occupancy.confirmed + occupancy.pendingHold;
       return {
         ...session,
         program: programs.find((p) => p.id === session.program_id) ?? null,
         session_type: types.find((t) => t.id === session.session_type_id) ?? null,
         trainer: trainers.find((t) => t.id === session.trainer_id) ?? null,
-        booked_count: booked,
-        spots_remaining: Math.max(0, session.capacity - booked),
+        confirmed_count: occupancy.confirmed,
+        pending_hold_count: occupancy.pendingHold,
+        booked_count: occupied,
+        spots_remaining: Math.max(0, session.capacity - occupied),
       };
     });
   } catch (err) {
@@ -112,7 +128,7 @@ export async function getDashboardMetrics() {
       s.status !== "cancelled",
   );
   const weekBookings = weekSessions.reduce(
-    (sum, s) => sum + (s.booked_count ?? 0),
+    (sum, s) => sum + (s.confirmed_count ?? 0),
     0,
   );
   const availableSpots = weekSessions.reduce(

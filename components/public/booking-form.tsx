@@ -1448,8 +1448,8 @@ export function BookingForm({
         >
           {submitting
             ? compactBooking
-              ? "Reserving…"
-              : "Saving & reserving…"
+              ? "Reserving your spot…"
+              : "Saving & reserving your spot…"
             : compactBooking
               ? rosterCredit || packageCreditAvailable
                 ? "Book session"

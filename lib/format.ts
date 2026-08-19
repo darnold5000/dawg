@@ -1,4 +1,5 @@
 import { format, parse, parseISO } from "date-fns";
+import { SITE } from "@/lib/constants";
 
 export function formatSessionDate(date: string): string {
   return format(parseISO(date), "EEEE, MMMM d");
@@ -30,6 +31,59 @@ export function formatScheduleDateRange(start: string, end: string): string {
 export function formatSessionTime(time: string): string {
   const normalized = time.length === 5 ? `${time}:00` : time.slice(0, 8);
   return format(parse(normalized, "HH:mm:ss", new Date()), "h:mm a");
+}
+
+/**
+ * Client/browser hold clock. Family dashboard is a Client Component, so this
+ * uses the viewer's local timezone (Indiana for DAWG families).
+ * Do not use this in Server Components — the server is UTC.
+ */
+export function formatHoldUntil(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const at = parseISO(iso);
+  if (Number.isNaN(at.getTime())) return null;
+  return format(at, "h:mm a");
+}
+
+/**
+ * Admin/staff hold clock. Roster and booking pages are Server Components
+ * (UTC on Vercel). Convert only for display; stored timestamptz is unchanged.
+ */
+export function formatAdminHoldUntil(
+  iso: string | null | undefined,
+): string | null {
+  if (!iso) return null;
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: SITE.timezone,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(at);
+  const hour = parts.find((part) => part.type === "hour")?.value;
+  const minute = parts.find((part) => part.type === "minute")?.value;
+  const dayPeriod = parts.find((part) => part.type === "dayPeriod")?.value;
+  if (!hour || !minute || !dayPeriod) return null;
+  return `${hour}:${minute} ${dayPeriod}`;
+}
+
+/** Remaining hold time from the stored instant. No timezone conversion. */
+export function holdRemainingMs(
+  expiresAt: string | null | undefined,
+  nowMs = Date.now(),
+): number | null {
+  if (!expiresAt) return null;
+  const at = new Date(expiresAt).getTime();
+  if (Number.isNaN(at)) return null;
+  return at - nowMs;
+}
+
+export function formatHoldCountdown(remainingMs: number): string {
+  const clamped = Math.max(0, remainingMs);
+  const minutes = Math.floor(clamped / 60_000);
+  const seconds = Math.floor((clamped % 60_000) / 1000);
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 /** Format integer cents as USD. Prefer this for all DAWG prices. */

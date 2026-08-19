@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { bookingSchema, createPublicBooking } from "@/lib/bookings";
-import { createBookingCheckout } from "@/lib/billing/checkout";
+import { ensureBookingCheckout } from "@/lib/billing/checkout";
 import {
   bookingCancelUrl,
   bookingSuccessUrl,
 } from "@/lib/billing/site-url";
 import { expirePendingBooking } from "@/lib/billing/adapter";
+import { reconcileCheckoutSession } from "@/lib/billing/reconcile-checkout";
 import {
   getAuthenticatedFamily,
   intakePath,
   parentEmailMatches,
 } from "@/lib/family-auth";
 import { applyRememberedFamilyToBookingBody } from "@/lib/booking-contact-email";
+import { bookingErrorHttpStatus } from "@/lib/booking-retry";
 
 const recent = new Map<string, number>();
 
@@ -55,10 +57,7 @@ export async function POST(request: Request) {
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
     if (rateLimited(`${ip}:${parsed.parentEmail}`)) {
-      return NextResponse.json(
-        { error: "Please wait a moment before submitting again." },
-        { status: 429 },
-      );
+      console.info("[bookings] duplicate submit within window; continuing idempotently");
     }
 
     const result = await createPublicBooking(parsed);
@@ -74,7 +73,7 @@ export async function POST(request: Request) {
           { status: 403 },
         );
       }
-      const status = result.code === "SESSION_FULL" ? 409 : 400;
+      const status = bookingErrorHttpStatus(result.code);
       return NextResponse.json(
         { error: result.error, code: result.code },
         { status },
@@ -86,7 +85,7 @@ export async function POST(request: Request) {
       !result.demo &&
       !result.coveredByPackageCredit
     ) {
-      const checkout = await createBookingCheckout({
+      const checkout = await ensureBookingCheckout({
         bookingId: result.booking.id,
         successUrl: bookingSuccessUrl({
           bookingId: result.booking.id,
@@ -99,10 +98,12 @@ export async function POST(request: Request) {
       });
 
       if (!checkout.ok) {
-        await expirePendingBooking({
-          bookingId: result.booking.id,
-          reason: checkout.error,
-        });
+        if (!result.resumed) {
+          await expirePendingBooking({
+            bookingId: result.booking.id,
+            reason: checkout.error,
+          });
+        }
         return NextResponse.json(
           {
             error: checkout.error || "Could not start online payment.",
@@ -112,6 +113,31 @@ export async function POST(request: Request) {
         );
       }
 
+      if (checkout.data.alreadyPaid) {
+        await reconcileCheckoutSession({
+          checkoutSessionId: checkout.data.sessionId,
+        });
+        return NextResponse.json({
+          confirmationNumber: result.booking.confirmation_number,
+          confirmationToken: result.booking.confirmation_token,
+          bookingId: result.booking.id,
+          requiresCheckout: false,
+          coveredByPackageCredit: false,
+          resumed: Boolean(result.resumed),
+        });
+      }
+
+      console.info(
+        "[bookings]",
+        {
+          outcome: checkout.data.reused ? "checkout_reused" : "checkout_replaced",
+          booking_id: result.booking.id,
+          session_id: parsed.sessionId,
+          athlete_id: result.booking.athlete_id,
+          checkout_session_id: checkout.data.sessionId,
+        },
+      );
+
       return NextResponse.json({
         confirmationNumber: result.booking.confirmation_number,
         confirmationToken: result.booking.confirmation_token,
@@ -120,6 +146,7 @@ export async function POST(request: Request) {
         checkoutSessionId: checkout.data.sessionId,
         requiresCheckout: true,
         coveredByPackageCredit: false,
+        resumed: Boolean(result.resumed),
       });
     }
 

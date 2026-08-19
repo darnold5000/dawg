@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createBookingCheckout } from "@/lib/billing/checkout";
+import { ensureBookingCheckout } from "@/lib/billing/checkout";
 import {
   getBookingByIdAndToken,
   isHoldActive,
@@ -62,7 +62,7 @@ export async function POST(
       );
     }
 
-    const checkout = await createBookingCheckout({
+    const checkout = await ensureBookingCheckout({
       bookingId,
       successUrl: bookingSuccessUrl({
         bookingId,

@@ -16,6 +16,10 @@ import {
 } from "@/components/admin/add-class-to-day-picker";
 import { Button } from "@/components/ui/button";
 import {
+  occupancyFromSession,
+  staffOccupancyLabel,
+} from "@/lib/booking-roster";
+import {
   formatScheduleDaySubdate,
   formatScheduleWeekday,
   formatSessionTime,
@@ -30,6 +34,8 @@ export type ScheduleSessionItem = {
   calendar_color: string | null;
   capacity: number;
   booked_count: number;
+  confirmed_count: number;
+  pending_hold_count: number;
   trainer_name: string | null;
 };
 
@@ -223,8 +229,17 @@ export function ScheduleSessionsView({
                               <p className="truncate font-medium">
                                 {session.program_name ?? session.title}
                               </p>
-                              <p className="text-muted-foreground">
-                                {session.booked_count}/{session.capacity}
+                              <p
+                                className="text-muted-foreground"
+                                title={staffOccupancyLabel(
+                                  occupancyFromSession(session),
+                                  session.capacity,
+                                )}
+                              >
+                                {staffOccupancyLabel(
+                                  occupancyFromSession(session),
+                                  session.capacity,
+                                )}
                               </p>
                             </div>
                             <SessionCardActions session={session} />
@@ -349,7 +364,10 @@ function SessionRow({ session }: { session: ScheduleSessionItem }) {
           <span className="font-heading tracking-wide">{name}</span>
         </div>
         <p className="text-sm text-muted-foreground">
-          {session.booked_count}/{session.capacity} booked
+          {staffOccupancyLabel(
+            occupancyFromSession(session),
+            session.capacity,
+          )}
           {session.trainer_name ? ` · ${session.trainer_name}` : ""}
         </p>
       </div>

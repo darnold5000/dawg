@@ -8,7 +8,7 @@ import { PaymentStatusBadge } from "@/components/admin/billing/payment-status-ba
 import { requireStaff } from "@/lib/auth";
 import { listPaymentTransactions } from "@/lib/billing/adapter";
 import { adminBookingPaymentTypeLabel } from "@/lib/admin-booking-labels";
-import { hardDeleteBlockReason } from "@/lib/booking-roster";
+import { bookingStatusDisplayLabel, hardDeleteBlockReason, isAwaitingPaymentHold } from "@/lib/booking-roster";
 import { getPackageRedemptionsForBookings } from "@/lib/admin-package-redemptions";
 import { isAdminRole } from "@/lib/roles";
 import { attendanceLabel } from "@/lib/attendance";
@@ -19,6 +19,7 @@ import {
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import {
   athleteAgeFromDob,
+  formatAdminHoldUntil,
   formatSessionDate,
   formatSessionTime,
 } from "@/lib/format";
@@ -79,6 +80,7 @@ export default async function AdminBookingDetailPage({
     paymentMethod: booking.payment_method,
     packageName: packageByBooking.get(id),
   });
+  const holdUntil = formatAdminHoldUntil(booking.booking_expires_at);
 
   return (
     <AdminShell profile={profile}>
@@ -149,15 +151,23 @@ export default async function AdminBookingDetailPage({
                   : ""}
               </p>
             ) : null}
-            <p className="mt-2 text-sm capitalize text-muted-foreground">
-              Booking: {booking.status}
+            <p className="mt-2 text-sm text-muted-foreground">
+              Booking: {bookingStatusDisplayLabel(booking)}
             </p>
-            <p className="text-sm text-muted-foreground">
-              Attendance:{" "}
-              {attendanceLabel(
-                (booking.attendance_status ?? "registered") as AttendanceStatus,
-              )}
-            </p>
+            {isAwaitingPaymentHold(booking) ? (
+              <p className="text-sm text-muted-foreground">
+                Spot held while payment is completed
+                {holdUntil ? ` until ${holdUntil}` : ""}. Attendance starts after
+                confirmation.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Attendance:{" "}
+                {attendanceLabel(
+                  (booking.attendance_status ?? "registered") as AttendanceStatus,
+                )}
+              </p>
+            )}
             {booking.parent?.id ? (
               <p className="mt-3">
                 <Link

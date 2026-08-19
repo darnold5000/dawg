@@ -9,6 +9,7 @@ export {
   claimStripeEvent,
   confirmPaidBooking,
   expirePendingBooking,
+  expireStripeCheckoutSession,
   getBookingForCheckout,
   listPaymentTransactions,
   markConfirmationEmailSent,
@@ -28,7 +29,7 @@ export {
 // Do not re-export booking-lookup / webhook-handlers here — they pull in
 // next/headers via supabase/server and break client component bundles.
 
-export { createBookingCheckout } from "./checkout";
+export { createBookingCheckout, ensureBookingCheckout } from "./checkout";
 export type { CreateBookingCheckoutResult } from "./checkout";
 
 export {

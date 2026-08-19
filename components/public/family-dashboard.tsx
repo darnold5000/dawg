@@ -1,19 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { forgetRememberedFamily, saveLastFamilyLoginEmail } from "@/lib/returning-family";
 import { clearAllBookingDrafts } from "@/lib/booking-draft";
 import {
+  formatHoldCountdown,
+  formatHoldUntil,
   formatPrice,
   formatSessionDateShort,
   formatSessionTime,
+  holdRemainingMs,
 } from "@/lib/format";
 import { formatDate } from "@/lib/billing/format";
 import type { FamilyBooking, FamilyPortalData } from "@/lib/family-portal";
 import { attendanceLabel } from "@/lib/attendance";
 import type { PaymentStatus } from "@/lib/types/database";
+import { BookingRetryButton } from "@/components/public/booking-retry-button";
 
 function familyPaymentLabel(status: PaymentStatus): string {
   switch (status) {
@@ -52,6 +57,54 @@ function FamilyBookingCard({ booking }: { booking: FamilyBooking }) {
           ? ""
           : ` · ${attendanceLabel(booking.attendanceStatus)}`}
       </p>
+    </li>
+  );
+}
+
+function HoldRemaining({ expiresAt }: { expiresAt: string | null }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const remaining = holdRemainingMs(expiresAt, now);
+  if (remaining == null) return null;
+  if (remaining <= 0) {
+    return <p className="mt-2 text-xs text-[#44403c]">Hold expired</p>;
+  }
+  return (
+    <p className="mt-2 text-xs text-[#44403c]">
+      Hold expires in {formatHoldCountdown(remaining)}
+    </p>
+  );
+}
+
+function AwaitingPaymentCard({ booking }: { booking: FamilyBooking }) {
+  const until = formatHoldUntil(booking.bookingExpiresAt);
+  return (
+    <li className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#78350f]">
+        Awaiting payment
+      </p>
+      <p className="mt-1 font-medium text-[#1c1917]">{booking.sessionTitle}</p>
+      <p className="mt-1 text-[#44403c]">
+        {formatSessionDateShort(booking.sessionDate)} ·{" "}
+        {formatSessionTime(booking.startTime)} · {booking.athleteName}
+      </p>
+      <p className="mt-2 text-sm text-[#1c1917]">
+        Your spot is being held while you finish payment.
+        {until ? ` Spot held until ${until}.` : ""}
+      </p>
+      <HoldRemaining expiresAt={booking.bookingExpiresAt} />
+      <div className="mt-3">
+        <BookingRetryButton
+          bookingId={booking.id}
+          token={booking.confirmationToken}
+          label="Continue payment"
+        />
+      </div>
     </li>
   );
 }
@@ -99,6 +152,19 @@ export function FamilyDashboard({ data }: { data: FamilyPortalData }) {
           </Button>
         </div>
       </div>
+
+      {data.awaitingPaymentHolds.length > 0 ? (
+        <section className="space-y-3">
+          <h3 className="font-heading text-xl tracking-wide">
+            Awaiting payment
+          </h3>
+          <ul className="space-y-2">
+            {data.awaitingPaymentHolds.map((booking) => (
+              <AwaitingPaymentCard key={booking.id} booking={booking} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <h3 className="font-heading text-xl tracking-wide">Upcoming sessions</h3>

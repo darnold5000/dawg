@@ -9,10 +9,13 @@ import { getAthleteBookingReadinessMap } from "@/lib/intake";
 import { isAdminRole } from "@/lib/roles";
 import {
   hardDeleteBlockReason,
-  isActiveRosterBooking,
+  isAwaitingPaymentHold,
+  isConfirmedRosterBooking,
+  occupancyFromSession,
+  staffOccupancyLabel,
 } from "@/lib/booking-roster";
 import { getPackageRedemptionsForBookings } from "@/lib/admin-package-redemptions";
-import { athleteAgeFromDob, formatSessionDate, formatSessionTime } from "@/lib/format";
+import { athleteAgeFromDob, formatAdminHoldUntil, formatSessionDate, formatSessionTime } from "@/lib/format";
 
 export default async function RosterPage({
   params,
@@ -24,12 +27,13 @@ export default async function RosterPage({
   const { session, bookings } = await getSessionRoster(id);
   if (!session) notFound();
 
-  const activeBookings = bookings.filter((b) => isActiveRosterBooking(b));
+  const confirmedBookings = bookings.filter((b) => isConfirmedRosterBooking(b));
+  const paymentHolds = bookings.filter((b) => isAwaitingPaymentHold(b));
   const packageByBooking = await getPackageRedemptionsForBookings(
-    activeBookings.map((b) => b.id),
+    confirmedBookings.map((b) => b.id),
   );
   const removalByBookingId = Object.fromEntries(
-    activeBookings.map((b) => {
+    confirmedBookings.map((b) => {
       const reason = hardDeleteBlockReason(b, {
         hasRedemption: packageByBooking.has(b.id),
       });
@@ -39,9 +43,15 @@ export default async function RosterPage({
 
   const readinessByAthleteId = Object.fromEntries(
     await getAthleteBookingReadinessMap(
-      activeBookings.map((b) => b.athlete_id),
+      confirmedBookings.map((b) => b.athlete_id),
     ),
   );
+
+  const occupancy = occupancyFromSession({
+    capacity: session.capacity,
+    confirmed_count: confirmedBookings.length,
+    pending_hold_count: paymentHolds.length,
+  });
 
   const csvRows = [
     [
@@ -56,7 +66,7 @@ export default async function RosterPage({
       "Attendance",
       "Notes",
     ].join(","),
-    ...activeBookings.map((b) =>
+    ...confirmedBookings.map((b) =>
       [
         `${b.athlete?.first_name ?? ""} ${b.athlete?.last_name ?? ""}`,
         b.athlete?.date_of_birth
@@ -83,8 +93,8 @@ export default async function RosterPage({
             <h2 className="font-heading text-3xl tracking-wide">Roster</h2>
             <p className="text-sm text-muted-foreground">
               {session.title} · {formatSessionDate(session.session_date)} ·{" "}
-              {formatSessionTime(session.start_time)} · {activeBookings.length}/
-              {session.capacity}
+              {formatSessionTime(session.start_time)} ·{" "}
+              {staffOccupancyLabel(occupancy, session.capacity)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Tap attendance on each athlete — optimized for phone use courtside.
@@ -102,21 +112,61 @@ export default async function RosterPage({
           </div>
         </div>
 
-        {activeBookings.length === 0 ? (
+        {confirmedBookings.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-muted/20 p-10 text-center">
-            <p className="font-medium">No registrations yet</p>
+            <p className="font-medium">No confirmed registrations yet</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Athletes will appear here once parents book this session.
+              Athletes appear here after payment is completed, or immediately
+              for pay-at-facility and package-credit bookings.
             </p>
           </div>
         ) : (
           <RosterAttendance
-            bookings={activeBookings}
+            bookings={confirmedBookings}
             readinessByAthleteId={readinessByAthleteId}
             removalByBookingId={removalByBookingId}
             showRemove={Boolean(profile.role && isAdminRole(profile.role))}
           />
         )}
+
+        {paymentHolds.length > 0 ? (
+          <section className="space-y-3">
+            <div>
+              <h3 className="font-heading text-xl tracking-wide">
+                Temporary holds / Awaiting payment
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                These spots are reserved while online payment is completed.
+                They are not booked and do not have attendance.
+              </p>
+            </div>
+            <ul className="grid gap-3 lg:grid-cols-2">
+              {paymentHolds.map((booking) => {
+                const until = formatAdminHoldUntil(booking.booking_expires_at);
+                return (
+                  <li
+                    key={booking.id}
+                    className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5"
+                  >
+                    <p className="text-sm font-semibold text-[#1c1917]">
+                      {booking.athlete?.first_name} {booking.athlete?.last_name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-[#44403c]">
+                      {booking.parent?.first_name} {booking.parent?.last_name}
+                      {booking.parent?.phone ? ` · ${booking.parent.phone}` : ""}
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-[#78350f]">
+                      Awaiting payment
+                    </p>
+                    <p className="text-xs text-[#1c1917]">
+                      {until ? `Spot held until ${until}` : "Spot held"}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
       </div>
     </AdminShell>
   );
