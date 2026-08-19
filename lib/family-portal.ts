@@ -9,15 +9,20 @@ import type {
   AttendanceStatus,
   BookingStatus,
   PackagePurchaseWithPackage,
+  PaymentMethod,
   PaymentStatus,
 } from "@/lib/types/database";
+import { isAwaitingPaymentHold, isConfirmedRosterBooking } from "@/lib/booking-roster";
 
 export type FamilyBooking = {
   id: string;
   confirmationNumber: string;
+  confirmationToken: string;
   status: BookingStatus;
   attendanceStatus: AttendanceStatus;
   paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod | null;
+  bookingExpiresAt: string | null;
   athleteName: string;
   sessionTitle: string;
   sessionDate: string;
@@ -50,6 +55,7 @@ export type FamilyPortalData = {
   athletes: Athlete[];
   purchases: PackagePurchaseWithPackage[];
   upcomingBookings: FamilyBooking[];
+  awaitingPaymentHolds: FamilyBooking[];
   pastBookings: FamilyBooking[];
   redemptions: FamilyRedemption[];
   totalCreditsRemaining: number;
@@ -69,9 +75,12 @@ function sessionStartTimestamp(sessionDate: string, startTime: string): number {
 function mapFamilyBooking(row: {
   id: string;
   confirmation_number: string;
+  confirmation_token: string;
   status: BookingStatus;
   attendance_status: AttendanceStatus;
   payment_status: PaymentStatus;
+  payment_method: PaymentMethod | null;
+  booking_expires_at: string | null;
   booked_at: string;
   athlete?: { first_name?: string; last_name?: string } | null;
   session?: {
@@ -96,9 +105,12 @@ function mapFamilyBooking(row: {
   return {
     id: row.id,
     confirmationNumber: row.confirmation_number,
+    confirmationToken: row.confirmation_token,
     status: row.status,
     attendanceStatus: row.attendance_status,
     paymentStatus: row.payment_status,
+    paymentMethod: row.payment_method,
+    bookingExpiresAt: row.booking_expires_at,
     athleteName: athlete
       ? `${athlete.first_name ?? ""} ${athlete.last_name ?? ""}`.trim()
       : "—",
@@ -147,9 +159,12 @@ export async function getFamilyPortalData(
           `
           id,
           confirmation_number,
+          confirmation_token,
           status,
           attendance_status,
           payment_status,
+          payment_method,
+          booking_expires_at,
           booked_at,
           athlete:training_athletes ( first_name, last_name ),
           session:training_sessions (
@@ -180,7 +195,30 @@ export async function getFamilyPortalData(
     )
     .filter((booking): booking is FamilyBooking => booking !== null);
 
-  const upcomingBookings = familyBookings
+  const awaitingPaymentHolds = familyBookings
+    .filter((booking) =>
+      isAwaitingPaymentHold({
+        status: booking.status,
+        payment_method: booking.paymentMethod,
+        payment_status: booking.paymentStatus,
+        attendance_status: booking.attendanceStatus,
+        booking_expires_at: booking.bookingExpiresAt,
+      }),
+    )
+    .sort(
+      (a, b) =>
+        sessionStartTimestamp(a.sessionDate, a.startTime) -
+        sessionStartTimestamp(b.sessionDate, b.startTime),
+    );
+
+  const confirmedBookings = familyBookings.filter((booking) =>
+    isConfirmedRosterBooking({
+      status: booking.status,
+      attendance_status: booking.attendanceStatus,
+    }),
+  );
+
+  const upcomingBookings = confirmedBookings
     .filter((booking) => booking.isUpcoming)
     .sort(
       (a, b) =>
@@ -188,7 +226,7 @@ export async function getFamilyPortalData(
         sessionStartTimestamp(b.sessionDate, b.startTime),
     );
 
-  const pastBookings = familyBookings
+  const pastBookings = confirmedBookings
     .filter((booking) => !booking.isUpcoming)
     .sort(
       (a, b) =>
@@ -264,6 +302,7 @@ export async function getFamilyPortalData(
     athletes: (athletes as Athlete[]) ?? [],
     purchases: purchaseRows,
     upcomingBookings,
+    awaitingPaymentHolds,
     pastBookings,
     redemptions: redemptionRows,
     totalCreditsRemaining,

@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 export function BookingRetryButton({
   bookingId,
   token,
+  label = "Retry payment",
 }: {
   bookingId: string;
   token: string;
+  label?: string;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +43,7 @@ export function BookingRetryButton({
       disabled={loading}
       className="bg-brand text-brand-foreground hover:bg-brand/90"
     >
-      {loading ? "Starting…" : "Retry payment"}
+      {loading ? "Starting…" : label}
     </Button>
   );
 }

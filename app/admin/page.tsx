@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { requireStaff } from "@/lib/auth";
 import { getDashboardMetrics } from "@/lib/admin-data";
 import { formatMoney } from "@/lib/billing/format";
+import { occupancyFromSession, staffOccupancyLabel } from "@/lib/booking-roster";
 import { formatSessionTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -108,7 +109,16 @@ export default async function AdminDashboardPage() {
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {session.booked_count ?? 0}/{session.capacity} booked
+                        {staffOccupancyLabel(
+                          occupancyFromSession({
+                            capacity: session.capacity,
+                            confirmed_count: session.confirmed_count,
+                            pending_hold_count: session.pending_hold_count,
+                            booked_count: session.booked_count,
+                            spots_remaining: session.spots_remaining,
+                          }),
+                          session.capacity,
+                        )}
                         {session.trainer?.name
                           ? ` · ${session.trainer.name}`
                           : ""}

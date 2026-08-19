@@ -273,7 +273,10 @@ export async function applyPaidCheckoutSession(
 export async function reconcileCheckoutSession(input: {
   checkoutSessionId?: string | null;
   bookingId?: string | null;
-}): Promise<{ ok: true; confirmed: boolean; bookingId?: string } | { ok: false; error: string }> {
+}): Promise<
+  | { ok: true; confirmed: boolean; bookingId?: string; stripePaid: boolean }
+  | { ok: false; error: string }
+> {
   if (!isStripeConfigured()) {
     return { ok: false, error: "Stripe is not configured" };
   }
@@ -300,6 +303,7 @@ export async function reconcileCheckoutSession(input: {
       ok: true,
       confirmed: applied.confirmed,
       bookingId: applied.bookingId,
+      stripePaid: session.payment_status === "paid",
     };
   } catch (err) {
     const message =

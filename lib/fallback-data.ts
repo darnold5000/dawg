@@ -127,6 +127,8 @@ export const FALLBACK_SESSIONS: SessionWithRelations[] = [
     session_type: FALLBACK_SESSION_TYPES[0],
     trainer: FALLBACK_TRAINERS[0],
     booked_count: 7,
+    confirmed_count: 7,
+    pending_hold_count: 0,
     spots_remaining: 3,
   },
   {
@@ -165,6 +167,8 @@ export const FALLBACK_SESSIONS: SessionWithRelations[] = [
     session_type: FALLBACK_SESSION_TYPES[0],
     trainer: FALLBACK_TRAINERS[0],
     booked_count: 4,
+    confirmed_count: 4,
+    pending_hold_count: 0,
     spots_remaining: 8,
   },
   {
@@ -203,6 +207,8 @@ export const FALLBACK_SESSIONS: SessionWithRelations[] = [
     session_type: FALLBACK_SESSION_TYPES[0],
     trainer: FALLBACK_TRAINERS[0],
     booked_count: 1,
+    confirmed_count: 1,
+    pending_hold_count: 0,
     spots_remaining: 9,
   },
   {
@@ -241,6 +247,8 @@ export const FALLBACK_SESSIONS: SessionWithRelations[] = [
     session_type: FALLBACK_SESSION_TYPES[0],
     trainer: FALLBACK_TRAINERS[0],
     booked_count: 12,
+    confirmed_count: 12,
+    pending_hold_count: 0,
     spots_remaining: 0,
   },
 ];

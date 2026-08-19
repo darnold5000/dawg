@@ -6,6 +6,7 @@ import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { athleteAgeFromDob } from "@/lib/format";
 import { normalizeEmail } from "@/lib/billing/verified-checkout-email";
 import { parentIdFromRow, mapAthleteRow } from "@/lib/supabase/tenant-row-map";
+import { isConfirmedRosterBooking } from "@/lib/booking-roster";
 import type { Athlete, Booking, Parent } from "@/lib/types/database";
 
 export type ClientAthleteSummary = Pick<
@@ -148,7 +149,9 @@ export async function getClientFamilies(): Promise<ClientFamily[]> {
         supabase.from(DAWG_TABLES.athletes).select("*"),
         supabase
           .from(DAWG_TABLES.bookings)
-          .select("guardian_id, booked_at, status, session:training_sessions ( session_date )")
+          .select(
+            "guardian_id, booked_at, status, attendance_status, session:training_sessions ( session_date )",
+          )
           .in("status", ["pending", "confirmed", "attended", "waitlisted"]),
         supabase
           .from(DAWG_TABLES.packagePurchases)
@@ -173,6 +176,14 @@ export async function getClientFamilies(): Promise<ClientFamily[]> {
     for (const row of bookings ?? []) {
       const pid = parentIdFromRow(row as { guardian_id?: string });
       if (!pid) continue;
+      if (
+        !isConfirmedRosterBooking({
+          status: row.status,
+          attendance_status: row.attendance_status,
+        })
+      ) {
+        continue;
+      }
       const prev = bookingStats.get(pid) ?? {
         count: 0,
         lastBookedAt: null,
@@ -302,8 +313,15 @@ export async function getClientFamily(
       }
     }
 
+    const confirmedBookingRows = bookingRows.filter((row) =>
+      isConfirmedRosterBooking({
+        status: row.status,
+        attendance_status: row.attendance_status,
+      }),
+    );
+
     let lastSessionDate: string | null = null;
-    for (const row of bookingRows) {
+    for (const row of confirmedBookingRows) {
       const sessionDate = row.session?.session_date;
       if (
         sessionDate &&
@@ -316,8 +334,8 @@ export async function getClientFamily(
     return {
       parent: parent as Parent,
       athletes: mappedAthletes,
-      bookingCount: bookingRows.length,
-      lastBookedAt: bookingRows[0]?.booked_at ?? null,
+      bookingCount: confirmedBookingRows.length,
+      lastBookedAt: confirmedBookingRows[0]?.booked_at ?? null,
       sessionsRemaining,
       packageSummary: packageNames.length ? packageNames.join(", ") : null,
       lastSessionDate,

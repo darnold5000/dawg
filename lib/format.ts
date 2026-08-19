@@ -32,6 +32,13 @@ export function formatSessionTime(time: string): string {
   return format(parse(normalized, "HH:mm:ss", new Date()), "h:mm a");
 }
 
+export function formatHoldUntil(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const at = parseISO(iso);
+  if (Number.isNaN(at.getTime())) return null;
+  return format(at, "h:mm a");
+}
+
 /** Format integer cents as USD. Prefer this for all DAWG prices. */
 export function formatPrice(cents: number): string {
   const fractionDigits = cents % 100 === 0 ? 0 : 2;

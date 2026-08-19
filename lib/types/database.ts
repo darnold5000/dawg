@@ -164,6 +164,8 @@ export interface SessionWithRelations extends TrainingSession {
   session_type?: SessionType | null;
   trainer?: Trainer | null;
   booked_count?: number;
+  confirmed_count?: number;
+  pending_hold_count?: number;
   spots_remaining?: number;
 }
 

@@ -25,38 +25,48 @@ import type {
   Trainer,
   TrainingSession,
 } from "@/lib/types/database";
-import { isActiveRosterBooking } from "@/lib/booking-roster";
+import {
+  isAwaitingPaymentHold,
+  isConfirmedRosterBooking,
+} from "@/lib/booking-roster";
 
 function todayISO(): string {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-async function bookingCounts(
+async function bookingOccupancy(
   sessionIds: string[],
-): Promise<Record<string, number>> {
+): Promise<Record<string, { confirmed: number; pendingHold: number }>> {
   if (!sessionIds.length || !isSupabaseConfigured()) return {};
   try {
     const supabase = createTrainingServiceClient();
     const { data } = await supabase
       .from(DAWG_TABLES.bookings)
-      .select("session_id, status, booking_expires_at, attendance_status")
+      .select(
+        "session_id, status, payment_method, payment_status, booking_expires_at, attendance_status",
+      )
       .in("session_id", sessionIds)
       .in("status", ["pending", "confirmed"]);
 
     const now = Date.now();
-    const counts: Record<string, number> = {};
+    const counts: Record<string, { confirmed: number; pendingHold: number }> =
+      {};
     for (const row of data ?? []) {
-      if (
-        !isActiveRosterBooking({
-          status: row.status,
-          attendance_status: row.attendance_status,
-          booking_expires_at: row.booking_expires_at,
-          nowMs: now,
-        })
-      ) {
-        continue;
-      }
-      counts[row.session_id] = (counts[row.session_id] ?? 0) + 1;
+      const current = counts[row.session_id] ?? {
+        confirmed: 0,
+        pendingHold: 0,
+      };
+      const snapshot = {
+        status: row.status,
+        payment_method: row.payment_method,
+        payment_status: row.payment_status,
+        attendance_status: row.attendance_status,
+        booking_expires_at: row.booking_expires_at,
+        nowMs: now,
+      };
+      if (isConfirmedRosterBooking(snapshot)) current.confirmed += 1;
+      else if (isAwaitingPaymentHold(snapshot)) current.pendingHold += 1;
+      counts[row.session_id] = current;
     }
     return counts;
   } catch {
@@ -70,19 +80,25 @@ function enrichSessions(
     programs: Program[];
     types: SessionType[];
     trainers: Trainer[];
-    counts: Record<string, number>;
+    counts: Record<string, { confirmed: number; pendingHold: number }>;
   },
 ): SessionWithRelations[] {
   return sessions.map((session) => {
-    const booked = extras.counts[session.id] ?? 0;
+    const occupancy = extras.counts[session.id] ?? {
+      confirmed: 0,
+      pendingHold: 0,
+    };
+    const occupied = occupancy.confirmed + occupancy.pendingHold;
     return {
       ...session,
       program: extras.programs.find((p) => p.id === session.program_id) ?? null,
       session_type:
         extras.types.find((t) => t.id === session.session_type_id) ?? null,
       trainer: extras.trainers.find((t) => t.id === session.trainer_id) ?? null,
-      booked_count: booked,
-      spots_remaining: Math.max(0, session.capacity - booked),
+      confirmed_count: occupancy.confirmed,
+      pending_hold_count: occupancy.pendingHold,
+      booked_count: occupied,
+      spots_remaining: Math.max(0, session.capacity - occupied),
     };
   });
 }
@@ -267,7 +283,7 @@ export async function getUpcomingSessions(
       getPrograms(),
       getSessionTypes(),
       getTrainers(),
-      bookingCounts(data.map((s) => s.id)),
+      bookingOccupancy(data.map((s) => s.id)),
     ]);
 
     return enrichSessions(data as TrainingSession[], {
@@ -337,7 +353,7 @@ export async function getFilteredSessions(
       getPrograms(),
       getSessionTypes(),
       getTrainers(),
-      bookingCounts(data.map((s) => s.id)),
+      bookingOccupancy(data.map((s) => s.id)),
     ]);
 
     let sessions = enrichSessions(data as TrainingSession[], {
@@ -394,7 +410,7 @@ export async function getSessionById(
       getPrograms(),
       getSessionTypes(),
       getTrainers(),
-      bookingCounts([data.id]),
+      bookingOccupancy([data.id]),
     ]);
 
     return enrichSessions([data as TrainingSession], {

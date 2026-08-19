@@ -17,6 +17,7 @@ import { formatDate, formatMoney } from "@/lib/billing/format";
 import { SITE } from "@/lib/constants";
 import { listIntakesForParent } from "@/lib/intake";
 import { loadPackageCatalogForAdmin, listPurchasesForParent } from "@/lib/packages";
+import { bookingStatusDisplayLabel } from "@/lib/booking-roster";
 import {
   formatSessionDateShort,
   formatSessionTime,
@@ -47,7 +48,7 @@ export default async function AdminClientDetailPage({
   const futureConfirmedBookingCount = bookings.filter((booking) => {
     const sessionDate = booking.session?.session_date;
     if (!sessionDate || sessionDate < today) return false;
-    return booking.status === "confirmed" || booking.status === "pending";
+    return booking.status === "confirmed";
   }).length;
   const mailto = `mailto:${encodeURIComponent(parent.email)}?subject=${encodeURIComponent(
     `Message from ${SITE.name}`,
@@ -357,6 +358,7 @@ export default async function AdminClientDetailPage({
                     <th className="hidden px-3 py-2.5 md:table-cell">
                       Agreements
                     </th>
+                    <th className="px-3 py-2.5">Status</th>
                     <th className="px-3 py-2.5">Payment</th>
                   </tr>
                 </thead>
@@ -383,6 +385,9 @@ export default async function AdminClientDetailPage({
                       </td>
                       <td className="hidden px-3 py-2.5 md:table-cell">
                         <AgreementsSummary booking={booking} compact />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {bookingStatusDisplayLabel(booking)}
                       </td>
                       <td className="px-3 py-2.5">
                         <PaymentStatusBadge status={booking.payment_status} />

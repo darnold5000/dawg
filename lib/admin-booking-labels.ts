@@ -7,7 +7,7 @@ export function adminPaymentStatusLabel(status: PaymentStatus): string {
     case "unpaid":
       return "Unpaid";
     case "pending":
-      return "Pending";
+      return "Awaiting payment";
     case "paid":
       return "Paid";
     case "failed":
@@ -37,6 +37,7 @@ export function adminBookingPaymentTypeLabel(input: {
     return "Roster session";
   }
   if (input.paymentMethod === "stripe") {
+    if (input.paymentStatus === "pending") return "Awaiting payment";
     return "Pay online";
   }
   if (input.paymentMethod === "pay_at_facility") {

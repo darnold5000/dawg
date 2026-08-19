@@ -321,6 +321,22 @@ describe("planBookingSubmit", () => {
     });
   });
 
+  it("confirms pay-at-facility immediately and emails once", () => {
+    const store = createStore();
+    const first = submit(store, {
+      sessionId: SESSION_ID,
+      athleteId: ATHLETE_ID,
+      paymentMethod: "pay_at_facility",
+      nowMs: T0,
+    });
+    assert.equal(store.rows.length, 1);
+    assert.equal(store.rows[0].status, "confirmed");
+    assert.equal(store.rows[0].payment_method, "pay_at_facility");
+    assert.equal(store.rows[0].payment_status, "unpaid");
+    assert.equal(store.emails.length, 1);
+    assert.equal(first.plan.action, "create");
+  });
+
   it("rejects pay-at-facility confirmed duplicates", () => {
     const plan = planBookingSubmit({
       existing: {

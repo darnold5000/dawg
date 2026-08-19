@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SessionWithRelations } from "@/lib/types/database";
 import { bookLoginPath } from "@/lib/family-auth-url";
+import { occupancyFromSession, publicOccupancyLabel } from "@/lib/booking-roster";
 import { formatSessionTime, formatSessionTitle } from "@/lib/format";
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -131,10 +132,12 @@ export function ScheduleMonthCalendar({
                   {daySessions.map((session) => {
                     const spots = session.spots_remaining ?? 0;
                     const full = spots <= 0;
-                    const capacity = session.capacity;
-                    const booked =
-                      session.booked_count ??
-                      Math.max(0, capacity - spots);
+                    const occupancy = occupancyFromSession(session);
+                    const occupancyCopy = publicOccupancyLabel(
+                      occupancy,
+                      session.capacity,
+                      full,
+                    );
                     const accent = session.program?.calendar_color ?? "#1f5cff";
                     const title =
                       session.program?.name ??
@@ -161,16 +164,11 @@ export function ScheduleMonthCalendar({
                         <div className="mt-2 flex items-center justify-between gap-2">
                           <p
                             className="min-w-0 text-[11px] leading-snug text-muted-foreground sm:text-xs"
-                            title={
-                              full
-                                ? "Class full"
-                                : `${booked} booked, ${spots} spots available`
-                            }
+                            title={occupancyCopy.title}
                           >
                             <span className="font-semibold text-foreground">
-                              {booked}/{capacity}
+                              {occupancyCopy.primary}
                             </span>
-                            {" booked"}
                             <br className="sm:hidden" />
                             <span className="hidden sm:inline"> · </span>
                             <span

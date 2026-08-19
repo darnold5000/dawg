@@ -6,6 +6,8 @@ import {
   canHardDeleteBooking,
   hardDeleteBlockReason,
   isActiveRosterBooking,
+  isAwaitingPaymentHold,
+  isConfirmedRosterBooking,
   REMOVE_FROM_SESSION_CONFIRMATION,
   type BookingFinancialSnapshot,
 } from "./booking-roster";
@@ -65,6 +67,30 @@ describe("isActiveRosterBooking", () => {
       }),
       false,
     );
+  });
+});
+
+describe("confirmed vs Stripe hold display", () => {
+  it("does not treat an unpaid Stripe hold as a roster athlete", () => {
+    const hold = {
+      status: "pending",
+      payment_method: "stripe",
+      payment_status: "pending",
+      booking_expires_at: new Date(Date.now() + 60_000).toISOString(),
+    };
+    assert.equal(isActiveRosterBooking(hold), true);
+    assert.equal(isConfirmedRosterBooking(hold), false);
+    assert.equal(isAwaitingPaymentHold(hold), true);
+  });
+
+  it("treats pay-at-facility unpaid as a confirmed booking", () => {
+    const facility = {
+      status: "confirmed",
+      payment_method: "pay_at_facility",
+      payment_status: "unpaid",
+    };
+    assert.equal(isConfirmedRosterBooking(facility), true);
+    assert.equal(isAwaitingPaymentHold(facility), false);
   });
 });
 

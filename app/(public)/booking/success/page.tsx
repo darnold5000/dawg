@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BookingSuccessPoller } from "@/components/public/booking-success-client";
+import { BookingRetryButton } from "@/components/public/booking-retry-button";
 import {
   amountDisplay,
   BookingConfirmedView,
@@ -57,14 +58,20 @@ export default async function BookingSuccessPage({
   const token = q.token ?? "";
   const checkoutSessionId = q.session_id;
 
+  let reconcile:
+    | { ok: true; confirmed: boolean; stripePaid: boolean }
+    | { ok: false; error: string }
+    | null = null;
+
   // If webhook is delayed/missing, confirm from Stripe before rendering.
+  // Opening this URL does not confirm unless Stripe reports payment success.
   if (
     checkoutSessionId &&
     checkoutSessionId !== "{CHECKOUT_SESSION_ID}"
   ) {
-    await reconcileCheckoutSession({ checkoutSessionId });
+    reconcile = await reconcileCheckoutSession({ checkoutSessionId });
   } else if (q.booking_id) {
-    await reconcileCheckoutSession({ bookingId: q.booking_id });
+    reconcile = await reconcileCheckoutSession({ bookingId: q.booking_id });
   }
 
   let booking =
@@ -98,9 +105,8 @@ export default async function BookingSuccessPage({
 
   const confirmed =
     booking.status === "confirmed" && booking.payment_status === "paid";
-  const confirming =
-    !confirmed &&
-    (booking.payment_status === "pending" || booking.status === "pending");
+  const stripePaid = reconcile?.ok === true && reconcile.stripePaid;
+  const confirming = !confirmed && stripePaid;
 
   const athleteName = `${booking.athlete.first_name} ${booking.athlete.last_name}`;
   const amountPaid = booking.amount_paid_cents || booking.amount_due_cents;
@@ -109,6 +115,39 @@ export default async function BookingSuccessPage({
     booking.session.location_address ??
     booking.session.location_name ??
     SITE.address.full;
+
+  if (!confirmed && !stripePaid) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
+        <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          Payment not completed
+        </p>
+        <h1 className="mt-2 font-heading text-4xl tracking-wide">
+          Not booked yet
+        </h1>
+        <p className="mt-4 text-muted-foreground">
+          Your spot is being held while you finish payment. This session is not
+          booked until payment succeeds.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          {token ? (
+            <BookingRetryButton
+              bookingId={booking.id}
+              token={token}
+              label="Continue payment"
+            />
+          ) : (
+            <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
+              <Link href="/schedule">Return to schedule</Link>
+            </Button>
+          )}
+          <Button asChild variant="outline">
+            <Link href="/my">My account</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BookingConfirmedView
