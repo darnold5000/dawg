@@ -15,7 +15,7 @@ import {
   staffOccupancyLabel,
 } from "@/lib/booking-roster";
 import { getPackageRedemptionsForBookings } from "@/lib/admin-package-redemptions";
-import { athleteAgeFromDob, formatHoldUntil, formatSessionDate, formatSessionTime } from "@/lib/format";
+import { athleteAgeFromDob, formatAdminHoldUntil, formatSessionDate, formatSessionTime } from "@/lib/format";
 
 export default async function RosterPage({
   params,
@@ -142,23 +142,23 @@ export default async function RosterPage({
             </div>
             <ul className="grid gap-3 lg:grid-cols-2">
               {paymentHolds.map((booking) => {
-                const until = formatHoldUntil(booking.booking_expires_at);
+                const until = formatAdminHoldUntil(booking.booking_expires_at);
                 return (
                   <li
                     key={booking.id}
-                    className="rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2.5"
+                    className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5"
                   >
-                    <p className="text-sm font-semibold">
+                    <p className="text-sm font-semibold text-[#1c1917]">
                       {booking.athlete?.first_name} {booking.athlete?.last_name}
                     </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="mt-0.5 text-xs text-[#44403c]">
                       {booking.parent?.first_name} {booking.parent?.last_name}
                       {booking.parent?.phone ? ` · ${booking.parent.phone}` : ""}
                     </p>
-                    <p className="mt-2 text-sm font-medium text-amber-950">
+                    <p className="mt-2 text-sm font-medium text-[#78350f]">
                       Awaiting payment
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-[#1c1917]">
                       {until ? `Spot held until ${until}` : "Spot held"}
                     </p>
                   </li>

@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { forgetRememberedFamily, saveLastFamilyLoginEmail } from "@/lib/returning-family";
 import { clearAllBookingDrafts } from "@/lib/booking-draft";
 import {
+  formatHoldCountdown,
   formatHoldUntil,
   formatPrice,
   formatSessionDateShort,
   formatSessionTime,
+  holdRemainingMs,
 } from "@/lib/format";
 import { formatDate } from "@/lib/billing/format";
 import type { FamilyBooking, FamilyPortalData } from "@/lib/family-portal";
@@ -67,16 +69,14 @@ function HoldRemaining({ expiresAt }: { expiresAt: string | null }) {
     return () => window.clearInterval(timer);
   }, []);
 
-  if (!expiresAt) return null;
-  const remaining = new Date(expiresAt).getTime() - now;
+  const remaining = holdRemainingMs(expiresAt, now);
+  if (remaining == null) return null;
   if (remaining <= 0) {
-    return <p className="mt-2 text-xs text-muted-foreground">Hold expired</p>;
+    return <p className="mt-2 text-xs text-[#44403c]">Hold expired</p>;
   }
-  const minutes = Math.floor(remaining / 60_000);
-  const seconds = Math.floor((remaining % 60_000) / 1000);
   return (
-    <p className="mt-2 text-xs text-muted-foreground">
-      Hold expires in {minutes}:{String(seconds).padStart(2, "0")}
+    <p className="mt-2 text-xs text-[#44403c]">
+      Hold expires in {formatHoldCountdown(remaining)}
     </p>
   );
 }
@@ -84,16 +84,16 @@ function HoldRemaining({ expiresAt }: { expiresAt: string | null }) {
 function AwaitingPaymentCard({ booking }: { booking: FamilyBooking }) {
   const until = formatHoldUntil(booking.bookingExpiresAt);
   return (
-    <li className="rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-amber-900/80">
+    <li className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#78350f]">
         Awaiting payment
       </p>
-      <p className="mt-1 font-medium">{booking.sessionTitle}</p>
-      <p className="mt-1 text-muted-foreground">
+      <p className="mt-1 font-medium text-[#1c1917]">{booking.sessionTitle}</p>
+      <p className="mt-1 text-[#44403c]">
         {formatSessionDateShort(booking.sessionDate)} ·{" "}
         {formatSessionTime(booking.startTime)} · {booking.athleteName}
       </p>
-      <p className="mt-2 text-sm text-amber-950">
+      <p className="mt-2 text-sm text-[#1c1917]">
         Your spot is being held while you finish payment.
         {until ? ` Spot held until ${until}.` : ""}
       </p>

@@ -19,6 +19,7 @@ import {
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import {
   athleteAgeFromDob,
+  formatAdminHoldUntil,
   formatSessionDate,
   formatSessionTime,
 } from "@/lib/format";
@@ -79,6 +80,7 @@ export default async function AdminBookingDetailPage({
     paymentMethod: booking.payment_method,
     packageName: packageByBooking.get(id),
   });
+  const holdUntil = formatAdminHoldUntil(booking.booking_expires_at);
 
   return (
     <AdminShell profile={profile}>
@@ -154,7 +156,8 @@ export default async function AdminBookingDetailPage({
             </p>
             {isAwaitingPaymentHold(booking) ? (
               <p className="text-sm text-muted-foreground">
-                Spot held while payment is completed. Attendance starts after
+                Spot held while payment is completed
+                {holdUntil ? ` until ${holdUntil}` : ""}. Attendance starts after
                 confirmation.
               </p>
             ) : (

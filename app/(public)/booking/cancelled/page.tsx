@@ -6,7 +6,7 @@ import {
   isHoldActive,
 } from "@/lib/billing/booking-lookup";
 import { expirePendingBooking } from "@/lib/billing/adapter";
-import { formatSessionDate, formatSessionTime } from "@/lib/format";
+import { formatHoldUntil, formatSessionDate, formatSessionTime } from "@/lib/format";
 import { createMetadata } from "@/lib/seo";
 
 export const metadata = createMetadata({
@@ -30,6 +30,9 @@ export default async function BookingCancelledPage({
       : null;
 
   const holdActive = booking ? isHoldActive(booking) : false;
+  const holdUntil = booking
+    ? formatHoldUntil(booking.booking_expires_at)
+    : null;
 
   // If hold already expired, mark it so capacity is released even without Stripe webhook
   if (
@@ -72,8 +75,12 @@ export default async function BookingCancelledPage({
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Hold</dt>
-            <dd className="font-medium">
-              {holdActive ? "Still active — you can retry payment" : "Expired"}
+            <dd className="text-right font-medium">
+              {holdActive
+                ? holdUntil
+                  ? `Still active — spot held until ${holdUntil}`
+                  : "Still active — you can retry payment"
+                : "Expired"}
             </dd>
           </div>
         </dl>

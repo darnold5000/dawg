@@ -13,6 +13,7 @@ import {
 } from "@/lib/billing/booking-lookup";
 import { reconcileCheckoutSession } from "@/lib/billing/reconcile-checkout";
 import { SITE } from "@/lib/constants";
+import { formatHoldUntil } from "@/lib/format";
 import { createMetadata } from "@/lib/seo";
 import {
   createTrainingServiceClient,
@@ -107,6 +108,7 @@ export default async function BookingSuccessPage({
     booking.status === "confirmed" && booking.payment_status === "paid";
   const stripePaid = reconcile?.ok === true && reconcile.stripePaid;
   const confirming = !confirmed && stripePaid;
+  const holdUntil = formatHoldUntil(booking.booking_expires_at);
 
   const athleteName = `${booking.athlete.first_name} ${booking.athlete.last_name}`;
   const amountPaid = booking.amount_paid_cents || booking.amount_due_cents;
@@ -126,8 +128,9 @@ export default async function BookingSuccessPage({
           Not booked yet
         </h1>
         <p className="mt-4 text-muted-foreground">
-          Your spot is being held while you finish payment. This session is not
-          booked until payment succeeds.
+          Your spot is being held while you finish payment
+          {holdUntil ? ` until ${holdUntil}` : ""}. This session is not booked
+          until payment succeeds.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           {token ? (
