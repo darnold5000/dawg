@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { FamilyIntakeForm } from "@/components/public/family-intake-form";
 import {
   getAuthenticatedFamily,
@@ -26,11 +25,21 @@ export default async function FamilyIntakePage({
   const bookingReturn = returnTo.startsWith("/book/");
 
   const family = await getAuthenticatedFamily();
-  const context = await getIntakeFormContext({
-    parentId: family?.parentId,
-    email: family?.parentEmail,
-    athleteId,
-  });
+  const context = family
+    ? await getIntakeFormContext({
+        parentId: family.parentId,
+        athleteId,
+      })
+    : {
+        mode: "full" as const,
+        parentOnFile: false,
+        parentId: null,
+        athleteId: null,
+        alreadyComplete: false,
+        parent: null,
+        emergencyContacts: null,
+        athlete: null,
+      };
 
   let heading = bookingReturn
     ? "Complete intake to book"

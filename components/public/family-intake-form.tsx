@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -13,6 +14,8 @@ import {
   IntakeAlreadyComplete,
 } from "@/components/public/intake-complete-prompts";
 import { loadBookingDraft } from "@/lib/booking-draft";
+import { FAMILY_RESTORE_ACCESS_COPY } from "@/lib/family-access-copy";
+import { loginPath } from "@/lib/family-auth-url";
 import type { IntakeFormContext, IntakeFormMode } from "@/lib/intake";
 
 const SHIRT_SIZES = ["Small", "Medium", "Large", "XL", "XXL", "3XL"] as const;
@@ -38,6 +41,7 @@ export function FamilyIntakeForm({
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [hasDeviceSession, setHasDeviceSession] = useState(false);
   const [mode, setMode] = useState<IntakeFormMode>("full");
   const [alreadyComplete, setAlreadyComplete] = useState(false);
   const [form, setForm] = useState({
@@ -67,16 +71,11 @@ export function FamilyIntakeForm({
     const draftSession = returnTo.match(/^\/book\/([^/?]+)/)?.[1];
     const draft = draftSession ? loadBookingDraft(draftSession) : null;
 
-    async function loadContext(options?: {
-      email?: string;
-      silent?: boolean;
-    }) {
-      if (!options?.silent) setLoading(true);
+    async function loadContext() {
+      setLoading(true);
       try {
         const params = new URLSearchParams();
         if (initialAthleteId) params.set("athleteId", initialAthleteId);
-        const email = options?.email?.trim() || draft?.parentEmail?.trim();
-        if (email) params.set("email", email);
         if (draft?.athleteFirstName) {
           params.set("athleteFirstName", draft.athleteFirstName);
           params.set("athleteLastName", draft.athleteLastName ?? "");
@@ -90,6 +89,8 @@ export function FamilyIntakeForm({
         const context = (await res.json()) as IntakeFormContext;
         if (cancelled) return;
 
+        const sessionActive = Boolean(context.parentId);
+        setHasDeviceSession(sessionActive);
         setMode(context.mode);
         setAlreadyComplete(context.alreadyComplete);
         setForm((prev) => ({
@@ -132,7 +133,7 @@ export function FamilyIntakeForm({
           sportPosition: draft?.primarySport || prev.sportPosition,
         }));
       } finally {
-        if (!cancelled && !options?.silent) setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -141,59 +142,6 @@ export function FamilyIntakeForm({
       cancelled = true;
     };
   }, [returnTo, initialAthleteId]);
-
-  function onParentEmailBlur() {
-    const email = form.parentEmail.trim();
-    if (!email.includes("@")) return;
-    void (async () => {
-      const draftSession = returnTo.match(/^\/book\/([^/?]+)/)?.[1];
-      const draft = draftSession ? loadBookingDraft(draftSession) : null;
-      const params = new URLSearchParams();
-      if (initialAthleteId) params.set("athleteId", initialAthleteId);
-      params.set("email", email);
-      if (draft?.athleteFirstName) {
-        params.set("athleteFirstName", draft.athleteFirstName);
-        params.set("athleteLastName", draft.athleteLastName ?? "");
-        params.set("athleteDob", draft.athleteDob ?? "");
-      }
-      const res = await fetch(`/api/intake/context?${params.toString()}`, {
-        credentials: "same-origin",
-      });
-      if (!res.ok) return;
-      const context = (await res.json()) as IntakeFormContext;
-      setMode(context.mode);
-      setAlreadyComplete(context.alreadyComplete);
-      setForm((prev) => {
-        if (prev.parentEmail.trim().toLowerCase() !== email.toLowerCase()) {
-          return prev;
-        }
-        return {
-          ...prev,
-          parentFirstName: context.parent?.firstName || prev.parentFirstName,
-          parentLastName: context.parent?.lastName || prev.parentLastName,
-          parentEmail: context.parent?.email || prev.parentEmail,
-          parentPhone: context.parent?.phone || prev.parentPhone,
-          athleteFirstName: context.athlete?.firstName || prev.athleteFirstName,
-          athleteLastName: context.athlete?.lastName || prev.athleteLastName,
-          athleteDob: context.athlete?.dob || prev.athleteDob,
-          healthIssues: context.athlete?.healthIssues || prev.healthIssues,
-          mediaConsent: context.athlete?.mediaConsent ?? prev.mediaConsent,
-          emergencyContact1Name:
-            context.emergencyContacts?.contact1Name ||
-            prev.emergencyContact1Name,
-          emergencyContact1Phone:
-            context.emergencyContacts?.contact1Phone ||
-            prev.emergencyContact1Phone,
-          emergencyContact2Name:
-            context.emergencyContacts?.contact2Name ||
-            prev.emergencyContact2Name,
-          emergencyContact2Phone:
-            context.emergencyContacts?.contact2Phone ||
-            prev.emergencyContact2Phone,
-        };
-      });
-    })();
-  }
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -282,6 +230,17 @@ export function FamilyIntakeForm({
 
   return (
     <div className="space-y-6">
+      {!hasDeviceSession ? (
+        <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+          {FAMILY_RESTORE_ACCESS_COPY.prompt}{" "}
+          <Link
+            href={loginPath(returnTo)}
+            className="font-medium text-foreground underline underline-offset-2"
+          >
+            {FAMILY_RESTORE_ACCESS_COPY.linkLabel}
+          </Link>
+        </p>
+      ) : null}
       {mode === "add-athlete" ? (
         <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
           Your family contact and emergency info are already on file. Add details
@@ -327,7 +286,6 @@ export function FamilyIntakeForm({
                 required
                 value={form.parentEmail}
                 onChange={(e) => update("parentEmail", e.target.value)}
-                onBlur={onParentEmailBlur}
                 autoComplete="email"
               />
             </div>

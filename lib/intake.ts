@@ -303,16 +303,7 @@ export async function getIntakeFormContext(input: {
   }
 
   const supabase = createTrainingServiceClient();
-  let parentId = input.parentId ?? null;
-
-  if (!parentId && input.email?.trim()) {
-    const { data } = await supabase
-      .from(DAWG_TABLES.parents)
-      .select("id")
-      .ilike("email", input.email.trim())
-      .maybeSingle();
-    parentId = data?.id ?? null;
-  }
+  const parentId = input.parentId?.trim() || null;
 
   if (!parentId) return empty;
 

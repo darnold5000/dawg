@@ -17,3 +17,10 @@ export const FAMILY_INTAKE_COPY = {
   body: "Tap continue to open the intake form for your athlete.",
   button: "Continue to intake",
 } as const;
+
+/** Optional inline prompt on intake/booking when no device session is present. */
+export const FAMILY_RESTORE_ACCESS_COPY = {
+  prompt:
+    "Already have a family profile on file? Email me a secure access link to prefill your information on this device.",
+  linkLabel: "Get a secure access link",
+} as const;

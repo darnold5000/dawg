@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { loadRememberedFamily } from "@/lib/family-device";
-import { athleteBookingReady } from "@/lib/intake";
 import {
-  listCreditsCoveringBooking,
-} from "@/lib/packages";
+  emptyFamilyBookingContext,
+  resolveAuthorizedFamilyContextQuery,
+} from "@/lib/family-context-access";
+import { athleteBookingReady } from "@/lib/intake";
+import { listCreditsCoveringBooking } from "@/lib/packages";
 import {
   createTrainingServiceClient,
   isSupabaseConfigured,
@@ -12,36 +14,32 @@ import { DAWG_TABLES } from "@/lib/supabase/tables";
 
 /**
  * Returns intake + package credit context for the booking form.
- * Prefer remembered device parent; optional ?email= & ?athleteId=.
+ * Requires a valid dawg_family_device session — email query params do not
+ * identify a household.
  */
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const email = url.searchParams.get("email")?.trim().toLowerCase();
-    const athleteId = url.searchParams.get("athleteId")?.trim() || null;
-    const athleteFirstName = url.searchParams.get("athleteFirstName")?.trim();
-    const athleteLastName = url.searchParams.get("athleteLastName")?.trim();
-    const athleteDob = url.searchParams.get("athleteDob")?.trim().slice(0, 10);
-
-    let parentId: string | null = null;
     const remembered = await loadRememberedFamily();
-    if (remembered) parentId = remembered.parentId;
 
-    if (
-      !parentId &&
-      email &&
-      isSupabaseConfigured() &&
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    ) {
-      const supabase = createTrainingServiceClient();
-      const { data } = await supabase
-        .from(DAWG_TABLES.parents)
-        .select("id, first_name, last_name, email, phone")
-        .ilike("email", email)
-        .maybeSingle();
-      parentId = data?.id ?? null;
+    if (!remembered) {
+      return NextResponse.json(emptyFamilyBookingContext());
     }
 
+    const authorized = resolveAuthorizedFamilyContextQuery(remembered, {
+      parentId: url.searchParams.get("parentId"),
+      email: url.searchParams.get("email"),
+      athleteId: url.searchParams.get("athleteId"),
+      athleteFirstName: url.searchParams.get("athleteFirstName"),
+      athleteLastName: url.searchParams.get("athleteLastName"),
+      athleteDob: url.searchParams.get("athleteDob"),
+    });
+
+    if (!authorized) {
+      return NextResponse.json(emptyFamilyBookingContext());
+    }
+
+    const parentId = authorized.parentId;
     let parentOnFile: {
       firstName: string;
       lastName: string;
@@ -56,7 +54,7 @@ export async function GET(request: Request) {
       experienceLevel?: string;
     }> = [];
 
-    if (parentId && isSupabaseConfigured() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (isSupabaseConfigured() && process.env.SUPABASE_SERVICE_ROLE_KEY) {
       const supabase = createTrainingServiceClient();
       const { data: parentRow } = await supabase
         .from(DAWG_TABLES.parents)
@@ -85,19 +83,21 @@ export async function GET(request: Request) {
       }));
     }
 
-    let resolvedAthleteId = athleteId;
+    let resolvedAthleteId = authorized.athleteId;
     let intakeComplete = false;
     let intakeRequired = true;
 
     if (
       !resolvedAthleteId &&
-      parentId &&
-      athleteFirstName &&
-      athleteLastName &&
-      athleteDob &&
+      authorized.athleteFirstName?.trim() &&
+      authorized.athleteLastName?.trim() &&
+      authorized.athleteDob?.trim() &&
       isSupabaseConfigured() &&
       process.env.SUPABASE_SERVICE_ROLE_KEY
     ) {
+      const athleteFirstName = authorized.athleteFirstName.trim();
+      const athleteLastName = authorized.athleteLastName.trim();
+      const athleteDob = authorized.athleteDob.trim().slice(0, 10);
       const supabase = createTrainingServiceClient();
       const { data: siblings } = await supabase
         .from(DAWG_TABLES.athletes)
@@ -105,8 +105,7 @@ export async function GET(request: Request) {
         .eq("guardian_id", parentId);
       const match = (siblings ?? []).find(
         (a) =>
-          a.first_name.trim().toLowerCase() ===
-            athleteFirstName.toLowerCase() &&
+          a.first_name.trim().toLowerCase() === athleteFirstName.toLowerCase() &&
           a.last_name.trim().toLowerCase() === athleteLastName.toLowerCase() &&
           a.date_of_birth === athleteDob,
       );
@@ -126,27 +125,22 @@ export async function GET(request: Request) {
       packageName: string | null;
     }> = [];
 
-    if (parentId) {
-      const credits = await listCreditsCoveringBooking(
-        parentId,
-        resolvedAthleteId,
-      );
-      creditsRemaining = credits.reduce(
-        (sum, credit) => sum + credit.sessions_remaining,
-        0,
-      );
-      purchases = credits.map((c) => ({
-        id: c.id,
-        sessions_remaining: c.sessions_remaining,
-        packageName: c.package?.name ?? null,
-      }));
-    }
+    const credits = await listCreditsCoveringBooking(parentId, resolvedAthleteId);
+    creditsRemaining = credits.reduce(
+      (sum, credit) => sum + credit.sessions_remaining,
+      0,
+    );
+    purchases = credits.map((c) => ({
+      id: c.id,
+      sessions_remaining: c.sessions_remaining,
+      packageName: c.package?.name ?? null,
+    }));
 
     console.info("[booking-context] hydration", {
-      hasRememberedFamily: Boolean(remembered),
+      hasRememberedFamily: true,
       guardianId: parentId,
       hasParentEmail: Boolean(parentOnFile?.email),
-      emailSource: remembered ? "cookie" : email ? "query" : "none",
+      emailSource: "cookie",
       athleteCount: athletesOnFile.length,
       bookingContextLoaded: true,
     });

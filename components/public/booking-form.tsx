@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toastError, toastSuccess } from "@/lib/toast-messages";
@@ -56,6 +57,8 @@ import {
   BOOKING_SCHOOL_GRADES,
 } from "@/lib/booking-athlete-options";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
+import { FAMILY_RESTORE_ACCESS_COPY } from "@/lib/family-access-copy";
+import { loginPath } from "@/lib/family-auth-url";
 
 /** Online-only checkout options for the public booking UI. */
 function onlineCheckoutPaymentOptions(
@@ -277,6 +280,11 @@ export function BookingForm({
         }
       }
 
+      if (!family) {
+        setBookingContextChecked(true);
+        setCreditsRemaining(0);
+      }
+
       setHydrated(true);
     }
 
@@ -328,17 +336,12 @@ export function BookingForm({
   }, [hydrated, waitlistMode, session.id, form, paymentMethod, selectedAthleteId]);
 
   useEffect(() => {
-    if (!hydrated || waitlistMode) return;
+    if (!hydrated || waitlistMode || !savedFamily) return;
     let cancelled = false;
 
     async function loadContext() {
+      setBookingContextChecked(false);
       const params = new URLSearchParams();
-      const contactEmail = savedFamily?.parentEmail
-        ? savedFamily.parentEmail
-        : minor
-          ? form.parentEmail.trim()
-          : form.athleteEmail.trim();
-      if (contactEmail) params.set("email", contactEmail);
       if (
         selectedAthleteId &&
         selectedAthleteId !== "__new__" &&
@@ -403,24 +406,6 @@ export function BookingForm({
             parentPhone: prev.parentPhone.trim() || data.parentOnFile!.phone,
           }));
         }
-
-        const athletes = data.athletesOnFile ?? [];
-        if (
-          athletes.length === 1 &&
-          !form.athleteFirstName.trim() &&
-          selectedAthleteId !== "__new__" &&
-          !savedFamily
-        ) {
-          const a = athletes[0];
-          setForm((prev) => ({
-            ...prev,
-            athleteFirstName: a.firstName,
-            athleteLastName: a.lastName,
-            athleteDob: a.dob,
-            experienceLevel: a.experienceLevel ?? prev.experienceLevel,
-          }));
-          setSelectedAthleteId(a.id);
-        }
       } catch {
         if (!cancelled) {
           setResolvedAthleteId(null);
@@ -437,9 +422,6 @@ export function BookingForm({
   }, [
     hydrated,
     waitlistMode,
-    minor,
-    form.parentEmail,
-    form.athleteEmail,
     form.athleteFirstName,
     form.athleteLastName,
     athleteDob,
@@ -958,6 +940,18 @@ export function BookingForm({
               </span>
             </span>
           </label>
+
+          {!savedFamily ? (
+            <p className="mt-3 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+              {FAMILY_RESTORE_ACCESS_COPY.prompt}{" "}
+              <Link
+                href={loginPath(`/book/${session.id}`)}
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                {FAMILY_RESTORE_ACCESS_COPY.linkLabel}
+              </Link>
+            </p>
+          ) : null}
 
           {savedFamily ? (
             <div className="rounded-lg border border-brand/30 bg-brand/10 p-4">
