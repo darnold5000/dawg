@@ -16,12 +16,20 @@ import {
   getUpcomingSessions,
 } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
-import { SITE } from "@/lib/constants";
+
+const homepageTitle = "DAWG Youth Training";
+const homepageDescription =
+  "Youth athletic training, programs, and development built to help athletes improve their skills and confidence.";
+const homepageUrl = "https://dawg-ashen.vercel.app";
 
 export const metadata = createMetadata({
-  title: "Youth Athletic Training in Mooresville, Indiana",
-  description: `${SITE.description} Book group classes and private training online.`,
+  title: homepageTitle,
+  description: homepageDescription,
   path: "/",
+  image: "/images/dawg/og-social.jpg",
+  exactTitle: true,
+  siteName: homepageTitle,
+  baseUrl: homepageUrl,
 });
 
 export default async function HomePage() {

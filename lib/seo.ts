@@ -6,6 +6,9 @@ interface SEOProps {
   description: string;
   path?: string;
   image?: string;
+  exactTitle?: boolean;
+  siteName?: string;
+  baseUrl?: string;
 }
 
 export function createMetadata({
@@ -13,10 +16,15 @@ export function createMetadata({
   description,
   path = "",
   image = "/images/dawg/og-default.svg",
+  exactTitle = false,
+  siteName = SITE.name,
+  baseUrl = SITE.url,
 }: SEOProps): Metadata {
-  const url = `${SITE.url}${path}`;
-  const fullTitle =
-    path === "" || path === "/"
+  const url = `${baseUrl}${path}`;
+  const imageUrl = new URL(image, baseUrl).toString();
+  const fullTitle = exactTitle
+    ? title
+    : path === "" || path === "/"
       ? `${SITE.name} | ${title}`
       : `${title} | ${SITE.name}`;
 
@@ -27,16 +35,16 @@ export function createMetadata({
       title: fullTitle,
       description,
       url,
-      siteName: SITE.name,
+      siteName,
       locale: "en_US",
       type: "website",
-      images: [{ url: image }],
+      images: [{ url: imageUrl }],
     },
     twitter: {
       card: "summary_large_image",
       title: fullTitle,
       description,
-      images: [image],
+      images: [imageUrl],
     },
     alternates: {
       canonical: url,
