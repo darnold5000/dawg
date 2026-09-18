@@ -25,7 +25,10 @@ export function allowIndexing(): boolean {
   if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
     return false;
   }
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? SITE.url;
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? SITE.url).replace(
+    /\/+$/,
+    "",
+  );
   if (!siteUrl || siteUrl.includes("localhost")) return false;
   return true;
 }
