@@ -18,6 +18,9 @@ export async function getCurrentUser() {
 
 export async function getCurrentProfile(): Promise<Profile | null> {
   if (!isSupabaseConfigured()) {
+    // Local/preview only: seeded admin UI without a live Supabase project.
+    // Production must never mint a fake owner.
+    if (process.env.VERCEL_ENV === "production") return null;
     return {
       id: "demo-owner",
       full_name: "Demo Owner",

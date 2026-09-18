@@ -9,6 +9,7 @@ import {
   wrapTableClient,
   wrapTrainingServiceClient,
 } from "../lib/supabase/training-client-scope";
+import { requireTrainingTenantId } from "../lib/tenant/deployment";
 
 const TENANT_A = "11111111-1111-4111-8111-111111111111";
 const TENANT_B = "22222222-2222-4222-8222-222222222222";
@@ -174,6 +175,20 @@ function testCrossTenantTemplateIdRejected() {
   );
 }
 
+function testRequireTrainingTenantIdFailsClosed() {
+  const prev = process.env.TRAINING_TENANT_ID;
+  delete process.env.TRAINING_TENANT_ID;
+  try {
+    assert.throws(
+      () => requireTrainingTenantId(),
+      /TRAINING_TENANT_ID is not configured/,
+    );
+  } finally {
+    if (prev === undefined) delete process.env.TRAINING_TENANT_ID;
+    else process.env.TRAINING_TENANT_ID = prev;
+  }
+}
+
 function run() {
   testTenantRpcArgs();
   testSelectUpdateDeleteScope();
@@ -182,6 +197,7 @@ function run() {
   testRpcWrap();
   testSessionTemplatesTableScope();
   testCrossTenantTemplateIdRejected();
+  testRequireTrainingTenantIdFailsClosed();
   console.log("training-tenant-scope: ok");
 }
 

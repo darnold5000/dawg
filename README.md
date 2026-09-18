@@ -23,7 +23,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Without Supabase env vars the public site and admin UI run with seeded fallback content. Bookings return a local confirmation number.
+Without Supabase env vars the public site and admin UI run with seeded fallback content locally. Bookings return a local confirmation number. Vercel Production never uses the local demo-owner path.
 
 ## Environment variables
 
@@ -33,6 +33,7 @@ Without Supabase env vars the public site and admin UI run with seeded fallback 
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser / SSR anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only writes (bookings, webhooks) |
+| `TRAINING_TENANT_ID` | DAWG tenant UUID on Signal Works Pro (server-only; required — missing fails closed) |
 | `STRIPE_SECRET_KEY` | Stripe API (test or live) |
 | `STRIPE_WEBHOOK_SECRET` | Webhook signature verification |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Optional client Stripe.js |

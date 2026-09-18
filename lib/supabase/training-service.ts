@@ -13,14 +13,12 @@ export type TrainingDb = {
 };
 
 /**
- * Service-role Supabase client. When TRAINING_TENANT_ID is set, scopes
- * queries/RPCs/inserts to that tenant (required on Signal Works Pro).
+ * Service-role Supabase client scoped to TRAINING_TENANT_ID.
+ * Missing tenant env fails closed (never returns an unscoped service client).
  */
 export function createTrainingServiceClient(): SupabaseClient {
-  const client = createServiceClient();
-  const tenantId = getTrainingTenantIdOrNull();
-  if (!tenantId) return client;
-  return wrapTrainingServiceClient(client, tenantId);
+  const tenantId = requireTrainingTenantId();
+  return wrapTrainingServiceClient(createServiceClient(), tenantId);
 }
 
 /** Service-role access scoped to TRAINING_TENANT_ID (required). */
