@@ -25,6 +25,7 @@ export const metadata = createMetadata({
   title: "Payment successful",
   description: "Your DAWG booking payment confirmation.",
   path: "/booking/success",
+  index: false,
 });
 
 async function resolveCoachName(

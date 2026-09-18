@@ -15,6 +15,7 @@ export const metadata = createMetadata({
   title: "Booking Confirmation",
   description: `Your ${SITE.name} reservation confirmation.`,
   path: "/book/confirmation",
+  index: false,
 });
 
 export default async function BookingConfirmationPage({

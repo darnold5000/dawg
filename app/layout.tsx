@@ -4,7 +4,11 @@ import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/pwa-register";
 import { SITE } from "@/lib/constants";
-import { organizationSchema, localBusinessSchema } from "@/lib/seo";
+import {
+  allowIndexing,
+  organizationSchema,
+  localBusinessSchema,
+} from "@/lib/seo";
 import "./globals.css";
 
 const oswald = Oswald({
@@ -52,7 +56,9 @@ export const metadata: Metadata = {
     locale: "en_US",
     siteName: SITE.name,
   },
-  robots: { index: false, follow: false },
+  robots: allowIndexing()
+    ? { index: true, follow: true }
+    : { index: false, follow: false },
 };
 
 export default function RootLayout({

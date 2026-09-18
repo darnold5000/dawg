@@ -14,6 +14,7 @@ export const metadata = createMetadata({
   title: "My account",
   description: `View bookings, credits, and athletes for your ${SITE.name} family.`,
   path: "/my",
+  index: false,
 });
 
 export default async function MyAccountPage() {

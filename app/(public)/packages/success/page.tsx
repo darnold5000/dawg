@@ -9,6 +9,7 @@ export const metadata = createMetadata({
   title: "Package purchased",
   description: "Your DAWG training package confirmation.",
   path: "/packages/success",
+  index: false,
 });
 
 export default async function PackageSuccessPage({

@@ -12,6 +12,7 @@ export const metadata = createMetadata({
   title: "Athlete intake",
   description: `Complete one-time athlete intake before booking ${SITE.name} sessions.`,
   path: "/my/intake",
+  index: false,
 });
 
 export default async function FamilyIntakePage({

@@ -20,7 +20,6 @@ import { createMetadata } from "@/lib/seo";
 const homepageTitle = "DAWG Youth Training";
 const homepageDescription =
   "Youth athletic training, programs, and development built to help athletes improve their skills and confidence.";
-const homepageUrl = "https://dawg-ashen.vercel.app";
 
 export const metadata = createMetadata({
   title: homepageTitle,
@@ -29,7 +28,6 @@ export const metadata = createMetadata({
   image: "/images/dawg/og-social.jpg",
   exactTitle: true,
   siteName: homepageTitle,
-  baseUrl: homepageUrl,
 });
 
 export default async function HomePage() {

@@ -14,6 +14,7 @@ export const metadata = createMetadata({
   title: "Family access",
   description: `Access your ${SITE.name} family account with a secure email link.`,
   path: "/my/login",
+  index: false,
 });
 
 export default async function FamilyLoginPage({

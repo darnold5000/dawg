@@ -14,6 +14,7 @@
     "test:booking-state": "npx tsx --test lib/booking-state.test.ts lib/booking-retry.test.ts lib/admin-booking-lifecycle.test.ts lib/format.test.ts",
     "test:family-context": "npx tsx --test lib/family-context-access.test.ts",
     "test:follow-up": "npx tsx --test lib/family-access-copy.test.ts lib/family-context-access.test.ts lib/admin-booking-lifecycle.test.ts lib/booking-contact-email.test.ts lib/booking-retry.test.ts lib/booking-state.test.ts lib/format.test.ts",
+    "test:seo": "npx tsx --test lib/seo.test.ts",
     "test:training-tenant": "npx tsx scripts/test-training-tenant-scope.ts"
   },
   "dependencies": {

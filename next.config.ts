@@ -1,5 +1,17 @@
 import type { NextConfig } from "next";
 
+function allowIndexing(): boolean {
+  const explicit = process.env.NEXT_PUBLIC_ALLOW_INDEXING;
+  if (explicit === "false") return false;
+  if (explicit === "true") return true;
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
+    return false;
+  }
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? "";
+  if (!siteUrl || siteUrl.includes("localhost")) return false;
+  return true;
+}
+
 function supabaseStorageHostname(): string | null {
   const raw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   if (!raw) return null;
@@ -31,7 +43,20 @@ const nextConfig: NextConfig = {
       : [],
   },
   async headers() {
+    const robotsTag = allowIndexing() ? "index, follow" : "noindex, nofollow";
     return [
+      {
+        source: "/:path*",
+        headers: [{ key: "X-Robots-Tag", value: robotsTag }],
+      },
+      {
+        source: "/admin/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      {
+        source: "/my/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
       {
         source: "/sw.js",
         headers: [

@@ -13,6 +13,7 @@ export const metadata = createMetadata({
   title: "Payment cancelled",
   description: "Online payment was not completed.",
   path: "/booking/cancelled",
+  index: false,
 });
 
 export default async function BookingCancelledPage({

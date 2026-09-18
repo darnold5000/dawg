@@ -15,6 +15,7 @@ export const metadata = createMetadata({
   title: "Signing in",
   description: "Verify your DAWG secure link.",
   path: "/my/verify",
+  index: false,
 });
 
 function verifyErrorTitle(code?: string): string {

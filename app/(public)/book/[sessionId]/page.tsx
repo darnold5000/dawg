@@ -33,6 +33,7 @@ export async function generateMetadata({
     title: session ? `Book ${session.title}` : "Book Session",
     description: `Reserve a ${SITE.name} session online.`,
     path: `/book/${sessionId}`,
+    index: false,
   });
 }
 
