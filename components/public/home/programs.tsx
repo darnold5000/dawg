@@ -5,6 +5,22 @@ import type { Program } from "@/lib/types/database";
 import { audienceLabelForProgram } from "@/lib/program-grades";
 import { GradePlacementNote } from "@/components/public/grade-placement-note";
 import { SITE } from "@/lib/constants";
+import { STRENGTH_DEVELOPMENT_PROGRAM_SLUG } from "@/lib/program-package-credits";
+
+const STRENGTH_DEVELOPMENT_IMAGE =
+  "/images/dawg/programs/strength-development.jpg";
+
+function programCardImageSrc(program: Program): string {
+  if (program.image_url) return program.image_url;
+  if (program.slug === STRENGTH_DEVELOPMENT_PROGRAM_SLUG) {
+    return STRENGTH_DEVELOPMENT_IMAGE;
+  }
+  return "/images/dawg/programs/big-dawgs.png";
+}
+
+function usesPortraitProgramImage(program: Program): boolean {
+  return program.slug === STRENGTH_DEVELOPMENT_PROGRAM_SLUG;
+}
 
 export function HomePrograms({ programs }: { programs: Program[] }) {
   return (
@@ -28,17 +44,29 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-2">
-          {programs.map((program) => (
+          {programs.map((program) => {
+            const portrait = usesPortraitProgramImage(program);
+            return (
             <article
               key={program.id}
               className="overflow-hidden rounded-xl border border-brand/25 bg-card shadow-[0_0_40px_rgba(31,92,255,0.1)] transition hover:border-gold/40"
             >
-              <div className="relative aspect-[16/9] bg-ink">
+              <div
+                className={
+                  portrait
+                    ? "relative aspect-[4/5] bg-ink sm:aspect-[3/4]"
+                    : "relative aspect-[16/9] bg-ink"
+                }
+              >
                 <Image
-                  src={program.image_url ?? "/images/dawg/programs/big-dawgs.png"}
+                  src={programCardImageSrc(program)}
                   alt={`${program.name} training program`}
                   fill
-                  className="object-cover object-center opacity-95"
+                  className={
+                    portrait
+                      ? "object-contain object-center"
+                      : "object-cover object-center opacity-95"
+                  }
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent" />
@@ -80,7 +108,8 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
                 </Button>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
