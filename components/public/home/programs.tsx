@@ -18,8 +18,11 @@ function programCardImageSrc(program: Program): string {
   return "/images/dawg/programs/big-dawgs.png";
 }
 
-function usesPortraitProgramImage(program: Program): boolean {
-  return program.slug === STRENGTH_DEVELOPMENT_PROGRAM_SLUG;
+function programCardImageClass(program: Program): string {
+  if (program.slug === STRENGTH_DEVELOPMENT_PROGRAM_SLUG) {
+    return "object-contain object-center p-1 opacity-95";
+  }
+  return "object-cover object-center opacity-95";
 }
 
 export function HomePrograms({ programs }: { programs: Program[] }) {
@@ -44,29 +47,17 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-2">
-          {programs.map((program) => {
-            const portrait = usesPortraitProgramImage(program);
-            return (
+          {programs.map((program) => (
             <article
               key={program.id}
               className="overflow-hidden rounded-xl border border-brand/25 bg-card shadow-[0_0_40px_rgba(31,92,255,0.1)] transition hover:border-gold/40"
             >
-              <div
-                className={
-                  portrait
-                    ? "relative aspect-[4/5] bg-ink sm:aspect-[3/4]"
-                    : "relative aspect-[16/9] bg-ink"
-                }
-              >
+              <div className="relative aspect-[16/9] bg-ink">
                 <Image
                   src={programCardImageSrc(program)}
                   alt={`${program.name} training program`}
                   fill
-                  className={
-                    portrait
-                      ? "object-contain object-center"
-                      : "object-cover object-center opacity-95"
-                  }
+                  className={programCardImageClass(program)}
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent" />
@@ -108,8 +99,7 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
                 </Button>
               </div>
             </article>
-            );
-          })}
+          ))}
         </div>
       </div>
     </section>

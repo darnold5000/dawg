@@ -6,7 +6,7 @@ Client-approved photos for the public site (`/public/images/dawg/`).
 logo.svg / logo.jpg
 programs/little-dawgs.png   # Little Dawgs group (2nd–6th grade)
 programs/big-dawgs.png      # Big Dawgs group (7th grade–collegiate)
-programs/strength-development.jpg  # Strength Development (portrait, object-contain on home)
+programs/strength-development.jpg  # Strength Development (16:9 card, object-contain)
 trainers/coach-avery.png    # Coach Avery portrait
 about/training-action.png   # About page hero
 ```
