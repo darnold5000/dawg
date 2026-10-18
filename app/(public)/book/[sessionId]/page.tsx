@@ -1,9 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BookSessionGate } from "@/components/public/book-session-gate";
-import { Button } from "@/components/ui/button";
 import { getSessionById } from "@/lib/data";
-import { isDropInSession } from "@/lib/drop-in-sessions";
+import { requiresPackageCreditToBook } from "@/lib/program-package-credits";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { createMetadata } from "@/lib/seo";
 import { SITE } from "@/lib/constants";
@@ -13,6 +11,9 @@ function bookingIntro(
 ): string {
   if (isRosterCreditSession(session)) {
     return "Reserve your athlete's spot on the roster. We'll see you at training.";
+  }
+  if (requiresPackageCreditToBook(session.program?.slug)) {
+    return "Reserve your spot with your 12-week Strength Development program or session package credits.";
   }
   switch (session.payment_requirement) {
     case "pay_online":
@@ -55,28 +56,6 @@ export default async function BookPage({
 
   const waitlistMode =
     waitlist === "1" || (session.spots_remaining ?? 0) <= 0;
-
-  if (isDropInSession(session)) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 md:py-14">
-        <h1 className="font-heading text-3xl tracking-wide sm:text-4xl">
-          Just show up
-        </h1>
-        <p className="mt-3 max-w-lg text-sm text-muted-foreground sm:text-base">
-          {session.title} is part of the 12-week program. Show up at the
-          scheduled time.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
-            <Link href="/schedule">See the schedule</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/packages">View packages</Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 md:py-14 booking-flow">

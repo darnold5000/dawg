@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { reconcilePackageCheckout } from "@/lib/billing/reconcile-package";
 import { getPurchaseById } from "@/lib/packages";
 import { createMetadata } from "@/lib/seo";
-import { TWELVE_WEEK_PACKAGE_SLUG } from "@/lib/drop-in-sessions";
+import { TWELVE_WEEK_PACKAGE_SLUG } from "@/lib/program-package-credits";
 import { formatPrice } from "@/lib/format";
 
 export const metadata = createMetadata({

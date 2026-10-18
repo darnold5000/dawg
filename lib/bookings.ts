@@ -24,8 +24,8 @@ import { athleteBookingReady } from "@/lib/intake";
 import { findOrCreateParentByContact } from "@/lib/parent-account";
 import { isOnlineCardPaymentEnabled } from "@/lib/billing/payment-options";
 import { resolveSessionBookingPayment } from "@/lib/booking-payment-decision";
-import { listActiveCreditsForParent } from "@/lib/packages";
-import { isDropInSession } from "@/lib/drop-in-sessions";
+import { listCreditsForProgramBooking } from "@/lib/packages";
+import { requiresPackageCreditToBook } from "@/lib/program-package-credits";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { expirePendingBooking } from "@/lib/billing/adapter";
 import {
@@ -326,15 +326,9 @@ export async function createPublicBooking(
   }
 
   const program = programSlugRefFromEmbed(session.program);
-  if (isDropInSession({ program })) {
-    return {
-      ok: false,
-      error: "This class does not take bookings. Show up at the scheduled time.",
-      code: "DROP_IN_ONLY",
-    };
-  }
-
+  const programSlug = program?.slug ?? null;
   const rosterCredit = isRosterCreditSession({ program });
+  const packageCreditsOnly = requiresPackageCreditToBook(programSlug);
 
   if (session.status !== "published" && session.status !== "full") {
     return {
@@ -384,10 +378,11 @@ export async function createPublicBooking(
 
   const eligibleCredits = rosterCredit
     ? []
-    : await listActiveCreditsForParent(parentId, athlete.id);
+    : await listCreditsForProgramBooking(parentId, programSlug, athlete.id);
   const payment = resolveSessionBookingPayment({
     rosterCredit,
     eligibleCreditCount: eligibleCredits.length,
+    packageCreditsOnly,
     requestedPaymentMethod: input.paymentMethod,
     sessionPriceCents: Number(session.price_cents),
     paymentRequirement: String(session.payment_requirement ?? ""),
@@ -743,13 +738,6 @@ export async function joinWaitlist(
     .select("program:training_programs ( slug )")
     .eq("id", input.sessionId)
     .maybeSingle();
-  if (isDropInSession({ program: programSlugRefFromEmbed(session?.program) })) {
-    return {
-      ok: false,
-      error: "This class does not take bookings. Show up at the scheduled time.",
-    };
-  }
-
   const { data: existing } = await supabase
     .from(DAWG_TABLES.waitlistEntries)
     .select("position")

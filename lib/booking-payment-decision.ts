@@ -3,6 +3,8 @@ import type { PaymentMethod, PaymentStatus } from "@/lib/types/database";
 export type SessionBookingPaymentInput = {
   rosterCredit: boolean;
   eligibleCreditCount: number;
+  /** When true, booking requires package balance (no per-session Stripe). */
+  packageCreditsOnly?: boolean;
   requestedPaymentMethod: "stripe" | "pay_at_facility" | undefined;
   sessionPriceCents: number;
   paymentRequirement: string;
@@ -42,6 +44,21 @@ export function resolveSessionBookingPayment(
       amountDueCents: 0,
       requiresCheckout: false,
       coveredByPackageCredit: true,
+    };
+  }
+
+  if (input.packageCreditsOnly) {
+    return {
+      paymentMethod: null,
+      paymentStatus: "unpaid",
+      amountDueCents: 0,
+      requiresCheckout: false,
+      coveredByPackageCredit: false,
+      error: {
+        code: "PACKAGE_CREDITS_REQUIRED",
+        message:
+          "Purchase the 12-week Strength Development program or a session package before booking.",
+      },
     };
   }
 

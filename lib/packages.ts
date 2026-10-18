@@ -23,6 +23,7 @@ import {
   normalizeEmail,
 } from "@/lib/parent-account";
 import { filterEligibleCreditsForAthlete } from "@/lib/package-credit-eligibility";
+import { filterPurchasesByProgramSlug } from "@/lib/program-package-credits";
 import type {
   PackagePurchase,
   PackagePurchaseWithPackage,
@@ -378,6 +379,16 @@ export async function listActiveCreditsForParent(
     return 0;
   });
   return eligible;
+}
+
+/** Paid credits eligible for this program (e.g. 12-week + packs on Strength Development). */
+export async function listCreditsForProgramBooking(
+  parentId: string,
+  programSlug: string | null | undefined,
+  athleteId?: string | null,
+): Promise<PackagePurchaseWithPackage[]> {
+  const credits = await listActiveCreditsForParent(parentId, athleteId);
+  return filterPurchasesByProgramSlug(credits, programSlug);
 }
 
 /** Credits that can cover a booking: family-wide, or this athlete when known. */

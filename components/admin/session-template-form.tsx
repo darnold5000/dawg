@@ -21,7 +21,7 @@ import type {
   SessionType,
   Trainer,
 } from "@/lib/types/database";
-import { isDropInSession } from "@/lib/drop-in-sessions";
+import { isZeroPriceAtBookingProgram } from "@/lib/program-package-credits";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import {
   TRAINING_VISIBILITY_LABELS,
@@ -116,8 +116,8 @@ export function SessionTemplateForm({
     [programs, form.program_id],
   );
   const rosterCredit = isRosterCreditSession({ program: selectedProgram });
-  const dropIn = isDropInSession({ program: selectedProgram });
-  const noSessionPrice = rosterCredit || dropIn;
+  const noSessionPrice =
+    rosterCredit || isZeroPriceAtBookingProgram(selectedProgram);
 
   function update(key: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [key]: value }));

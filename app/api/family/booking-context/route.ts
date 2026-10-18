@@ -6,6 +6,7 @@ import {
 } from "@/lib/family-context-access";
 import { athleteBookingReady } from "@/lib/intake";
 import { listCreditsCoveringBooking } from "@/lib/packages";
+import { filterPurchasesByProgramSlug } from "@/lib/program-package-credits";
 import {
   createTrainingServiceClient,
   isSupabaseConfigured,
@@ -125,7 +126,11 @@ export async function GET(request: Request) {
       packageName: string | null;
     }> = [];
 
-    const credits = await listCreditsCoveringBooking(parentId, resolvedAthleteId);
+    const programSlug = url.searchParams.get("programSlug")?.trim() || null;
+    const credits = filterPurchasesByProgramSlug(
+      await listCreditsCoveringBooking(parentId, resolvedAthleteId),
+      programSlug,
+    );
     creditsRemaining = credits.reduce(
       (sum, credit) => sum + credit.sessions_remaining,
       0,

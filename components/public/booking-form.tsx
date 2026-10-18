@@ -56,6 +56,7 @@ import {
   BOOKING_EXPERIENCE_LEVELS,
   BOOKING_SCHOOL_GRADES,
 } from "@/lib/booking-athlete-options";
+import { requiresPackageCreditToBook } from "@/lib/program-package-credits";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { FAMILY_RESTORE_ACCESS_COPY } from "@/lib/family-access-copy";
 import { loginPath } from "@/lib/family-auth-url";
@@ -161,6 +162,10 @@ export function BookingForm({
   const rosterCredit = useMemo(
     () => isRosterCreditSession(session),
     [session],
+  );
+  const packageCreditsOnly = useMemo(
+    () => requiresPackageCreditToBook(session.program?.slug),
+    [session.program?.slug],
   );
   const packageCreditAvailable = !rosterCredit && creditsRemaining > 0;
 
@@ -356,6 +361,9 @@ export function BookingForm({
         params.set("athleteLastName", form.athleteLastName.trim());
       }
       if (hasValidDob) params.set("athleteDob", athleteDob);
+      if (session.program?.slug) {
+        params.set("programSlug", session.program.slug);
+      }
 
       try {
         const res = await fetch(
@@ -573,6 +581,18 @@ export function BookingForm({
         clearBookingDraft(session.id);
         toastSuccess("You're on the waitlist");
         router.push(`/book/${session.id}/confirmation?waitlist=1`);
+        return;
+      }
+
+      if (
+        packageCreditsOnly &&
+        !packageCreditAvailable &&
+        savedFamily &&
+        bookingContextChecked
+      ) {
+        toastError(
+          "Purchase the 12-week program or a session package before booking.",
+        );
         return;
       }
 
@@ -1323,6 +1343,23 @@ export function BookingForm({
                   is required today.
                 </p>
               </div>
+            ) : packageCreditsOnly ? (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+                <p className="font-medium text-foreground">
+                  Package required
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  Buy the 12-week Strength Development program or a session
+                  pack (1, 10, or 20). Staff apply credits when your athlete
+                  attends.
+                </p>
+                <Link
+                  href="/packages"
+                  className="mt-3 inline-block font-semibold text-brand underline underline-offset-2"
+                >
+                  View packages
+                </Link>
+              </div>
             ) : (
               <>
             <p className="booking-form-section-hint">
@@ -1436,6 +1473,10 @@ export function BookingForm({
           disabled={
             submitting ||
             !hydrated ||
+            (packageCreditsOnly &&
+              !packageCreditAvailable &&
+              savedFamily &&
+              bookingContextChecked) ||
             (!rosterCredit && !packageCreditAvailable && !paymentMethod)
           }
           className="h-12 w-full bg-brand text-base text-brand-foreground hover:bg-brand/90 sm:w-auto sm:min-w-[220px] sm:px-8"

@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/format";
 import { audienceLabelForProgram } from "@/lib/program-grades";
-import { isDropInSession } from "@/lib/drop-in-sessions";
+import { requiresPackageCreditToBook } from "@/lib/program-package-credits";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { slugFromProgramName } from "@/lib/program-slug";
 import {
@@ -380,7 +380,7 @@ export function ProgramEditCard({ program }: { program: Program }) {
   );
 
   const roster = isRosterCreditSession({ program });
-  const dropIn = isDropInSession({ program });
+  const packageBooking = requiresPackageCreditToBook(program.slug);
   const color = program.calendar_color;
 
   async function onSubmit(e: React.FormEvent) {
@@ -459,8 +459,8 @@ export function ProgramEditCard({ program }: { program: Program }) {
               {roster ? (
                 <Badge variant="outline">Package credit</Badge>
               ) : null}
-              {dropIn ? (
-                <Badge variant="outline">Show up</Badge>
+              {packageBooking ? (
+                <Badge variant="outline">Package booking</Badge>
               ) : null}
             </div>
             {program.short_description ? (
@@ -472,8 +472,8 @@ export function ProgramEditCard({ program }: { program: Program }) {
               {audienceLabelForProgram(program)} ·{" "}
               {program.default_duration_minutes ?? 60} min · cap{" "}
               {program.default_capacity ?? "—"}
-              {dropIn
-                ? " · 12-week package · no booking"
+              {packageBooking
+                ? " · 12-week or session packs · book to reserve"
                 : !roster && (program.default_price_cents ?? 0) > 0
                   ? ` · ${formatPrice(program.default_price_cents ?? 0)}`
                   : roster

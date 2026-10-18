@@ -7,7 +7,7 @@ import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { SITE } from "@/lib/constants";
 import { classSessionTitle } from "@/lib/class-display";
 import { effectiveTemplateDefaults } from "@/lib/session-template-defaults";
-import { isDropInSession } from "@/lib/drop-in-sessions";
+import { isZeroPriceAtBookingProgram } from "@/lib/program-package-credits";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { buildOccurrenceDates } from "@/lib/sessions";
 import { endTimeFromStart, normalizeTime } from "@/lib/session-time";
@@ -166,8 +166,8 @@ export async function buildTemplateOccurrencePlan(
       .join("\n\n") || null;
 
   const rosterCredit = isRosterCreditSession({ program: template.program });
-  const dropIn = isDropInSession({ program: template.program });
-  const noSessionCharge = rosterCredit || dropIn;
+  const noSessionCharge =
+    rosterCredit || isZeroPriceAtBookingProgram(template.program);
   const paymentRequirement: PaymentRequirement = noSessionCharge
     ? "pay_at_facility"
     : priceCents > 0

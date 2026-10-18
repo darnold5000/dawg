@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { getSessionById } from "@/lib/data";
 import { createMetadata } from "@/lib/seo";
 import { SITE } from "@/lib/constants";
-import { isDropInSession } from "@/lib/drop-in-sessions";
 import { bookLoginPath } from "@/lib/family-auth-url";
+import { requiresPackageCreditToBook } from "@/lib/program-package-credits";
+import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import {
   durationMinutes,
   formatPrice,
@@ -35,10 +36,7 @@ export async function generateMetadata({
   return createMetadata({
     title: session.title,
     description:
-      session.description ??
-      (isDropInSession(session)
-        ? `${session.title} at ${SITE.name}. Show up for class.`
-        : `Book ${session.title} at ${SITE.name}.`),
+      session.description ?? `Book ${session.title} at ${SITE.name}.`,
     path: `/schedule/${sessionId}`,
   });
 }
@@ -53,7 +51,10 @@ export default async function SessionDetailPage({
   if (!session) notFound();
 
   const full = (session.spots_remaining ?? 0) <= 0;
-  const dropIn = isDropInSession(session);
+  const rosterCredit = isRosterCreditSession(session);
+  const strengthPackageBooking = requiresPackageCreditToBook(
+    session.program?.slug,
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-16">
@@ -89,27 +90,25 @@ export default async function SessionDetailPage({
           <dt className="text-sm text-muted-foreground">Trainer</dt>
           <dd className="font-medium">{session.trainer?.name ?? "DAWG staff"}</dd>
         </div>
-        {dropIn ? (
+        {strengthPackageBooking ? (
           <div className="sm:col-span-2">
-            <dt className="text-sm text-muted-foreground">How to attend</dt>
+            <dt className="text-sm text-muted-foreground">Payment</dt>
             <dd className="font-medium">
-              Included with the 12-week program. Show up at this time.
+              Book with your 12-week program or session package credits.
             </dd>
           </div>
-        ) : (
-          <>
-        <div>
-          <dt className="text-sm text-muted-foreground">Price</dt>
-          <dd className="font-medium">{formatPrice(session.price_cents)}</dd>
-        </div>
+        ) : !rosterCredit ? (
+          <div>
+            <dt className="text-sm text-muted-foreground">Price</dt>
+            <dd className="font-medium">{formatPrice(session.price_cents)}</dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-sm text-muted-foreground">Spots</dt>
           <dd className="font-medium">
             {full ? "Full" : `${session.spots_remaining} remaining`}
           </dd>
         </div>
-          </>
-        )}
         {session.skill_level ? (
           <div>
             <dt className="text-sm text-muted-foreground">Skill level</dt>
@@ -141,7 +140,7 @@ export default async function SessionDetailPage({
       ) : null}
 
       <div className="mt-8 flex flex-wrap gap-3">
-        {dropIn ? null : full ? (
+        {full ? (
           <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
             <Link href={bookLoginPath(session.id, true)}>Join Waitlist</Link>
           </Button>
