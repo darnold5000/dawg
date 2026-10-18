@@ -25,7 +25,8 @@ export default async function PackagesPage({
       <h1 className="font-heading text-4xl tracking-wide">Training packages</h1>
       <p className="mt-3 text-muted-foreground">
         One-time purchase. Session packs are applied by staff when your athlete
-        attends. The 12-week program is pay once, then show up for class.
+        attends. The 12-week program is pay once for 60 sessions — book each
+        Strength Development class on the schedule.
       </p>
 
       {q.cancelled === "1" ? (

@@ -78,7 +78,7 @@ export default async function PackageSuccessPage({
       </h1>
       <p className="mt-3 text-muted-foreground">
         {twelveWeek && confirmed
-          ? "You're set for the 12-week program. Show up for class on the schedule."
+          ? "You're set for the 12-week program (60 sessions). Book each class on the schedule."
           : confirmed
             ? "Your session credits are on file. Check your email for a secure link to view your balance — no login required to have purchased."
             : "We're confirming your purchase — this usually takes a few seconds. Refresh if needed."}

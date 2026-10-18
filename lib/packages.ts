@@ -75,8 +75,8 @@ const FALLBACK_PACKAGES: TrainingPackage[] = [
     slug: "twelve-week",
     name: "12-week program",
     description:
-      "Strength Development, once a week for 12 weeks. Show up for class.",
-    session_count: 12,
+      "Strength Development — 5 days per week for 12 weeks (60 sessions). Book each class on the schedule.",
+    session_count: 60,
     price_cents: 60000,
     currency: "usd",
     active: true,

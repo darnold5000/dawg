@@ -1,5 +1,5 @@
 -- Migration 020: Sell Strength Development as a 12-week package.
--- Parents pay once on /packages. Class times stay on the calendar with no booking.
+-- Parents pay once on /packages, then book classes (see 021 for 60-session catalog).
 
 insert into public.training_packages (
   tenant_id,
@@ -16,8 +16,8 @@ select
   t.id,
   'twelve-week',
   '12-week program',
-  'Strength Development, once a week for 12 weeks. Show up for class.',
-  12,
+  'Strength Development — 5 days per week for 12 weeks (60 sessions). Book each class on the schedule.',
+  60,
   60000,
   'usd',
   true,
