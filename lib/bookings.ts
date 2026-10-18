@@ -103,6 +103,21 @@ export const bookingSchema = z.preprocess((raw) => {
 
 export type BookingInput = z.infer<typeof bookingFieldsSchema>;
 
+/** Supabase embed may type program as object or array depending on the select. */
+function programSlugRefFromEmbed(program: unknown): { slug: string } | null {
+  if (!program) return null;
+  const row = Array.isArray(program) ? program[0] : program;
+  if (
+    row &&
+    typeof row === "object" &&
+    "slug" in row &&
+    typeof (row as { slug: unknown }).slug === "string"
+  ) {
+    return { slug: (row as { slug: string }).slug };
+  }
+  return null;
+}
+
 export const waitlistSchema = z.object({
   sessionId: z.string().min(1),
   parentName: z.string().min(1).max(120),
@@ -310,7 +325,7 @@ export async function createPublicBooking(
     return { ok: false, error: "Session not found.", code: "SESSION_NOT_FOUND" };
   }
 
-  const program = (session.program as { slug: string } | null) ?? null;
+  const program = programSlugRefFromEmbed(session.program);
   if (isDropInSession({ program })) {
     return {
       ok: false,
@@ -728,11 +743,7 @@ export async function joinWaitlist(
     .select("program:training_programs ( slug )")
     .eq("id", input.sessionId)
     .maybeSingle();
-  if (
-    isDropInSession({
-      program: (session?.program as { slug: string } | null) ?? null,
-    })
-  ) {
+  if (isDropInSession({ program: programSlugRefFromEmbed(session?.program) })) {
     return {
       ok: false,
       error: "This class does not take bookings. Show up at the scheduled time.",
