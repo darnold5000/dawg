@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { reconcilePackageCheckout } from "@/lib/billing/reconcile-package";
 import { getPurchaseById } from "@/lib/packages";
 import { createMetadata } from "@/lib/seo";
+import { TWELVE_WEEK_PACKAGE_SLUG } from "@/lib/drop-in-sessions";
 import { formatPrice } from "@/lib/format";
 
 export const metadata = createMetadata({
@@ -39,6 +40,7 @@ export default async function PackageSuccessPage({
 
   const confirmed = purchase?.status === "paid";
   const pendingStripeConfirm = !confirmed && Boolean(purchase);
+  const twelveWeek = purchase?.package?.slug === TWELVE_WEEK_PACKAGE_SLUG;
 
   const creditsLine = (() => {
     if (!purchase) return null;
@@ -75,9 +77,11 @@ export default async function PackageSuccessPage({
         {confirmed ? "Package ready" : "Payment received"}
       </h1>
       <p className="mt-3 text-muted-foreground">
-        {confirmed
-          ? "Your session credits are on file. Check your email for a secure link to view your balance — no login required to have purchased."
-          : "We're confirming your purchase — this usually takes a few seconds. Refresh if needed."}
+        {twelveWeek && confirmed
+          ? "You're set for the 12-week program. Show up for class on the schedule."
+          : confirmed
+            ? "Your session credits are on file. Check your email for a secure link to view your balance — no login required to have purchased."
+            : "We're confirming your purchase — this usually takes a few seconds. Refresh if needed."}
       </p>
       {purchase?.package ? (
         <div className="mx-auto mt-8 max-w-md rounded-xl border border-border bg-card p-5 text-left text-sm">
@@ -90,7 +94,9 @@ export default async function PackageSuccessPage({
       ) : null}
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Button asChild className="bg-brand text-brand-foreground hover:bg-brand/90">
-          <Link href="/schedule">Book a session</Link>
+          <Link href="/schedule">
+            {twelveWeek ? "See class times" : "Book a session"}
+          </Link>
         </Button>
         <Button asChild variant="outline">
           <Link href="/packages">View packages</Link>

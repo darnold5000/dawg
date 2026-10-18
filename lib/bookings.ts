@@ -25,6 +25,7 @@ import { findOrCreateParentByContact } from "@/lib/parent-account";
 import { isOnlineCardPaymentEnabled } from "@/lib/billing/payment-options";
 import { resolveSessionBookingPayment } from "@/lib/booking-payment-decision";
 import { listActiveCreditsForParent } from "@/lib/packages";
+import { isDropInSession } from "@/lib/drop-in-sessions";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { expirePendingBooking } from "@/lib/billing/adapter";
 import {
@@ -309,9 +310,16 @@ export async function createPublicBooking(
     return { ok: false, error: "Session not found.", code: "SESSION_NOT_FOUND" };
   }
 
-  const rosterCredit = isRosterCreditSession({
-    program: (session.program as { slug: string } | null) ?? null,
-  });
+  const program = (session.program as { slug: string } | null) ?? null;
+  if (isDropInSession({ program })) {
+    return {
+      ok: false,
+      error: "This class does not take bookings. Show up at the scheduled time.",
+      code: "DROP_IN_ONLY",
+    };
+  }
+
+  const rosterCredit = isRosterCreditSession({ program });
 
   if (session.status !== "published" && session.status !== "full") {
     return {
@@ -715,6 +723,22 @@ export async function joinWaitlist(
   }
 
   const supabase = createTrainingServiceClient();
+  const { data: session } = await supabase
+    .from(DAWG_TABLES.sessions)
+    .select("program:training_programs ( slug )")
+    .eq("id", input.sessionId)
+    .maybeSingle();
+  if (
+    isDropInSession({
+      program: (session?.program as { slug: string } | null) ?? null,
+    })
+  ) {
+    return {
+      ok: false,
+      error: "This class does not take bookings. Show up at the scheduled time.",
+    };
+  }
+
   const { data: existing } = await supabase
     .from(DAWG_TABLES.waitlistEntries)
     .select("position")

@@ -13,6 +13,7 @@ import { formatPrice } from "@/lib/format";
 import { effectiveTemplateDefaults } from "@/lib/session-template-defaults";
 import { listSessionTemplates } from "@/lib/session-templates";
 import { visibilityLabel } from "@/lib/training-visibility";
+import { isDropInSession } from "@/lib/drop-in-sessions";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import type { SessionTemplateWithRelations } from "@/lib/types/database";
 
@@ -87,6 +88,7 @@ export default async function ClassesPage() {
         <div className="grid gap-3">
           {sorted.map((template) => {
             const roster = isRosterCreditSession({ program: template.program });
+            const dropIn = isDropInSession({ program: template.program });
             const effective = effectiveTemplateDefaults(
               template.program,
               template,
@@ -115,11 +117,13 @@ export default async function ClassesPage() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {classCardMeta(template)}
-                    {!roster && effective.price_cents > 0
-                      ? ` · ${formatPrice(effective.price_cents)}`
-                      : roster
-                        ? " · package credit"
-                        : ""}
+                    {dropIn
+                      ? " · show up, no booking"
+                      : !roster && effective.price_cents > 0
+                        ? ` · ${formatPrice(effective.price_cents)}`
+                        : roster
+                          ? " · package credit"
+                          : ""}
                     · cap {effective.capacity}
                     · {visibilityLabel(effective.visibility)}
                   </p>

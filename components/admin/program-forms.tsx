@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/format";
 import { audienceLabelForProgram } from "@/lib/program-grades";
+import { isDropInSession } from "@/lib/drop-in-sessions";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 import { slugFromProgramName } from "@/lib/program-slug";
 import {
@@ -379,6 +380,7 @@ export function ProgramEditCard({ program }: { program: Program }) {
   );
 
   const roster = isRosterCreditSession({ program });
+  const dropIn = isDropInSession({ program });
   const color = program.calendar_color;
 
   async function onSubmit(e: React.FormEvent) {
@@ -457,6 +459,9 @@ export function ProgramEditCard({ program }: { program: Program }) {
               {roster ? (
                 <Badge variant="outline">Package credit</Badge>
               ) : null}
+              {dropIn ? (
+                <Badge variant="outline">Show up</Badge>
+              ) : null}
             </div>
             {program.short_description ? (
               <p className="text-sm text-muted-foreground">
@@ -467,11 +472,13 @@ export function ProgramEditCard({ program }: { program: Program }) {
               {audienceLabelForProgram(program)} ·{" "}
               {program.default_duration_minutes ?? 60} min · cap{" "}
               {program.default_capacity ?? "—"}
-              {!roster && (program.default_price_cents ?? 0) > 0
-                ? ` · ${formatPrice(program.default_price_cents ?? 0)}`
-                : roster
-                  ? " · package credit booking"
-                  : ""}
+              {dropIn
+                ? " · 12-week package · no booking"
+                : !roster && (program.default_price_cents ?? 0) > 0
+                  ? ` · ${formatPrice(program.default_price_cents ?? 0)}`
+                  : roster
+                    ? " · package credit booking"
+                    : ""}
             </p>
             <p className="text-xs text-muted-foreground">
               Slug: {program.slug} · order {program.display_order}

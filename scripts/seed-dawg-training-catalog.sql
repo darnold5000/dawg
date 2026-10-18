@@ -231,6 +231,17 @@ begin
       'usd',
       true,
       3
+    ),
+    (
+      v_tenant_id,
+      'twelve-week',
+      '12-week program',
+      'Strength Development, once a week for 12 weeks. Show up for class.',
+      12,
+      60000,
+      'usd',
+      true,
+      4
     )
   on conflict (tenant_id, slug) do update set
     name = excluded.name,

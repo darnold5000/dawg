@@ -188,7 +188,11 @@ export function PackagePurchaseCards({
       </fieldset>
       */}
 
-      <div className="grid gap-6 sm:grid-cols-3">
+      <div
+        className={`grid gap-6 sm:grid-cols-2 ${
+          packages.length > 3 ? "lg:grid-cols-2" : "lg:grid-cols-3"
+        }`}
+      >
         {packages.map((pkg) => (
           <div
             key={pkg.id}

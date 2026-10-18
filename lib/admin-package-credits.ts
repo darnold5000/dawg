@@ -3,6 +3,7 @@ import {
   getPackageBySlug,
   listActivePackages,
   PACKAGE_CATALOG_SEED_HINT,
+  packageSlugSchema,
 } from "@/lib/packages";
 import {
   createTrainingServiceClient,
@@ -20,7 +21,7 @@ import type {
 
 export const grantPackageCreditsSchema = z.object({
   action: z.literal("grant"),
-  packageSlug: z.enum(["single", "pack-10", "pack-20"]),
+  packageSlug: packageSlugSchema,
   sessionCount: z.number().int().min(1).max(100).optional(),
   athleteId: z.string().uuid().optional().nullable(),
   reason: z.string().trim().min(10).max(500),

@@ -14,6 +14,7 @@ import {
 } from "@/lib/format";
 import { audienceLabelForSession } from "@/lib/program-grades";
 import { bookLoginPath } from "@/lib/family-auth-url";
+import { isDropInSession } from "@/lib/drop-in-sessions";
 import { isRosterCreditSession } from "@/lib/roster-credit-sessions";
 
 export function SessionCard({ session }: { session: SessionWithRelations }) {
@@ -21,6 +22,7 @@ export function SessionCard({ session }: { session: SessionWithRelations }) {
   const spots = session.spots_remaining ?? 0;
   const full = spots <= 0;
   const rosterCredit = isRosterCreditSession(session);
+  const dropIn = isDropInSession(session);
 
   const hasExtraDetails = Boolean(
     session.description ||
@@ -39,8 +41,8 @@ export function SessionCard({ session }: { session: SessionWithRelations }) {
             {session.session_type?.name ? (
               <Badge variant="secondary">{session.session_type.name}</Badge>
             ) : null}
-            {full ? <Badge variant="destructive">Full</Badge> : null}
-            {spots > 0 && spots <= 3 ? (
+            {!dropIn && full ? <Badge variant="destructive">Full</Badge> : null}
+            {!dropIn && spots > 0 && spots <= 3 ? (
               <Badge className="bg-gold text-gold-foreground hover:bg-gold">
                 {spots} spots remaining
               </Badge>
@@ -57,7 +59,11 @@ export function SessionCard({ session }: { session: SessionWithRelations }) {
           <p className="text-sm text-muted-foreground">
             {audienceLabelForSession(session)}
             {session.trainer?.name ? ` · ${session.trainer.name}` : ""}
-            {!rosterCredit ? ` · ${formatPrice(session.price_cents)}` : ""}
+            {dropIn
+              ? " · Show up"
+              : !rosterCredit
+                ? ` · ${formatPrice(session.price_cents)}`
+                : ""}
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
@@ -71,7 +77,7 @@ export function SessionCard({ session }: { session: SessionWithRelations }) {
               {open ? "Hide details" : "Details"}
             </Button>
           ) : null}
-          {full ? (
+          {dropIn ? null : full ? (
             <Button asChild variant="secondary">
               <Link href={bookLoginPath(session.id, true)}>Join Waitlist</Link>
             </Button>
@@ -92,12 +98,14 @@ export function SessionCard({ session }: { session: SessionWithRelations }) {
             <p className="text-muted-foreground">{session.description}</p>
           ) : null}
           <dl className="grid gap-3 sm:grid-cols-2">
+            {dropIn ? null : (
             <div>
               <dt className="text-muted-foreground">Spots</dt>
               <dd className="font-medium">
                 {full ? "Full" : `${spots} remaining`}
               </dd>
             </div>
+            )}
             {session.skill_level ? (
               <div>
                 <dt className="text-muted-foreground">Skill level</dt>

@@ -7,7 +7,7 @@ import { SITE } from "@/lib/constants";
 
 export const metadata = createMetadata({
   title: "Training packages",
-  description: `Buy a single session, 10-pack, or 20-pack for ${SITE.name}.`,
+  description: `Buy a session pack or the 12-week program for ${SITE.name}.`,
   path: "/packages",
 });
 
@@ -24,8 +24,8 @@ export default async function PackagesPage({
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 md:py-16">
       <h1 className="font-heading text-4xl tracking-wide">Training packages</h1>
       <p className="mt-3 text-muted-foreground">
-        One-time purchase — credits are applied by staff when your athlete
-        attends. Buy again anytime when you run out.
+        One-time purchase. Session packs are applied by staff when your athlete
+        attends. The 12-week program is pay once, then show up for class.
       </p>
 
       {q.cancelled === "1" ? (

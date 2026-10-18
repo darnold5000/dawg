@@ -12,6 +12,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SessionWithRelations } from "@/lib/types/database";
+import { isDropInSession } from "@/lib/drop-in-sessions";
 import { bookLoginPath } from "@/lib/family-auth-url";
 import { occupancyFromSession, publicOccupancyLabel } from "@/lib/booking-roster";
 import { formatSessionTime, formatSessionTitle } from "@/lib/format";
@@ -132,6 +133,7 @@ export function ScheduleMonthCalendar({
                   {daySessions.map((session) => {
                     const spots = session.spots_remaining ?? 0;
                     const full = spots <= 0;
+                    const dropIn = isDropInSession(session);
                     const occupancy = occupancyFromSession(session);
                     const occupancyCopy = publicOccupancyLabel(
                       occupancy,
@@ -162,6 +164,12 @@ export function ScheduleMonthCalendar({
                           </span>
                         </p>
                         <div className="mt-2 flex items-center justify-between gap-2">
+                          {dropIn ? (
+                            <p className="text-[11px] font-semibold text-foreground sm:text-xs">
+                              Show up
+                            </p>
+                          ) : (
+                            <>
                           <p
                             className="min-w-0 text-[11px] leading-snug text-muted-foreground sm:text-xs"
                             title={occupancyCopy.title}
@@ -195,6 +203,8 @@ export function ScheduleMonthCalendar({
                               {full ? "Waitlist" : "Book"}
                             </Link>
                           </Button>
+                            </>
+                          )}
                         </div>
                       </li>
                     );

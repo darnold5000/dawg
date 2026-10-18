@@ -69,6 +69,20 @@ const FALLBACK_PACKAGES: TrainingPackage[] = [
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
+  {
+    id: "pkg-12-week",
+    slug: "twelve-week",
+    name: "12-week program",
+    description:
+      "Strength Development, once a week for 12 weeks. Show up for class.",
+    session_count: 12,
+    price_cents: 60000,
+    currency: "usd",
+    active: true,
+    display_order: 4,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
 ];
 
 const UUID_RE =
@@ -92,8 +106,16 @@ export const packagePaymentMethodSchema = z.enum([
   "pay_at_facility",
 ]);
 
+/** Any active training_packages.slug. Unknown slugs fail in getPackageBySlug. */
+export const packageSlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(80)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
 export const packageCheckoutSchema = z.object({
-  packageSlug: z.enum(["single", "pack-10", "pack-20"]),
+  packageSlug: packageSlugSchema,
   parentFirstName: z.string().trim().min(1).max(80),
   parentLastName: z.string().trim().min(1).max(80),
   parentEmail: z.string().trim().email().max(160),
@@ -126,14 +148,14 @@ export const packageCheckoutSchema = z.object({
 });
 
 export const loggedInPackageCheckoutSchema = z.object({
-  packageSlug: z.enum(["single", "pack-10", "pack-20"]),
+  packageSlug: packageSlugSchema,
   athleteId: z.string().uuid().optional().nullable(),
   paymentMethod: packagePaymentMethodSchema.optional().default("stripe"),
 });
 
 /** Guest checkout — parent contact only; credits assigned at attendance. */
 export const publicPackageCheckoutSchema = z.object({
-  packageSlug: z.enum(["single", "pack-10", "pack-20"]),
+  packageSlug: packageSlugSchema,
   parentFirstName: z.string().trim().min(1).max(80),
   parentLastName: z.string().trim().min(1).max(80),
   parentEmail: z.string().trim().email().max(160),
@@ -246,7 +268,7 @@ export async function getPackageBySlug(
 
 /** Pay at facility — order on file; credits activate when staff confirms payment. */
 export async function createPackagePayAtFacilityPurchase(input: {
-  packageSlug: "single" | "pack-10" | "pack-20";
+  packageSlug: string;
   parentFirstName: string;
   parentLastName: string;
   parentEmail: string;

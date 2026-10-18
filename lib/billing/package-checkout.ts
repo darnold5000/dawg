@@ -16,7 +16,7 @@ import {
 import { withTenantInsert } from "@/lib/supabase/training-scope";
 
 export type CreatePackageCheckoutInput = {
-  packageSlug: "single" | "pack-10" | "pack-20";
+  packageSlug: string;
   parentFirstName: string;
   parentLastName: string;
   parentEmail: string;

@@ -55,9 +55,9 @@ export function PackageCreditAdjustmentPanel({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("grant");
-  const [packageSlug, setPackageSlug] = useState<
-    "single" | "pack-10" | "pack-20"
-  >("single");
+  const [packageSlug, setPackageSlug] = useState(
+    () => packages[0]?.slug ?? "single",
+  );
   const [sessionCount, setSessionCount] = useState("");
   const [purchaseId, setPurchaseId] = useState(purchases[0]?.id ?? "");
   const [amount, setAmount] = useState("1");
@@ -283,9 +283,7 @@ export function PackageCreditAdjustmentPanel({
                       id="packageSlug"
                       value={packageSlug}
                       onChange={(e) =>
-                        setPackageSlug(
-                          e.target.value as "single" | "pack-10" | "pack-20",
-                        )
+                        setPackageSlug(e.target.value)
                       }
                       className="form-select bg-white"
                     >
