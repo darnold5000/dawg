@@ -5,6 +5,7 @@ import {
   PACKAGE_CATALOG_SEED_HINT,
   packageSlugSchema,
 } from "@/lib/packages";
+import { creditsValidUntilForPackage } from "@/lib/package-credit-validity";
 import {
   createTrainingServiceClient,
   isSupabaseConfigured,
@@ -94,6 +95,8 @@ export async function applyPackageCreditAdjustment(input: {
     }
 
     const sessionCount = input.body.sessionCount ?? pkg.session_count;
+    const paidAt = new Date().toISOString();
+    const creditsValidUntil = creditsValidUntilForPackage(paidAt, pkg);
     const { data: purchase, error } = await supabase
       .from(DAWG_TABLES.packagePurchases)
       .insert(
@@ -106,7 +109,8 @@ export async function applyPackageCreditAdjustment(input: {
           sessions_remaining: sessionCount,
           amount_paid_cents: 0,
           currency: pkg.currency,
-          paid_at: new Date().toISOString(),
+          paid_at: paidAt,
+          credits_valid_until: creditsValidUntil,
           updated_at: new Date().toISOString(),
         }),
       )

@@ -26,7 +26,8 @@ export default async function PackagesPage({
       <p className="mt-3 text-muted-foreground">
         One-time purchase. Session packs are applied by staff when your athlete
         attends. The 12-week program is pay once for 60 sessions — book each
-        Strength Development class on the schedule.
+        Strength Development class on the schedule. Those credits expire 12
+        weeks after purchase.
       </p>
 
       {q.cancelled === "1" ? (

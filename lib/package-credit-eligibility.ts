@@ -3,18 +3,29 @@
  * Balances are checked only — never reserved, deducted, or redeemed here.
  */
 
+import { isPackageCreditExpired } from "@/lib/package-credit-validity";
+
 export type PackageCreditLike = {
   status: string;
   sessions_remaining: number;
   athlete_id: string | null;
+  credits_valid_until?: string | null;
 };
+
+export function isUsablePackageCreditBalance(
+  purchase: PackageCreditLike,
+): boolean {
+  if (purchase.status !== "paid") return false;
+  if (purchase.sessions_remaining <= 0) return false;
+  if (isPackageCreditExpired(purchase)) return false;
+  return true;
+}
 
 export function isEligiblePackageCredit(
   purchase: PackageCreditLike,
   athleteId: string,
 ): boolean {
-  if (purchase.status !== "paid") return false;
-  if (purchase.sessions_remaining <= 0) return false;
+  if (!isUsablePackageCreditBalance(purchase)) return false;
   return purchase.athlete_id == null || purchase.athlete_id === athleteId;
 }
 

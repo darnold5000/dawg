@@ -5,6 +5,7 @@ import { getPurchaseById } from "@/lib/packages";
 import { createMetadata } from "@/lib/seo";
 import { TWELVE_WEEK_PACKAGE_SLUG } from "@/lib/program-package-credits";
 import { formatPrice } from "@/lib/format";
+import { formatDate } from "@/lib/billing/format";
 
 export const metadata = createMetadata({
   title: "Package purchased",
@@ -78,7 +79,7 @@ export default async function PackageSuccessPage({
       </h1>
       <p className="mt-3 text-muted-foreground">
         {twelveWeek && confirmed
-          ? "You're set for the 12-week program (60 sessions). Book each class on the schedule."
+          ? "You're set for the 12-week program (60 sessions). Book each class on the schedule before your credits expire."
           : confirmed
             ? "Your session credits are on file. Check your email for a secure link to view your balance — no login required to have purchased."
             : "We're confirming your purchase — this usually takes a few seconds. Refresh if needed."}
@@ -89,6 +90,11 @@ export default async function PackageSuccessPage({
             {purchase.package.name}
           </p>
           <p className="mt-2 text-muted-foreground">{creditsLine}</p>
+          {confirmed && purchase.credits_valid_until ? (
+            <p className="mt-1 text-muted-foreground">
+              Use credits by {formatDate(purchase.credits_valid_until)}
+            </p>
+          ) : null}
           {amountLine ? <p className="mt-1">{amountLine}</p> : null}
         </div>
       ) : null}

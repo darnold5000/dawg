@@ -296,6 +296,7 @@ export default async function AdminClientDetailPage({
                     <th className="px-3 py-2.5">Status</th>
                     <th className="px-3 py-2.5">Remaining</th>
                     <th className="px-3 py-2.5">Paid</th>
+                    <th className="px-3 py-2.5">Expires</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -315,6 +316,11 @@ export default async function AdminClientDetailPage({
                             {formatDate(p.paid_at)}
                           </span>
                         ) : null}
+                      </td>
+                      <td className="px-3 py-2.5 text-muted-foreground">
+                        {p.credits_valid_until
+                          ? formatDate(p.credits_valid_until)
+                          : "—"}
                       </td>
                     </tr>
                   ))}

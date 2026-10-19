@@ -336,6 +336,8 @@ export interface TrainingPackage {
   session_count: number;
   price_cents: number;
   currency: string;
+  /** When set, paid purchases expire this many weeks after payment. */
+  validity_weeks: number | null;
   active: boolean;
   display_order: number;
   created_at: string;
@@ -356,6 +358,7 @@ export interface PackagePurchase {
   stripe_payment_intent_id: string | null;
   stripe_customer_id: string | null;
   paid_at: string | null;
+  credits_valid_until: string | null;
   refunded_at: string | null;
   post_purchase_email_sent_at?: string | null;
   created_at: string;

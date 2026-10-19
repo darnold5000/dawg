@@ -57,7 +57,7 @@ export function resolveSessionBookingPayment(
       error: {
         code: "PACKAGE_CREDITS_REQUIRED",
         message:
-          "Purchase the 12-week Strength Development program or a session package before booking.",
+          "Purchase the 12-week Strength Development program or a session package before booking. Program credits expire 12 weeks after purchase.",
       },
     };
   }

@@ -22,7 +22,11 @@ import {
   findOrCreateParentByContact,
   normalizeEmail,
 } from "@/lib/parent-account";
-import { filterEligibleCreditsForAthlete } from "@/lib/package-credit-eligibility";
+import {
+  filterEligibleCreditsForAthlete,
+  isUsablePackageCreditBalance,
+} from "@/lib/package-credit-eligibility";
+import { creditsValidUntilForPackage } from "@/lib/package-credit-validity";
 import { filterPurchasesByProgramSlug } from "@/lib/program-package-credits";
 import type {
   PackagePurchase,
@@ -39,6 +43,7 @@ const FALLBACK_PACKAGES: TrainingPackage[] = [
     session_count: 1,
     price_cents: 2500,
     currency: "usd",
+    validity_weeks: null,
     active: true,
     display_order: 1,
     created_at: new Date().toISOString(),
@@ -52,6 +57,7 @@ const FALLBACK_PACKAGES: TrainingPackage[] = [
     session_count: 10,
     price_cents: 20000,
     currency: "usd",
+    validity_weeks: null,
     active: true,
     display_order: 2,
     created_at: new Date().toISOString(),
@@ -65,6 +71,7 @@ const FALLBACK_PACKAGES: TrainingPackage[] = [
     session_count: 20,
     price_cents: 30000,
     currency: "usd",
+    validity_weeks: null,
     active: true,
     display_order: 3,
     created_at: new Date().toISOString(),
@@ -75,10 +82,11 @@ const FALLBACK_PACKAGES: TrainingPackage[] = [
     slug: "twelve-week",
     name: "12-week program",
     description:
-      "Strength Development — 5 days per week for 12 weeks (60 sessions). Book each class on the schedule.",
+      "Strength Development — 5 days per week for 12 weeks (60 sessions). Book each class on the schedule. Credits expire 12 weeks after purchase.",
     session_count: 60,
     price_cents: 60000,
     currency: "usd",
+    validity_weeks: 12,
     active: true,
     display_order: 4,
     created_at: new Date().toISOString(),
@@ -370,9 +378,10 @@ export async function listActiveCreditsForParent(
   const rows = mapPackagePurchaseRows(
     (data ?? []) as Record<string, unknown>[],
   ) as PackagePurchaseWithPackage[];
-  if (!athleteId) return rows;
+  const usable = rows.filter((row) => isUsablePackageCreditBalance(row));
+  if (!athleteId) return usable;
 
-  const eligible = filterEligibleCreditsForAthlete(rows, athleteId);
+  const eligible = filterEligibleCreditsForAthlete(usable, athleteId);
   eligible.sort((a, b) => {
     if (a.athlete_id === athleteId && b.athlete_id !== athleteId) return -1;
     if (b.athlete_id === athleteId && a.athlete_id !== athleteId) return 1;
@@ -424,12 +433,13 @@ export async function confirmPackagePurchasePaid(input: {
   const supabase = createTrainingServiceClient();
   const { data: existing } = await supabase
     .from(DAWG_TABLES.packagePurchases)
-    .select("*")
+    .select(`*, package:training_packages (*)`)
     .eq("id", input.purchaseId)
     .maybeSingle();
 
   if (!existing) return { ok: false, error: "Purchase not found" };
   const current = mapPackagePurchaseRow(existing as Record<string, unknown>);
+  const packageRow = (existing as { package?: TrainingPackage | null }).package;
   if (current.status === "paid") {
     if (
       current.sessions_total > 0 &&
@@ -454,6 +464,9 @@ export async function confirmPackagePurchasePaid(input: {
     return { ok: true, purchase: current };
   }
 
+  const paidAt = new Date().toISOString();
+  const creditsValidUntil = creditsValidUntilForPackage(paidAt, packageRow);
+
   const { data, error } = await supabase
     .from(DAWG_TABLES.packagePurchases)
     .update({
@@ -463,7 +476,8 @@ export async function confirmPackagePurchasePaid(input: {
       stripe_checkout_session_id: input.stripeCheckoutSessionId,
       stripe_payment_intent_id: input.stripePaymentIntentId,
       stripe_customer_id: input.stripeCustomerId,
-      paid_at: new Date().toISOString(),
+      paid_at: paidAt,
+      credits_valid_until: creditsValidUntil,
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.purchaseId)

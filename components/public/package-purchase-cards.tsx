@@ -203,6 +203,16 @@ export function PackagePurchaseCards({
               <p className="font-heading text-3xl tracking-wide text-gold sm:text-4xl">
                 {formatPrice(pkg.price_cents)}
               </p>
+              {pkg.description ? (
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {pkg.description}
+                </p>
+              ) : pkg.validity_weeks ? (
+                <p className="text-sm text-muted-foreground">
+                  {pkg.session_count} sessions · use within {pkg.validity_weeks}{" "}
+                  weeks of purchase
+                </p>
+              ) : null}
             </div>
             <Button
               type="button"

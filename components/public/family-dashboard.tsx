@@ -258,6 +258,12 @@ export function FamilyDashboard({ data }: { data: FamilyPortalData }) {
                       {purchase.status === "paid" ? (
                         <span className="block text-xs text-muted-foreground">
                           {formatPrice(purchase.amount_paid_cents)}
+                          {purchase.credits_valid_until ? (
+                            <>
+                              {" "}
+                              · use by {formatDate(purchase.credits_valid_until)}
+                            </>
+                          ) : null}
                         </span>
                       ) : null}
                     </td>
