@@ -1,0 +1,44 @@
+{
+  "capturedAt": "2026-10-28T20:27:00-04:00",
+  "purpose": "Existing training_package_redemptions before backfill — do NOT delete on revert unless backfill created new rows",
+  "tenantId": "6bd000db-c17e-4ca9-98ee-030f57aa523a",
+  "notes": [
+    "All four redemptions are from July 2026 (pre–Aug manual-credit change).",
+    "None belong to the eight audit guardians; backfill must not modify these rows.",
+    "On revert after backfill: delete only NEW redemption ids / booking_ids created by backfill; keep these four."
+  ],
+  "redemptions": [
+    {
+      "id": "01243510-d1c8-44c3-b9d7-0f94493cd5b4",
+      "tenant_id": "6bd000db-c17e-4ca9-98ee-030f57aa523a",
+      "purchase_id": "3cade7bf-e532-4e5f-84b0-bd1a8fcd514b",
+      "booking_id": "597f96ab-b584-42d5-9a2a-49d7d4dd9d56",
+      "redeemed_at": "2026-07-31 19:58:00.330766+00",
+      "guardian_id": "f0576ea8-a3f6-4a7f-9e63-254ae9940bb7"
+    },
+    {
+      "id": "13e879ec-f0ab-45b2-9caf-f702e8176047",
+      "tenant_id": "6bd000db-c17e-4ca9-98ee-030f57aa523a",
+      "purchase_id": "3cade7bf-e532-4e5f-84b0-bd1a8fcd514b",
+      "booking_id": "3615fce0-db7b-49a2-a799-0d7b6941fd78",
+      "redeemed_at": "2026-07-28 19:55:12.0915+00",
+      "guardian_id": "f0576ea8-a3f6-4a7f-9e63-254ae9940bb7"
+    },
+    {
+      "id": "d3604f46-cdf9-4242-930f-15a32b0b9cfb",
+      "tenant_id": "6bd000db-c17e-4ca9-98ee-030f57aa523a",
+      "purchase_id": "3fce6296-5ef3-48ac-8e93-f6e11e86b48a",
+      "booking_id": "d9a5efe2-f052-4876-9734-39ec6cd178e4",
+      "redeemed_at": "2026-07-28 21:15:11.462439+00",
+      "guardian_id": "cf839c20-5faf-408b-8bff-4e3053350833"
+    },
+    {
+      "id": "3a046145-3d62-4013-af30-e74958194e58",
+      "tenant_id": "6bd000db-c17e-4ca9-98ee-030f57aa523a",
+      "purchase_id": "e48ffc1f-e35a-4daf-ae38-b3c0fc55adc0",
+      "booking_id": "ccb8a12b-0fbd-45d5-8d6b-8b77307f6d77",
+      "redeemed_at": "2026-07-31 19:57:45.632125+00",
+      "guardian_id": "f58c6d6d-7468-456d-bb05-bb8b5cecc186"
+    }
+  ]
+}

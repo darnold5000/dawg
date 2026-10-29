@@ -1,6 +1,6 @@
 /**
  * Package-credit eligibility for a booking athlete.
- * Balances are checked only — never reserved, deducted, or redeemed here.
+ * Balances are checked at booking; one session is deducted when staff marks Attended.
  */
 
 import { isPackageCreditExpired } from "@/lib/package-credit-validity";
@@ -38,9 +38,9 @@ export function filterEligibleCreditsForAthlete<T extends PackageCreditLike>(
   );
 }
 
-/** Credits are never mutated by booking, attendance, or cancellation. */
+/** Booking/cancel do not change balances; attendance redeems one credit when staff marks Attended. */
 export const PACKAGE_CREDIT_AUTO_MUTATION = {
   booking: false,
-  attendance: false,
+  attendance: true,
   cancellation: false,
 } as const;

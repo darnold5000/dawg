@@ -54,7 +54,7 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
   {
     id: "roster",
     label: "Roster & attendance",
-    intro: "Running class check-in. Package credits are adjusted separately.",
+    intro: "Running class check-in and tying attendance to package credits.",
     blocks: [
       {
         heading: "Session roster",
@@ -65,11 +65,11 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
       {
         heading: "Attendance statuses",
         paragraphs: [
-          "Mark Registered, Attended, No-show, or Cancelled as appropriate. Attendance does not change package-credit balances.",
+          "Mark Registered, Attended, No-show, or Cancelled as appropriate. Attended deducts one package session when the family has balance (same as before — not for Stripe-paid drop-ins).",
         ],
         bullets: [
-          "Package credits are managed manually by staff on the client profile.",
-          "Use the credit adjustment controls to grant, add, or remove remaining sessions.",
+          "Credit redeemed — toast shows package name and sessions remaining.",
+          "No credits — athlete marked attended but no balance; collect payment or grant credits on the client profile.",
         ],
       },
     ],
@@ -111,7 +111,7 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
       {
         heading: "How credits work",
         paragraphs: [
-          "Parents buy packages online or at facility. Booking uses an available credit to skip the $25 payment — the remaining balance is not changed automatically. Staff update remaining sessions with the credit adjustment controls.",
+          "Parents buy packages online or at facility. Booking with an available credit skips the $25 charge; one session is deducted when staff marks Attended on the roster.",
         ],
       },
       {
@@ -186,7 +186,7 @@ export const ADMIN_GUIDE_SECTIONS: AdminGuideSection[] = [
         heading: "Package credit class",
         bullets: [
           "Booking shows package credit / no payment due when an eligible credit exists.",
-          "Balances are not deducted on booking or attendance. Staff adjust remaining sessions on the client profile.",
+          "On attended: system redeems one credit if balance exists.",
           "No balance: sell a package, grant credits, or take the $25 payment.",
         ],
       },

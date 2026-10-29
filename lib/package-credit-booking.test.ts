@@ -10,6 +10,7 @@ import {
 import {
   redeemPackageCreditOnAttendance,
   syncAttendedBookingCredits,
+  packageCreditRedemptionExemption,
 } from "./packages";
 
 const ATHLETE_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -168,22 +169,44 @@ describe("package-credit booking payment decision", () => {
 });
 
 describe("package-credit attendance and cancellation", () => {
-  it("Test 9 — attendance does not redeem or change balances", async () => {
-    const remainingBefore = 5;
-    const result = await redeemPackageCreditOnAttendance(
-      "booking-attended-test",
+  it("Test 9 — paid drop-ins are exempt from attendance redemption", () => {
+    assert.equal(
+      packageCreditRedemptionExemption({
+        payment_method: "stripe",
+        payment_status: "paid",
+      }),
+      "paid_online",
     );
-    assert.equal(result.ok, true);
-    if (result.ok) {
-      assert.equal(result.redeemed, false);
-      if (result.redeemed === false) {
-        assert.equal(result.reason, "manual_management");
-      }
+    assert.equal(
+      packageCreditRedemptionExemption({
+        payment_method: "pay_at_facility",
+        payment_status: "paid",
+      }),
+      "paid_at_facility",
+    );
+    assert.equal(
+      packageCreditRedemptionExemption({
+        payment_method: "package_credit",
+        payment_status: "not_required",
+      }),
+      null,
+    );
+    assert.equal(PACKAGE_CREDIT_AUTO_MUTATION.attendance, true);
+  });
+
+  it("redeem without database returns NO_DB", async () => {
+    const result = await redeemPackageCreditOnAttendance("booking-attended-test");
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      assert.equal(result.ok, true);
+    } else {
+      assert.equal(result.ok, false);
+      if (!result.ok) assert.equal(result.code, "NO_DB");
     }
+  });
+
+  it("sync without database is a no-op", async () => {
     const sync = await syncAttendedBookingCredits("guardian-test");
     assert.equal(sync.redeemed, 0);
-    assert.equal(remainingBefore, 5);
-    assert.equal(PACKAGE_CREDIT_AUTO_MUTATION.attendance, false);
   });
 
   it("Test 10 — cancellation does not mutate credits", () => {

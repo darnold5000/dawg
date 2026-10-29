@@ -16,7 +16,7 @@ export const CLIENT_FAQ_ITEMS: FaqItem[] = [
     question: "How do I pay for sessions and packages?",
     answerParagraphs: [
       "Paid sessions and training packages are purchased online with secure Stripe checkout.",
-      "If you have remaining package credits, booking a $25 session does not charge a card. Staff manage remaining sessions on your account.",
+      "If you have remaining package credits, booking a $25 session does not charge a card. One session is deducted when staff marks your athlete attended on the roster.",
     ],
     link: { href: "/booking-policy", label: "Booking policy" },
   },
