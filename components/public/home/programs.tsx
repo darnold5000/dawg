@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import type { Program } from "@/lib/types/database";
 import { audienceLabelForProgram } from "@/lib/program-grades";
 import { GradePlacementNote } from "@/components/public/grade-placement-note";
+import { PersonalTrainingCtaCard } from "@/components/public/personal-training-cta-card";
 import { SITE } from "@/lib/constants";
 import { STRENGTH_DEVELOPMENT_PROGRAM_SLUG } from "@/lib/program-package-credits";
 
@@ -102,23 +103,7 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
           ))}
         </div>
 
-        <article className="mt-8 max-w-md rounded-xl border border-brand/25 bg-card p-5 shadow-sm">
-          <h3 className="font-heading text-xl tracking-wide">Personal Training</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Contact Coach Thompson to arrange personal training.
-          </p>
-          <Button
-            asChild
-            size="sm"
-            className="mt-4 bg-brand font-bold text-brand-foreground hover:bg-brand/90"
-          >
-            <Link
-              href={`mailto:${SITE.email}?subject=${encodeURIComponent("Personal training inquiry")}`}
-            >
-              Contact Coach Thompson
-            </Link>
-          </Button>
-        </article>
+        <PersonalTrainingCtaCard className="mt-8" />
       </div>
     </section>
   );

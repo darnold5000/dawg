@@ -1,3 +1,4 @@
+import { PersonalTrainingCtaCard } from "@/components/public/personal-training-cta-card";
 import { ScheduleBrowser } from "@/components/public/schedule-browser";
 import { GradePlacementNote } from "@/components/public/grade-placement-note";
 import { getFilteredSessions } from "@/lib/data";
@@ -29,6 +30,7 @@ export default async function SchedulePage() {
         </p>
         <GradePlacementNote className="mt-3 max-w-2xl" />
       </div>
+      <PersonalTrainingCtaCard className="mt-8" />
       <div className="mt-8">
         <ScheduleBrowser sessions={sessions} />
       </div>

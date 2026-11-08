@@ -86,8 +86,9 @@ export function ContactForm() {
 
   return (
     <form
+      id="contact-form"
       onSubmit={onSubmit}
-      className="relative space-y-5 rounded-xl border border-border bg-card p-5 sm:p-6"
+      className="relative scroll-mt-24 space-y-5 rounded-xl border border-border bg-card p-5 sm:p-6"
     >
       <div>
         <h2 className="font-heading text-xl tracking-wide">Send a message</h2>
