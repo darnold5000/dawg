@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   createTrainingServiceClient,
+  hasTrainingServiceDbEnv,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 import {
@@ -84,7 +85,7 @@ const FALLBACK_PACKAGES: TrainingPackage[] = [
     slug: "twelve-week",
     name: "12-week program",
     description:
-      "Strength Development — 5 days per week for 12 weeks (60 sessions). Book each class on the schedule. Credits expire 12 weeks after purchase.",
+      "60 group sessions over 12 weeks. Book any class on the schedule except private lessons. One credit is used when staff mark your athlete attended. Credits expire 12 weeks after purchase.",
     session_count: 60,
     price_cents: 60000,
     currency: "usd",
@@ -289,7 +290,7 @@ export async function createPackagePayAtFacilityPurchase(input: {
 }): Promise<
   { ok: true; purchaseId: string } | { ok: false; error: string; code?: string }
 > {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasTrainingServiceDbEnv()) {
     return { ok: false, error: "Checkout unavailable", code: "UNAVAILABLE" };
   }
 
@@ -365,7 +366,7 @@ export async function listActiveCreditsForParent(
   parentId: string,
   athleteId?: string | null,
 ): Promise<PackagePurchaseWithPackage[]> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasTrainingServiceDbEnv()) {
     return [];
   }
   const supabase = createTrainingServiceClient();
@@ -392,7 +393,7 @@ export async function listActiveCreditsForParent(
   return eligible;
 }
 
-/** Paid credits eligible for this program (e.g. 12-week + packs on Strength Development). */
+/** Paid credits eligible for this program (12-week on group programs; packs per program rules). */
 export async function listCreditsForProgramBooking(
   parentId: string,
   programSlug: string | null | undefined,
@@ -429,7 +430,7 @@ export async function confirmPackagePurchasePaid(input: {
   stripeCustomerId: string | null;
   amountPaidCents: number;
 }): Promise<{ ok: true; purchase: PackagePurchase } | { ok: false; error: string }> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasTrainingServiceDbEnv()) {
     return { ok: false, error: "Database unavailable" };
   }
   const supabase = createTrainingServiceClient();
@@ -495,7 +496,7 @@ export async function confirmPackagePurchasePaid(input: {
 export async function getPurchaseById(
   purchaseId: string,
 ): Promise<PackagePurchaseWithPackage | null> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasTrainingServiceDbEnv()) {
     return null;
   }
   const supabase = createTrainingServiceClient();
@@ -512,7 +513,7 @@ export async function getPurchaseById(
 export async function getPurchaseByCheckoutSession(
   checkoutSessionId: string,
 ): Promise<PackagePurchaseWithPackage | null> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasTrainingServiceDbEnv()) {
     return null;
   }
   const supabase = createTrainingServiceClient();
@@ -529,7 +530,7 @@ export async function getPurchaseByCheckoutSession(
 export async function listPurchasesForParent(
   parentId: string,
 ): Promise<PackagePurchaseWithPackage[]> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasTrainingServiceDbEnv()) {
     return [];
   }
   const supabase = createTrainingServiceClient();
@@ -591,7 +592,7 @@ export function packageCreditRedemptionExemption(
 export async function redeemPackageCreditOnAttendance(
   bookingId: string,
 ): Promise<PackageCreditRedemptionResult> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasTrainingServiceDbEnv()) {
     return { ok: false, error: "Database unavailable", code: "NO_DB" };
   }
 
@@ -712,7 +713,7 @@ export async function syncAttendedBookingCredits(parentId: string): Promise<{
   skipped: number;
   failed: number;
 }> {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasTrainingServiceDbEnv()) {
     return { ok: true, redeemed: 0, skipped: 0, failed: 0 };
   }
 

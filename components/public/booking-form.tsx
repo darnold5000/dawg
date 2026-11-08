@@ -591,7 +591,7 @@ export function BookingForm({
         bookingContextChecked
       ) {
         toastError(
-          "Purchase the 12-week program or a session package before booking.",
+          "Purchase the 12-week program or a session package before booking this class.",
         );
         return;
       }
@@ -1349,9 +1349,9 @@ export function BookingForm({
                   Package required
                 </p>
                 <p className="mt-1 text-muted-foreground">
-                  Buy the 12-week Strength Development program (60 sessions)
-                  or a session pack (1, 10, or 20). Staff apply credits when
-                  your athlete attends.
+                  Buy the 12-week program (60 group sessions) or a session pack
+                  (1, 10, or 20). Private lessons are not included. Staff deduct
+                  one credit when your athlete attends.
                 </p>
                 <Link
                   href="/packages"

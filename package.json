@@ -15,7 +15,8 @@
     "test:family-context": "npx tsx --test lib/family-context-access.test.ts",
     "test:follow-up": "npx tsx --test lib/family-access-copy.test.ts lib/family-context-access.test.ts lib/admin-booking-lifecycle.test.ts lib/booking-contact-email.test.ts lib/booking-retry.test.ts lib/booking-state.test.ts lib/format.test.ts",
     "test:seo": "npx tsx --test lib/seo.test.ts",
-    "test:training-tenant": "npx tsx scripts/test-training-tenant-scope.ts"
+    "test:training-tenant": "npx tsx scripts/test-training-tenant-scope.ts",
+    "db:backfill-package-credits": "npx tsx scripts/backfill-package-credit-redemptions.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -38,6 +39,7 @@
     "stripe": "^22.3.2",
     "tailwind-merge": "^3.6.0",
     "tw-animate-css": "^1.4.0",
+    "ws": "^8.22.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -45,6 +47,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "shadcn": "^4.13.0",

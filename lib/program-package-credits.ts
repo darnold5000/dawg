@@ -3,6 +3,8 @@ import type { PackagePurchaseWithPackage } from "@/lib/types/database";
 
 export const STRENGTH_DEVELOPMENT_PROGRAM_SLUG = "strength-development";
 
+export const PRIVATE_TRAINING_PROGRAM_SLUG = "private-training";
+
 export const TWELVE_WEEK_PACKAGE_SLUG = "twelve-week";
 
 export const SESSION_PACK_SLUGS = ["single", "pack-10", "pack-20"] as const;
@@ -13,10 +15,10 @@ export type SessionPackSlug = (typeof SESSION_PACK_SLUGS)[number];
 export function allowedPackageSlugsForProgram(
   programSlug: string | null | undefined,
 ): readonly string[] {
-  if (programSlug === STRENGTH_DEVELOPMENT_PROGRAM_SLUG) {
-    return [TWELVE_WEEK_PACKAGE_SLUG, ...SESSION_PACK_SLUGS];
+  if (programSlug === PRIVATE_TRAINING_PROGRAM_SLUG) {
+    return SESSION_PACK_SLUGS;
   }
-  return SESSION_PACK_SLUGS;
+  return [TWELVE_WEEK_PACKAGE_SLUG, ...SESSION_PACK_SLUGS];
 }
 
 /** Strength: book only with 12-week or session-pack balance (no per-session Stripe). */

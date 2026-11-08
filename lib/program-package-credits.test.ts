@@ -56,8 +56,14 @@ describe("program package credits", () => {
     assert.ok(slugs.includes("single"));
   });
 
-  it("excludes 12-week from All Dawgs-style programs", () => {
+  it("allows 12-week on group programs such as All Dawgs", () => {
     const slugs = allowedPackageSlugsForProgram("all-dawgs");
+    assert.ok(slugs.includes(TWELVE_WEEK_PACKAGE_SLUG));
+    assert.ok(slugs.includes("pack-10"));
+  });
+
+  it("excludes 12-week from private training", () => {
+    const slugs = allowedPackageSlugsForProgram("private-training");
     assert.ok(!slugs.includes(TWELVE_WEEK_PACKAGE_SLUG));
     assert.ok(slugs.includes("pack-10"));
   });
@@ -73,8 +79,10 @@ describe("program package credits", () => {
     );
     assert.equal(forStrength.length, 2);
     const forAllDawgs = filterPurchasesByProgramSlug(rows, "all-dawgs");
-    assert.equal(forAllDawgs.length, 1);
-    assert.equal(forAllDawgs[0].package?.slug, "single");
+    assert.equal(forAllDawgs.length, 2);
+    const forPrivate = filterPurchasesByProgramSlug(rows, "private-training");
+    assert.equal(forPrivate.length, 1);
+    assert.equal(forPrivate[0].package?.slug, "single");
   });
 
   it("requires package balance for Strength when no credits", () => {

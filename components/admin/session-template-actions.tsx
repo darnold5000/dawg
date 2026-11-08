@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +17,7 @@ export function SessionTemplateActions({
   isActive: boolean;
 }) {
   const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
 
   async function duplicate() {
     const res = await fetch(
@@ -38,9 +41,10 @@ export function SessionTemplateActions({
     ) {
       return;
     }
-    const res = await fetch(`/api/admin/session-templates/${templateId}`, {
-      method: "DELETE",
-    });
+    const res = await fetch(
+      `/api/admin/session-templates/${templateId}/archive`,
+      { method: "POST" },
+    );
     const data = await res.json();
     if (!res.ok) {
       toast.error(data.error ?? "Archive failed");
@@ -48,6 +52,29 @@ export function SessionTemplateActions({
     }
     toast.success("Class archived");
     router.refresh();
+  }
+
+  async function onDelete() {
+    const warning = `Delete "${templateName}" permanently? Scheduled sessions on the calendar will stay; they will no longer link to this saved class.`;
+    if (!window.confirm(warning)) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/session-templates/${templateId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Could not delete class");
+        return;
+      }
+      toast.success("Class deleted");
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -79,6 +106,17 @@ export function SessionTemplateActions({
           Archive
         </Button>
       ) : null}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+        disabled={deleting}
+        onClick={onDelete}
+      >
+        <Trash2 className="mr-1.5 size-3.5" />
+        {deleting ? "Deleting…" : "Delete"}
+      </Button>
     </div>
   );
 }

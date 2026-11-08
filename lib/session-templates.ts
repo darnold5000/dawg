@@ -214,6 +214,27 @@ export async function archiveSessionTemplate(
   }
 }
 
+export async function deleteSessionTemplate(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    assertTrainingConfigured();
+    const supabase = createTrainingServiceClient();
+    const { error } = await supabase
+      .from(TRAINING_TABLES.sessionTemplates)
+      .delete()
+      .eq("id", id);
+
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Could not delete class",
+    };
+  }
+}
+
 export async function duplicateSessionTemplate(
   id: string,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {

@@ -13,7 +13,7 @@ function bookingIntro(
     return "Reserve your athlete's spot on the roster. We'll see you at training.";
   }
   if (requiresPackageCreditToBook(session.program?.slug)) {
-    return "Reserve your spot with your 12-week Strength Development program or session package credits.";
+    return "Reserve your spot with your 12-week program or session package credits.";
   }
   switch (session.payment_requirement) {
     case "pay_online":

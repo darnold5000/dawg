@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import ws from "ws";
 
 /** Valid HTTP(S) Supabase project URL, or null when unset/invalid. */
 export function getSupabaseUrl(): string | null {
@@ -62,16 +63,25 @@ export function createServiceClient() {
   }
 
   return createSupabaseClient(url, serviceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
     },
-  );
+    realtime: {
+      transport: ws,
+    },
+  });
 }
 
 export function isSupabaseConfigured(): boolean {
   return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
+}
+
+/** Service-role server paths (redeem, ops scripts). Does not require anon key in env. */
+export function hasTrainingServiceDbEnv(): boolean {
+  return Boolean(
+    getSupabaseUrl() && process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
+  );
 }
 
 export { createTrainingServiceClient } from "@/lib/supabase/training-service";

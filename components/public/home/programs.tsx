@@ -101,6 +101,24 @@ export function HomePrograms({ programs }: { programs: Program[] }) {
             </article>
           ))}
         </div>
+
+        <article className="mt-8 max-w-md rounded-xl border border-brand/25 bg-card p-5 shadow-sm">
+          <h3 className="font-heading text-xl tracking-wide">Personal Training</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Contact Coach Thompson to arrange personal training.
+          </p>
+          <Button
+            asChild
+            size="sm"
+            className="mt-4 bg-brand font-bold text-brand-foreground hover:bg-brand/90"
+          >
+            <Link
+              href={`mailto:${SITE.email}?subject=${encodeURIComponent("Personal training inquiry")}`}
+            >
+              Contact Coach Thompson
+            </Link>
+          </Button>
+        </article>
       </div>
     </section>
   );

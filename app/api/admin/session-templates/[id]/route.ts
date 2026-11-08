@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { requireAdminApi } from "@/lib/auth";
 import {
-  archiveSessionTemplate,
-  duplicateSessionTemplate,
+  deleteSessionTemplate,
   getSessionTemplate,
   updateSessionTemplate,
   sessionTemplateFormSchema,
@@ -62,9 +61,9 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
   if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
-  const result = await archiveSessionTemplate(id);
+  const result = await deleteSessionTemplate(id);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
-  return NextResponse.json({ ok: true, archived: true });
+  return NextResponse.json({ ok: true });
 }

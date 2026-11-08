@@ -24,10 +24,10 @@ export default async function PackagesPage({
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 md:py-16">
       <h1 className="font-heading text-4xl tracking-wide">Training packages</h1>
       <p className="mt-3 text-muted-foreground">
-        One-time purchase. Session packs are applied by staff when your athlete
-        attends. The 12-week program is pay once for 60 sessions — book each
-        Strength Development class on the schedule. Those credits expire 12
-        weeks after purchase.
+        One-time purchase. The 12-week program is pay once for 60 sessions — book
+        any group class on the schedule (not private lessons). Staff deduct one
+        credit when your athlete is marked attended. Credits expire 12 weeks
+        after purchase. Session packs work the same way for eligible classes.
       </p>
 
       {q.cancelled === "1" ? (
