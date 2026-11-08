@@ -56,6 +56,18 @@ export const sessionFormSchema = z.object({
 
 export type SessionFormInput = z.infer<typeof sessionFormSchema>;
 
+/** Edit single occurrence — Zod 4 disallows .omit() on schemas with refinements. */
+export function parseSessionUpdateInput(body: unknown): SessionFormInput {
+  return sessionFormSchema.parse({
+    ...(typeof body === "object" && body !== null
+      ? (body as Record<string, unknown>)
+      : {}),
+    recurrence: "none",
+    recurrence_weeks: 1,
+    recurrence_days: [],
+  });
+}
+
 export function buildOccurrenceDates(
   startDate: string,
   recurrence: "none" | "weekly" | "weekdays" | "custom",

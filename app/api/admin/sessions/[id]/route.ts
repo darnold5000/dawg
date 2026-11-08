@@ -7,7 +7,7 @@ import {
 } from "@/lib/supabase/server";
 import { DAWG_TABLES } from "@/lib/supabase/tables";
 import { dollarsToCents } from "@/lib/billing/format";
-import { deleteSession, sessionFormSchema } from "@/lib/sessions";
+import { deleteSession, parseSessionUpdateInput } from "@/lib/sessions";
 
 export async function PATCH(
   request: Request,
@@ -20,12 +20,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const parsed = sessionFormSchema.omit({ recurrence: true, recurrence_weeks: true, recurrence_days: true }).parse({
-      ...body,
-      recurrence: "none",
-      recurrence_weeks: 1,
-      recurrence_days: [],
-    });
+    const parsed = parseSessionUpdateInput(body);
 
     if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json({ ok: true, demo: true });
@@ -74,7 +69,9 @@ export async function PATCH(
     if (error instanceof ZodError) {
       return NextResponse.json({ error: "Invalid session data" }, { status: 400 });
     }
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+    const message =
+      error instanceof Error ? error.message : "Unexpected error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
