@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import ws from "ws";
 
 /** Valid HTTP(S) Supabase project URL, or null when unset/invalid. */
 export function getSupabaseUrl(): string | null {
@@ -66,9 +65,6 @@ export function createServiceClient() {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
-    },
-    realtime: {
-      transport: ws,
     },
   });
 }
